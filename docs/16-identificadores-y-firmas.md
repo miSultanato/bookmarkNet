@@ -30,6 +30,8 @@ evitar colisiones accidentales.
 
 ## Claves y firmas
 
+**Algoritmo:** todas las claves y firmas del sistema usan Ed25519. Es el algoritmo por defecto de Hypercore, rápido, estándar y con librerías maduras en el ecosistema Node.js. Las claves públicas se serializan en hex con prefijo `pk_user_` / `pk_col_`; las firmas en hex con prefijo `sig_`.
+
 ### Jerarquía de claves
 
 ```text
@@ -81,9 +83,12 @@ sha256(
   collection_id ||
   collection_public_key ||
   name ||
-  visibility
+  visibility ||
+  (forked_from ?? "")
 )
 ```
+
+**Nota:** `forked_from` se incluye en la firma aunque sea `null` en colecciones originales, para que la firma cubra la procedencia de la colección. Ver `docs/15-schema-eventos.md`.
 
 ### Cadena de verificación
 
