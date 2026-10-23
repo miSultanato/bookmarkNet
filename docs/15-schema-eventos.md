@@ -29,6 +29,7 @@ Cada bloque del Hypercore es un objeto JSON con esta forma:
   "created_at": "2026-10-23T14:32:00Z",
   "payload": { ... }
 }
+```
 
 Campos comunes
 Campo	Tipo	Descripción
@@ -39,6 +40,8 @@ author_id	string	user_id que firma el evento. Debe coincidir con el owner_id de 
 created_at	ISO8601	Timestamp del autor. No es fuente de verdad para orden (el orden lo da el log)
 payload	object	Depende del event_type
 Tipos de evento (v1)
+
+**Nota sobre identificadores:** `collection_id` es igual a `collection_public_key` en hex, sin prefijo. Ver `docs/16-identificadores-y-firmas.md`.
 
 | # | event_type | Propósito |
 | - | ------------------ | ------------------------------------------- |
@@ -57,7 +60,7 @@ Tipos de evento (v1)
 Siempre el bloque 0 de cualquier colección. Vincula la clave
 del Hypercore con el usuario propietario. Sin este bloque, la
 colección no es válida.
-json
+```json
 
 {
   "schema_version": 1,
@@ -66,7 +69,7 @@ json
   "author_id": "u_93c4fa12...",
   "created_at": "2026-10-23T14:30:00Z",
   "payload": {
-    "collection_id": "c_3df0c93d...",
+    "collection_id": "3df0c93d...",
     "collection_public_key": "pk_col_xxxxx",
     "name": "Japón 2027",
     "description": "Recursos para un viaje de 30 días",
@@ -75,6 +78,7 @@ json
     "signature_by_owner": "sig_xxxxx"
   }
 }
+```
 
 **Verificación:** `signature_by_owner` es la firma del `author_id` sobre:
 
@@ -101,7 +105,7 @@ Es lo que demuestra que el usuario es el dueño de la colección.
 2. add_bookmark
 
 Añade un bookmark (referencia a un resource) a la colección.
-json
+```json
 
 {
   "schema_version": 1,
@@ -120,6 +124,7 @@ json
     "group_id": null
   }
 }
+```
 
 Notas:
 
@@ -139,7 +144,7 @@ Notas:
 
 Modifica metadatos de un bookmark existente. No cambia el
 resource_id ni la URL.
-json
+```json
 
 {
   "schema_version": 1,
@@ -156,6 +161,7 @@ json
     }
   }
 }
+```
 
 Notas:
 
@@ -168,7 +174,7 @@ Notas:
 4. remove_bookmark
 
 Marca un bookmark como eliminado. No borra el bloque anterior.
-json
+```json
 
 {
   "schema_version": 1,
@@ -180,11 +186,12 @@ json
     "bookmark_id": "01J8XL..."
   }
 }
+```
 
 5. move_bookmark
 
 Mueve un bookmark a otro grupo (o al Inbox).
-json
+```json
 
 {
   "schema_version": 1,
@@ -197,12 +204,13 @@ json
     "group_id": "g_transporte" 
   }
 }
+```
 
 group_id: null → Inbox.
 6. update_metadata
 
 Cambia nombre, descripción o visibilidad de la colección.
-json
+```json
 
 {
   "schema_version": 1,
@@ -218,11 +226,12 @@ json
     }
   }
 }
+```
 
 7. create_group
 
 Crea un grupo dentro de la colección.
-json
+```json
 
 {
   "schema_version": 1,
@@ -236,19 +245,24 @@ json
     "position": 0
   }
 }
+```
 
 8. delete_group
 
 Elimina un grupo. Los bookmarks que contenía se mueven a Inbox.
-json
+```json
 
 {
   "schema_version": 1,
+  "event_id": "01J8XT...",
   "event_type": "delete_group",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T16:30:00Z",
   "payload": {
     "group_id": "g_transporte"
   }
 }
+```
 
 9. `reorder_bookmark`
 
@@ -287,6 +301,7 @@ text
 estado = {}
 para cada bloque en el log (orden):
     aplicar(bloque, estado)
+```
 
 Reglas de fold
 Evento	Efecto
