@@ -21,8 +21,17 @@
 
 - Replicamos eventos, no estados.
 - Cada colección = un Hypercore.
-- Cada bloque = un evento (`add_bookmark`, `edit_bookmark`, `remove_bookmark`, `update_metadata`).
+- Cada bloque = un evento.
 - Verificación criptográfica bloque a bloque.
+
+Los 9 tipos de evento están definidos en `docs/15-schema-eventos.md`:
+`collection_genesis`, `add_bookmark`, `edit_bookmark`, `remove_bookmark`, `move_bookmark`, `reorder_bookmark`, `update_metadata`, `create_group`, `delete_group`.
+
+La lista anterior es exhaustiva, no ilustrativa.
+
+Jerarquía de claves:
+- El usuario (`user_keypair`) firma el bloque 0 (`collection_genesis`) que vincula su identidad a la colección.
+- La colección (`collection_keypair`) firma los bloques posteriores. Hypercore lo hace automáticamente.
 
 ## Nodos offline
 
