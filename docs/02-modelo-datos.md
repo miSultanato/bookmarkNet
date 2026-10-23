@@ -6,6 +6,8 @@
 
 ## Entidades
 
+**Nota sobre identificadores:** los formatos exactos están definidos en `docs/16-identificadores-y-firmas.md`. Los ejemplos de este documento son abreviados.
+
 ### User
 
 Representa a una persona. Es la entidad propietaria de bookmarks, grupos, colecciones y publicaciones.
@@ -38,7 +40,7 @@ last_seen: 2026-10-23
 Representa un recurso web único. Es la entidad global, compartida por toda la red.
 
 ```yaml
-resource_id: r_7f6a...      # HASH(canonical_url)
+resource_id: r_7f6a...      # sha256 completo en hex (64 caracteres)
 url: https://japan-guide.com/mountains
 domain: japan-guide.com
 title: Hiking in Japan
@@ -51,9 +53,9 @@ created: 2026-01-15
 Representa la inclusión de un Resource dentro de una colección. Es local al usuario o a la colección.
 
 ```yaml
-bookmark_id: b_83a1
-resource_id: r_7f6a
-collection_id: c_123
+bookmark_id: 01J8XLK3M...
+resource_id: r_7f6a...  # sha256 completo en hex (64 caracteres)
+collection_id: 3df0c93d...
 tags: [hiking, mountains]
 notes: Visitar en otoño
 created: 2026-01-15
@@ -65,7 +67,7 @@ updated: 2026-01-20
 Agrupa bookmarks. Es la unidad principal de compartición.
 
 ```yaml
-collection_id: c_123
+collection_id: 3df0c93d...
 owner_id: u_93c4
 name: Japón 2027
 description: Recursos para un viaje de 30 días
@@ -74,14 +76,16 @@ created: 2026-01-15
 updated: 2026-01-20
 ```
 
+**Relación con el génesis:** cada colección tiene su propio `collection_keypair`. El bloque 0 (`collection_genesis`) contiene `collection_public_key`, `author_public_key` y `signature_by_owner` (firma del usuario sobre los campos del génesis). Los bloques posteriores los firma `collection_keypair` mediante Hypercore.
+
 ## Relaciones
 
 Un mismo Resource puede aparecer en múltiples colecciones. Cada Bookmark conserva sus propios tags y notas; el `resource_id` es el mismo.
 
 ## Invariantes
 
-1. `resource_id = HASH(canonical_url)` (ver [04-canonicalizacion-url.md](04-canonicalizacion-url.md)).
+1. `resource_id = "r_" + sha256("v1:" + canonical_url).hex()` (ver [04-canonicalizacion-url.md](04-canonicalizacion-url.md) y `docs/16-identificadores-y-firmas.md`).
 2. `bookmark_id` es único globalmente.
 3. Todo bookmark referencia un `resource_id` existente.
 4. Toda collection tiene un `owner_id`.
-5. Las modificaciones se firman con la clave privada del `owner_id`.
+5. Las modificaciones se firman con la clave privada de la colección (`collection_keypair`). El usuario firma el bloque génesis (`collection_genesis`) para vincular su identidad a la colección. Ver `docs/16-identificadores-y-firmas.md`.
