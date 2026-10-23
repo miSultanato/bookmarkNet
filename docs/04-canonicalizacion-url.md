@@ -5,8 +5,10 @@ Esta especificación es crítica: los errores fragmentan `resource_id` y hacen i
 ## Regla de identidad
 
 ```
-resource_id = SHA256("v1:" + canonical_url)
+resource_id = "r_" + sha256("v1:" + canonical_url).hex()
 ```
+
+El identificador completo incluye el prefijo `r_` y el hash SHA-256 en hexadecimal (64 caracteres). Ver `docs/16-identificadores-y-firmas.md`.
 
 ## Pasos de canonicalización (v1)
 
@@ -40,4 +42,4 @@ Aplicar en este orden:
 
 ## Versionado
 
-La función de canonicalización tiene versión para permitir migraciones futuras: `resource_id = SHA256("v1:" + canonical_url)`.
+La función de canonicalización tiene versión para permitir migraciones futuras: `resource_id = "r_" + sha256("v1:" + canonical_url).hex()`.
