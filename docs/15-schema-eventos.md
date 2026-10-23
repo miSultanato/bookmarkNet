@@ -29,3 +29,252 @@ Cada bloque del Hypercore es un objeto JSON con esta forma:
   "created_at": "2026-10-23T14:32:00Z",
   "payload": { ... }
 }
+
+Campos comunes
+Campo	Tipo	Descripción
+schema_version	int	Versión del schema. Empieza en 1
+event_id	ULID	Único globalmente, ordenable por tiempo
+event_type	string	Uno de los definidos abajo
+author_id	string	user_id que firma el evento. Debe coincidir con el owner_id de la colección (o un colaborador autorizado en el futuro)
+created_at	ISO8601	Timestamp del autor. No es fuente de verdad para orden (el orden lo da el log)
+payload	object	Depende del event_type
+Tipos de evento (v1)
+1. collection_genesis
+
+Siempre el bloque 0 de cualquier colección. Vincula la clave
+del Hypercore con el usuario propietario. Sin este bloque, la
+colección no es válida.
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XK...",
+  "event_type": "collection_genesis",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T14:30:00Z",
+  "payload": {
+    "collection_id": "c_3df0c93d...",
+    "collection_public_key": "pk_col_xxxxx",
+    "name": "Japón 2027",
+    "description": "Recursos para un viaje de 30 días",
+    "visibility": "public",
+    "signature_by_owner": "sig_xxxxx"
+  }
+}
+
+Verificación: signature_by_owner es la firma del author_id
+sobre el hash de {collection_id, collection_public_key, name, visibility}. Es lo que demuestra que el usuario es el dueño de
+la colección.
+2. add_bookmark
+
+Añade un bookmark (referencia a un resource) a la colección.
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XL...",
+  "event_type": "add_bookmark",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T14:32:00Z",
+  "payload": {
+    "bookmark_id": "01J8XL...",
+    "resource_id": "r_7f6a...",
+    "canonical_url": "https://japan-guide.com/mountains",
+    "title": "Hiking in Japan",
+    "description": "Guide to hiking routes in Japan",
+    "tags": ["hiking", "mountains"],
+    "notes": "Visitar en otoño",
+    "group_id": null
+  }
+}
+
+Notas:
+
+    bookmark_id es un ULID generado por el autor en el momento
+    de añadir.
+
+    canonical_url se embebe siempre (no solo la primera vez).
+    Permite que cualquier nodo reconstruya el resource localmente
+    sin dependencias externas.
+
+    resource_id = SHA256("v1:" + canonical_url) — se incluye por
+    conveniencia y verificación, pero se puede recalcular.
+
+    group_id es opcional. null = Inbox.
+
+3. edit_bookmark
+
+Modifica metadatos de un bookmark existente. No cambia el
+resource_id ni la URL.
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XM...",
+  "event_type": "edit_bookmark",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T15:00:00Z",
+  "payload": {
+    "bookmark_id": "01J8XL...",
+    "changes": {
+      "title": "Hiking in Japan (actualizado)",
+      "tags": ["hiking", "mountains", "otoño"],
+      "notes": "Visitar en octubre"
+    }
+  }
+}
+
+Notas:
+
+    Solo los campos presentes en changes se modifican.
+
+    Los campos no presentes se mantienen.
+
+    Para borrar un campo: "notes": null.
+
+4. remove_bookmark
+
+Marca un bookmark como eliminado. No borra el bloque anterior.
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XN...",
+  "event_type": "remove_bookmark",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T15:10:00Z",
+  "payload": {
+    "bookmark_id": "01J8XL..."
+  }
+}
+
+5. move_bookmark
+
+Mueve un bookmark a otro grupo (o al Inbox).
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XP...",
+  "event_type": "move_bookmark",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T15:15:00Z",
+  "payload": {
+    "bookmark_id": "01J8XL...",
+    "group_id": "g_transporte" 
+  }
+}
+
+group_id: null → Inbox.
+6. update_metadata
+
+Cambia nombre, descripción o visibilidad de la colección.
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XQ...",
+  "event_type": "update_metadata",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T16:00:00Z",
+  "payload": {
+    "changes": {
+      "name": "Japón 2027 (versión final)",
+      "description": "Recursos actualizados",
+      "visibility": "public"
+    }
+  }
+}
+
+7. create_group
+
+Crea un grupo dentro de la colección.
+json
+
+{
+  "schema_version": 1,
+  "event_id": "01J8XR...",
+  "event_type": "create_group",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T16:10:00Z",
+  "payload": {
+    "group_id": "g_transporte",
+    "name": "Transporte",
+    "position": 0
+  }
+}
+
+8. delete_group
+
+Elimina un grupo. Los bookmarks que contenía se mueven a Inbox.
+json
+
+{
+  "schema_version": 1,
+  "event_type": "delete_group",
+  "payload": {
+    "group_id": "g_transporte"
+  }
+}
+
+Fold del log → estado actual
+
+El estado actual de una colección se obtiene aplicando los
+eventos en orden:
+text
+
+estado = {}
+para cada bloque en el log (orden):
+    aplicar(bloque, estado)
+
+Reglas de fold
+Evento	Efecto
+collection_genesis	Crea la colección con sus metadatos
+add_bookmark	Añade bookmark al estado (si no existe)
+edit_bookmark	Aplica cambios sobre el bookmark existente
+remove_bookmark	Marca el bookmark como eliminado (soft delete)
+move_bookmark	Cambia el group_id del bookmark
+update_metadata	Aplica cambios sobre la colección
+create_group	Añade grupo al estado
+delete_group	Marca grupo como eliminado y mueve sus bookmarks a Inbox
+Idempotencia
+
+    add_bookmark con un bookmark_id ya existente → ignorar.
+
+    edit_bookmark / remove_bookmark / move_bookmark sobre
+    un bookmark_id inexistente → ignorar (puede pasar en
+    replicación desordenada).
+
+    collection_genesis solo se aplica una vez (bloque 0).
+
+Resolución de conflictos
+
+En MVP no hay multi-writer, así que no hay conflictos posibles:
+un solo autor escribe. Cuando se añada multi-writer (Autobase,
+futuro), esta sección se ampliará.
+Versionado
+
+    Cada bloque incluye schema_version.
+
+    Si en el futuro cambia el formato, se incrementa.
+
+    Un nodo que encuentra un bloque con versión desconocida:
+
+        Si es menor: aplica función de migración al materializar.
+
+        Si es mayor: rechaza el bloque y no completa la replicación
+        (indica al usuario que actualice).
+
+Lo que el log NO contiene
+
+    Imágenes, vídeos, capturas, thumbnails.
+
+    Contenido generado por usuarios (posts, comentarios).
+
+    Likes, karma, rankings.
+
+    Datos de otros usuarios.
+
+    Estadísticas agregadas.
+
+Solo eventos sobre bookmarks y metadatos de la colección.
