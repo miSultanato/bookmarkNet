@@ -39,6 +39,19 @@ author_id	string	user_id que firma el evento. Debe coincidir con el owner_id de 
 created_at	ISO8601	Timestamp del autor. No es fuente de verdad para orden (el orden lo da el log)
 payload	object	Depende del event_type
 Tipos de evento (v1)
+
+| # | event_type | Propósito |
+| - | ------------------ | ------------------------------------------- |
+| 1 | collection_genesis | Bloque 0. Vincula usuario y colección |
+| 2 | add_bookmark | Añade bookmark (con canonical_url embebida) |
+| 3 | edit_bookmark | Modifica metadatos de un bookmark |
+| 4 | remove_bookmark | Soft delete |
+| 5 | move_bookmark | Cambia de grupo |
+| 6 | reorder_bookmark | Cambia la posición dentro del grupo |
+| 7 | update_metadata | Cambia nombre/descripción/visibilidad |
+| 8 | create_group | Crea grupo |
+| 9 | delete_group | Elimina grupo (bookmarks → Inbox) |
+
 1. collection_genesis
 
 Siempre el bloque 0 de cualquier colección. Vincula la clave
@@ -58,13 +71,33 @@ json
     "name": "Japón 2027",
     "description": "Recursos para un viaje de 30 días",
     "visibility": "public",
+    "forked_from": null,
     "signature_by_owner": "sig_xxxxx"
   }
 }
 
-Verificación: signature_by_owner es la firma del author_id
-sobre el hash de {collection_id, collection_public_key, name, visibility}. Es lo que demuestra que el usuario es el dueño de
-la colección.
+**Verificación:** `signature_by_owner` es la firma del `author_id` sobre:
+
+```text
+sha256(
+  collection_id ||
+  collection_public_key ||
+  name ||
+  visibility ||
+  (forked_from ?? "")
+)
+```
+
+Es lo que demuestra que el usuario es el dueño de la colección.
+
+**Reglas de `forked_from`:**
+
+- `null` si la colección es original.
+- `<collection_id>` de la colección original si es un duplicado.
+- Es informativo, no verificable criptográficamente en MVP. Se usa para mostrar "duplicado de X" en la UI y para métricas de forks.
+- En el futuro, si se quiere verificación, se puede añadir una firma del autor original. Fuera de MVP.
+- `forked_from` no crea ningún vínculo de sincronización. Es una copia congelada en el momento del fork.
+
 2. add_bookmark
 
 Añade un bookmark (referencia a un resource) a la colección.
@@ -217,6 +250,34 @@ json
   }
 }
 
+9. `reorder_bookmark`
+
+Cambia la posición de un bookmark dentro de un grupo (o del Inbox).
+
+```json
+{
+  "schema_version": 1,
+  "event_id": "01J8XS...",
+  "event_type": "reorder_bookmark",
+  "author_id": "u_93c4fa12...",
+  "created_at": "2026-10-23T16:20:00Z",
+  "payload": {
+    "bookmark_id": "01J8XL...",
+    "group_id": "g_transporte",
+    "position": 2
+  }
+}
+```
+
+**Reglas:**
+
+- `position` es un entero. Orden dentro del grupo (0 = primero).
+- Si `group_id` es `null`, reordena en Inbox.
+- Si `position` es mayor que el número actual de bookmarks en el grupo, se coloca al final.
+- Idempotente: aplicar dos veces el mismo `reorder_bookmark` da el mismo resultado.
+- El orden por defecto (si nunca se ha reordenado) es por `created_at` ascendente.
+- **Fold:** actualiza la posición del bookmark en el grupo indicado. Los demás bookmarks del grupo se reajustan (los que estaban en posiciones ≥ `position` suben uno).
+
 Fold del log → estado actual
 
 El estado actual de una colección se obtiene aplicando los
@@ -234,6 +295,7 @@ add_bookmark	Añade bookmark al estado (si no existe)
 edit_bookmark	Aplica cambios sobre el bookmark existente
 remove_bookmark	Marca el bookmark como eliminado (soft delete)
 move_bookmark	Cambia el group_id del bookmark
+reorder_bookmark	Actualiza la posición del bookmark en el grupo. Reajusta el resto
 update_metadata	Aplica cambios sobre la colección
 create_group	Añade grupo al estado
 delete_group	Marca grupo como eliminado y mueve sus bookmarks a Inbox
@@ -246,6 +308,8 @@ Idempotencia
     replicación desordenada).
 
     collection_genesis solo se aplica una vez (bloque 0).
+
+    reorder_bookmark con el mismo position que ya tiene → ignorar.
 
 Resolución de conflictos
 
@@ -276,5 +340,9 @@ Lo que el log NO contiene
     Datos de otros usuarios.
 
     Estadísticas agregadas.
+
+    Tags a nivel de colección. Los tags viven solo en los
+    bookmarks. Cualquier tag "de colección" se deriva
+    agregando los tags de sus bookmarks.
 
 Solo eventos sobre bookmarks y metadatos de la colección.
