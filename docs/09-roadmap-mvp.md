@@ -22,10 +22,28 @@ Resultado: «Pocket local».
 **Objetivo:** todo vive sobre Hyper*, aunque siga siendo local.
 
 - Cada colección = un Hypercore.
-- Eventos en vez de INSERT (por ejemplo, `{"op":"add_bookmark", ...}`).
+- Eventos en vez de INSERT (por ejemplo, el envelope canónico):
+
+  ```json
+  {
+    "schema_version": 1,
+    "event_id": "01J8XL...",
+    "event_type": "add_bookmark",
+    "author_id": "u_...",
+    "created_at": "...",
+    "payload": { ... }
+  }
+  ```
 - Preparado para replicarse.
 
 ## MVP 2 — Multidispositivo + compartición directa
+
+### Seguir vs duplicar
+
+Son dos operaciones distintas:
+
+- **Seguir:** replicas la colección del autor. Recibes sus cambios. No puedes editar la colección original. Se materializa con un enlace `bmn://<collection_id>`.
+- **Duplicar:** creas una copia propia congelada en el momento del fork. El génesis de tu copia incluye `forked_from: <collection_id_original>`. Es una copia congelada: los cambios posteriores del autor original NO se propagan automáticamente a tu copia. Si quieres actualizarla, vuelves a duplicar.
 
 **Objetivo:** validar identidad multidispositivo y compartición entre usuarios, con NAT traversal básico y tolerancia a offline.
 
