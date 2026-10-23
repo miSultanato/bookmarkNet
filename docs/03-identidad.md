@@ -38,13 +38,20 @@ No hay registro, email ni contraseña.
 
 Desde un nodo existente:
 
-1. Seleccionar «Añadir dispositivo».
-2. Generar un QR o código temporal.
-3. El nuevo nodo escanea o importa el código.
-4. Recibe la identidad (clave privada y pública).
-5. Genera su propio Node ID.
+1. `Añadir dispositivo`
+2. El nodo original genera:
+   - Un par de claves efímero para el intercambio.
+   - Una contraseña aleatoria de 6 dígitos (mostrada en pantalla).
+   - Un QR que contiene `{identity_blob_cifrado, salt, nonce, ephemeral_public_key}`.
+3. `identity_blob_cifrado` = clave privada del usuario + clave pública + perfil, cifrado con la contraseña (AES-GCM o ChaCha20-Poly1305).
+4. El nuevo nodo escanea el QR e introduce la contraseña de 6 dígitos.
+5. Descifra `identity_blob` con la contraseña.
+6. Genera su propio `node_id` y se registra en la lista de dispositivos del usuario.
+7. El QR y la contraseña caducan a los 5 minutos o al completar la operación (lo que ocurra primero).
 
-Resultado: misma identidad, nuevo dispositivo.
+**Seguridad:** la clave privada nunca viaja en claro por la red. El QR es de un solo uso y la contraseña se muestra solo en pantalla del nodo original. En LAN confiable se puede omitir la contraseña (opción configurable), pero por defecto se exige.
+
+**Futuro (fuera de MVP):** intercambio de claves Diffie-Hellman entre dispositivos para evitar compartir la contraseña por canal visual. No se implementa en MVP.
 
 ## Backup
 
