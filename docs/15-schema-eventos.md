@@ -71,6 +71,7 @@ colección no es válida.
   "payload": {
     "collection_id": "3df0c93d...",
     "collection_public_key": "pk_col_xxxxx",
+    "author_public_key": "pk_user_xxxxx",
     "name": "Japón 2027",
     "description": "Recursos para un viaje de 30 días",
     "visibility": "public",
@@ -80,7 +81,7 @@ colección no es válida.
 }
 ```
 
-**Verificación:** `signature_by_owner` es la firma del `author_id` sobre:
+**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del `author_id` sobre:
 
 ```text
 sha256(
