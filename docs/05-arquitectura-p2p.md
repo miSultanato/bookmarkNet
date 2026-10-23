@@ -1,0 +1,46 @@
+# Arquitectura P2P
+
+## Stack
+
+- **Hypercore:** log append-only firmado por una clave. Una colección = un Hypercore.
+- **Hyperbee:** índice key-value sobre Hypercore. Metadatos locales y consultas.
+- **Hyperswarm:** DHT para discovery y NAT traversal.
+
+## Por qué Hypercore
+
+- El log append-only encaja con el modelo de eventos.
+- Hyperswarm resuelve NAT traversal sin infraestructura propia.
+- Hyperbee aporta índices locales sin construir una capa de consultas.
+- Ecosistema activo.
+
+## Limitaciones conocidas
+
+**Un solo escritor por core.** Hypercore nativo es single-writer. Si en el futuro se quiere que otras personas contribuyan al core del autor original, será necesario **Autobase** (multi-writer sobre Hypercore) o un modelo de fork + merge. No bloquea el MVP, pero condiciona la arquitectura futura; ver [10-riesgos.md](10-riesgos.md).
+
+## Modelo de replicación
+
+- Replicamos eventos, no estados.
+- Cada colección = un Hypercore.
+- Cada bloque = un evento (`add_bookmark`, `edit_bookmark`, `remove_bookmark`, `update_metadata`).
+- Verificación criptográfica bloque a bloque.
+
+## Nodos offline
+
+Los nodos offline son normales. Un portátil puede estar apagado el 80 % del tiempo. Requisito mínimo: al menos un nodo con la colección debe seguir online.
+
+Si todos desaparecen, la colección queda temporalmente inaccesible. Cuando uno vuelve y anuncia el topic, reaparece.
+
+## Estado de sincronización (UI)
+
+- ✅ Sincronizada
+- ⏳ Sin cambios pendientes
+- ⚠ Última réplica hace N días
+- 🔴 Ningún peer disponible
+
+La UI debe comunicar: «Tu colección está segura en tu dispositivo. Se replicará cuando haya peers disponibles».
+
+## Futuro (fuera del MVP)
+
+- Relays / TURN para NAT traversal difícil.
+- Autobase para multi-writer.
+- Set reconciliation (Willow-like) para una sincronización más eficiente.
