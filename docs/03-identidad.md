@@ -61,7 +61,12 @@ Si se pierden todos los dispositivos pero se conserva `identity.bmn`:
 
 ## Sincronización multidispositivo
 
-Toda modificación se firma con la identidad. Cada entidad compartible incluye `owner_id`. Al recibir un cambio, se comprueba que está firmado por el propietario; si no, se rechaza.
+Cada colección tiene su propio par de claves. El usuario firma el bloque génesis (`collection_genesis`) que vincula su identidad a la colección. Los bloques posteriores del log los firma la clave de la colección (Hypercore).
+
+Cuando un nodo recibe una modificación:
+- Verifica que el bloque está firmado por `collection_keypair` (Hypercore lo hace automáticamente).
+- Verifica que el `author_id` del evento coincide con el `owner_id` del génesis.
+- Si ambas verificaciones pasan → aceptar. Si no → rechazar.
 
 ## Propiedad
 
