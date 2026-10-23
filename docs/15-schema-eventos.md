@@ -296,8 +296,7 @@ Fold del log → estado actual
 
 El estado actual de una colección se obtiene aplicando los
 eventos en orden:
-text
-
+```text
 estado = {}
 para cada bloque en el log (orden):
     aplicar(bloque, estado)
