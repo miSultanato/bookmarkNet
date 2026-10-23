@@ -26,7 +26,10 @@ POST   /bookmarks                   # {url, title?, description?, tags?, collect
 GET    /bookmarks/:id
 PATCH  /bookmarks/:id               # {title?, description?, tags?, notes?}
 DELETE /bookmarks/:id
+POST   /bookmarks/:id/reorder       # {group_id, position}
 ```
+
+Este endpoint genera un evento `reorder_bookmark`.
 
 ## Grupos
 
@@ -47,7 +50,7 @@ GET    /collections/:id
 PATCH  /collections/:id
 DELETE /collections/:id
 POST   /collections/:id/publish
-POST   /collections/:id/duplicate   # → nueva colección
+POST   /collections/:id/duplicate   # {name?, description?} → nueva colección con `forked_from: <collection_id>` en el génesis
 POST   /collections/:id/follow      # {enlace_bmn}
 POST   /collections/:id/unfollow
 GET    /collections/:id/status      # {peers, last_sync, state}
@@ -68,6 +71,23 @@ GET /discover/search                 # ?q=
 `GET /search?q=` → `{bookmarks, collections, tags}`
 
 Sin búsqueda semántica, IA ni NLP.
+
+## Correspondencia API ↔ eventos
+
+| Endpoint | Evento generado |
+|---|---|
+| `POST /collections` | `collection_genesis` |
+| `POST /bookmarks` | `add_bookmark` |
+| `PATCH /bookmarks/:id` | `edit_bookmark` |
+| `DELETE /bookmarks/:id` | `remove_bookmark` |
+| `POST /groups/:id/move` | `move_bookmark` |
+| `POST /bookmarks/:id/reorder` | `reorder_bookmark` |
+| `PATCH /collections/:id` | `update_metadata` |
+| `POST /groups` | `create_group` |
+| `DELETE /groups/:id` | `delete_group` |
+| `POST /collections/:id/duplicate` | `collection_genesis` (con `forked_from`) |
+
+Ninguna otra operación de la API genera eventos. Las operaciones de lectura (GET), identidad, export/import y device no escriben en el log de colecciones.
 
 ## Convenciones
 
