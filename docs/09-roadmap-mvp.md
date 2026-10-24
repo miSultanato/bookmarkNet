@@ -104,3 +104,18 @@ Si ese ciclo ocurre de forma natural, la red está validada. Todo lo demás se c
 ## Fuera del MVP
 
 Sin likes, comentarios, chat, IA, recomendaciones IA, rankings de usuarios, seguidores complejos, mensajería, moderación distribuida ni temas automáticos avanzados.
+
+## MVP3+ — Propuestas in-app (horizonte)
+
+En una fase posterior a MVP2 se añadirá el sistema de propuestas in-app. Mecanismo:
+
+1. Laura duplica una colección de Gorka (copia congelada con `forked_from`).
+2. Laura añade o modifica bookmarks en su copia.
+3. Laura pulsa "Proponer al autor original" dentro de la app.
+4. Gorka recibe la propuesta en su bandeja de propuestas.
+5. Gorka revisa el diff y acepta o rechaza.
+6. Si acepta, la app de Gorka escribe los cambios en su propia colección (eventos `add_bookmark` o `edit_bookmark`, firmados por Gorka).
+
+**No requiere Autobase.** Cada escritura es single-writer en el log del autor correspondiente. La propuesta es un mensaje, no una escritura compartida.
+
+Ver [docs/17-propuestas.md](17-propuestas.md) para el detalle del mecanismo y las medidas anti-abuso.
