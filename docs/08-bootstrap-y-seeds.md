@@ -5,7 +5,7 @@
 | Concepto | Función | No es |
 |---|---|---|
 | Bootstrap peer | «¿Conoces a alguien? Prueba con estos peers» | Servidor de bookmarks, búsqueda o colecciones |
-| Seed peer | Mantiene copias de colecciones públicas populares, Discovery Feed y temas semilla | Plataforma propietaria |
+| Seed peer | Mantiene copias de colecciones públicas populares y del seed pack | Plataforma propietaria |
 
 ## Regla arquitectónica
 
@@ -27,11 +27,11 @@ Claves públicas incluidas en la app:
 }
 ```
 
-## Discovery Feed
+## Seed pack
 
-El Discovery Feed v1 se incluye en la app. Los seed peers pueden mantener versiones más recientes (v4, v5...) que se propagan al conectar.
+El seed pack es un conjunto de colecciones completas incluidas en el binario para resolver el arranque en frío. Los seed peers mantienen versiones actualizadas que se propagan al conectar. Sin servidores web, sin HTTP central.
 
-Sin servidores web ni HTTP central.
+Ver docs/18-seed-pack.md para el detalle.
 
 ## Evolución
 
