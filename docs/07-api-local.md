@@ -150,4 +150,4 @@ Ninguna otra operación de la API genera eventos. Las operaciones de lectura (GE
 
 **Seguridad:** la API local valida el header `Host` contra `allowed_hosts` (por defecto `localhost`, `127.0.0.1`, `[::1]`). Para acceso desde la LAN (ej. NAS), añadir la IP del NAS a `allowed_hosts`. Ver docs/22-configuracion.md.
 
-Las peticiones mutantes (`POST`, `PUT`, `PATCH`, `DELETE`) validan el `Origin` y exigen `Content-Type: application/json`.
+**Content-Type:** las peticiones `POST`, `PUT` y `PATCH` deben incluir `Content-Type: application/json`. Las peticiones `DELETE` no requieren `Content-Type` (no tienen body), pero sí validan `Origin`.
