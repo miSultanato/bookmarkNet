@@ -95,7 +95,7 @@ colección no es válida.
 }
 ```
 
-**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del `author_id` sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility` y `(forked_from ?? "")`:
+**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del usuario propietario (identificado por `author_id`) sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility` y `(forked_from ?? "")`:
 
 ```text
 sha256(
