@@ -98,7 +98,7 @@ Cada colección tiene su propio collection_keypair. El usuario firma el bloque 0
 
 - **Un core por usuario:** descartado porque rompe el modelo de compartir colecciones individuales.
 
-## ADR-004: Sin Autobase en MVP (solo para user_core futuro)
+## ADR-004: Sin Autobase en MVP (pospuesto a MVP futuro)
 
 **Fecha:** 2026-10-24  
 **Estado:** Aceptado
@@ -109,17 +109,21 @@ Autobase es multi-writer sobre Hypercore. Se podría usar para contribuciones a 
 
 ### Decisión
 
-No usar Autobase en MVP. Las contribuciones se resuelven con el sistema de propuestas in-app (mensajes unidireccionales, sin multi-writer). La sincronización multidispositivo se resuelve con device_core + user_index (cores single-writer agregados localmente).
+No usar Autobase en MVP. Las contribuciones se resuelven con el sistema de propuestas in-app (mensajes unidireccionales, sin multi-writer). La sincronización multidispositivo se resuelve con `device_core` + `user_index` (cores single-writer agregados localmente).
+
+**Autobase se pospone a MVP futuro.** Cuando el producto esté validado (MVP5+), se revisará si merece la pena adoptarlo para `user_core` y/o para métricas globales de resources. Las decisiones actuales se tomaron para evitar Autobase en MVP. Si se adopta, se revisarán.
 
 ### Consecuencias
 
 - **Ventajas:** simplicidad; coherente con single-writer; no requiere linearización causal.
-- **Inconvenientes:** el user_core multidispositivo podría necesitar Autobase en el futuro si se quiere consistencia determinista. Se decide en su momento.
+- **Inconvenientes:** el `user_core` multidispositivo podría necesitar Autobase en el futuro si se quiere consistencia determinista. Se decide en su momento.
+- **Revisión futura:** si se adopta Autobase, algunas decisiones actuales (`device_core` + `user_index`, propuestas sin Autobase) podrían revisarse.
 
 ### Alternativas consideradas
 
 - **Autobase para propuestas:** descartado. Las propuestas son mensajes, no escrituras compartidas.
-- **Autobase para user_core desde MVP2:** descartado por complejidad. Se evalúa en MVP3 si el device_core + user_index no es suficiente.
+- **Autobase para user_core desde MVP2:** descartado por complejidad. Se evalúa en MVP futuro si el `device_core` + `user_index` no es suficiente.
+- **Autobase para métricas globales:** pospuesto a MVP futuro.
 
 ## ADR-005: Seed pack con colecciones completas (no punteros)
 
@@ -259,6 +263,8 @@ Validación de Host configurable mediante ALLOWED_HOSTS. Por defecto: localhost,
 
 Además: validación de Origin en mutaciones, exigir Content-Type: application/json, y bind a 127.0.0.1 por defecto.
 
+Además, para acceso desde la LAN, el usuario debe configurar `bind` a `0.0.0.0` en `config.json`. Por defecto, el servidor se bindea a `127.0.0.1`, lo que impide el acceso desde otros dispositivos aunque `ALLOWED_HOSTS` los permita. El acceso LAN requiere ambas configuraciones.
+
 ### Consecuencias
 
 - **Ventajas:** el NAS es accesible desde la LAN; protección contra DNS rebinding y CSRF; el usuario controla qué hosts son válidos.
@@ -268,6 +274,104 @@ Además: validación de Origin en mutaciones, exigir Content-Type: application/j
 
 - **Solo localhost:** descartado porque rompe el caso de uso del NAS.
 - **ALLOWED_HOSTS=\*:** descartado por seguridad; el usuario debe añadir solo las IPs necesarias.
+
+## ADR-011: Canonicalización de URLs
+
+**Fecha:** 2026-10-24  
+**Estado:** Aceptado
+
+### Contexto
+
+`resource_id` se deriva de la URL canónica. Si dos nodos canonicalizan la misma URL de forma distinta, generan `resource_id` distintos y el resource se duplica. La canonicalización debe ser determinista e idéntica en todos los nodos.
+
+### Decisión
+
+Aplicar los pasos definidos en `docs/04-canonicalizacion-url.md`:
+
+1. Lowercase de scheme y host.
+2. Eliminar `www.` del inicio del host.
+3. Eliminar fragmento (`#...`).
+4. Eliminar parámetros de tracking conocidos.
+5. Mantener el resto de query params.
+6. Ordenar los parámetros de query alfabéticamente por nombre (mantener orden de valores repetidos).
+7. Eliminar el `?` vacío final.
+8. Normalizar trailing slash (mantener tal cual, sin forzar).
+9. `resource_id = "r_" + sha256("v1:" + canonical_url).hex()`.
+
+### Consecuencias
+
+- **Ventajas:** determinista; dos nodos generan el mismo `resource_id` para la misma URL.
+- **Inconvenientes:** la versión `v1:` permite evolucionar la canonicalización en el futuro sin romper los `resource_id` existentes.
+
+### Alternativas consideradas
+
+- **Canonicalización sin ordenar query params:** descartada porque `?a=1&b=2` y `?b=2&a=1` son la misma URL y deben generar el mismo `resource_id`.
+
+## ADR-012: Serialización de firmas del génesis
+
+**Fecha:** 2026-10-24  
+**Estado:** Aceptado
+
+### Contexto
+
+La firma del génesis (`signature_by_owner`) debe ser verificable por cualquier nodo. La serialización de los campos firmados debe ser determinista e idéntica en todos los nodos. Si no, la firma no se puede verificar.
+
+### Decisión
+
+La firma se calcula sobre la concatenación de los campos del génesis, en este orden:
+
+```text
+sha256(
+  collection_id ||          // hex sin prefijo
+  collection_public_key ||  // hex sin prefijo
+  author_id ||              // "u_" + hex
+  author_public_key ||      // "pk_user_" + hex
+  name ||                   // UTF-8
+  visibility ||             // "public" | "private" | "unlisted"
+  (forked_from ?? "") ||    // collection_id o ""
+  (migrated_from ?? "")     // collection_id o ""
+)
+```
+
+Cada campo se serializa como string UTF-8. Los campos `null` se serializan como string vacío (`""`).
+
+### Consecuencias
+
+- **Ventajas:** determinista; cualquier nodo puede verificar la firma con `author_public_key`.
+- **Inconvenientes:** cualquier cambio en la lista de campos firmados requiere una nueva versión del schema (`schema_version: 2`).
+
+### Alternativas consideradas
+
+- **Firmar el JSON completo:** descartado porque la serialización JSON no es determinista entre implementaciones (orden de claves, espacios, etc.).
+
+## ADR-013: Contrato de eventos de `device_core`
+
+**Fecha:** 2026-10-24  
+**Estado:** Aceptado
+
+### Contexto
+
+El `device_core` contiene los borradores locales de las colecciones del usuario. Sus eventos son distintos de los del `collection_core` (que es el log público de una colección publicada). Hay que definir el schema de esos eventos.
+
+### Decisión
+
+El `device_core` tiene cuatro tipos de evento:
+
+- `device_metadata`: perfil del usuario (nombre, bio, avatar).
+- `device_collection`: referencia a una colección propia (publicada o borrador) con su `collection_id` y estado (`draft`, `published`, `unpublished`).
+- `device_bookmark`: bookmark en una colección no publicada.
+- `device_group`: grupo en una colección no publicada.
+
+Ver `docs/03-identidad.md` para el detalle.
+
+### Consecuencias
+
+- **Ventajas:** schema separado del `collection_core`; los borradores no contaminan el log público.
+- **Inconvenientes:** dos schemas que mantener. Pero son independientes: el `device_core` puede evolucionar sin afectar al `collection_core`.
+
+### Alternativas consideradas
+
+- **Reutilizar los eventos del `collection_core` en el `device_core`:** descartado porque el `device_core` tiene eventos que no existen en el `collection_core` (`device_metadata`, `device_collection`) y viceversa.
 
 ## Documentos relacionados
 
