@@ -82,14 +82,18 @@ Demo de validación:
 - `announce(topic)` al publicar.
 - Caché local de peers conocidos.
 
-## MVP 4 — Discovery Feed
+## MVP 4 — Seed pack y onboarding
 
-- Temas semilla.
-- Colecciones destacadas.
-- Feed incluido en la app, actualizable vía seed peers.
+- Seed pack: conjunto de colecciones completas incluidas en el binario.
+- Origen: awesome-lists de GitHub transformadas mediante script, más colecciones creadas manualmente.
+- Cada colección lleva el `creator_peer_id` del NAS o VPS del equipo.
+- Onboarding de primera ejecución con tres opciones independientes:
+  1. Importar bookmarks de mi navegador (HTML).
+  2. Añadir colecciones iniciales (seed pack).
+  3. Continuar.
+- Importación desde Pocket u otras fuentes: fuera de MVP4, en fases posteriores.
 
-**Mejora crítica:** el Discovery Feed no debe ser una lista de temas vacíos. Debe mostrar colecciones concretas navegables desde el primer arranque; el usuario debe poder abrir una colección el día 1 y ver bookmarks reales.
-
+Ver docs/18-seed-pack.md.
 ## MVP 5 — Métricas emergentes
 
 - Estadísticas agregadas (nunca bookmarks privados).
