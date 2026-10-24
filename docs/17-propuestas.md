@@ -8,6 +8,8 @@ Este documento define el sistema de propuestas in-app que se añadirá en MVP3 o
 
 Cada usuario escribe siempre en su propio log. La propuesta es un mensaje unidireccional que el receptor revisa y decide si acepta. No hay multi-writer, no hay Autobase, no hay escritura en el log de otro usuario.
 
+**Duplicar no es seguir:** la propuesta se prepara sobre una copia que el emisor ha duplicado y puede editar; no se propone editar la colección original directamente ni basta con seguirla. Seguir y duplicar son independientes y pueden coexistir: el usuario puede mantener la versión seguida que recibe actualizaciones y, a la vez, su copia propia para editar y proponer cambios.
+
 ## Flujo
 
 1. Laura duplica una colección de Marta (copia congelada con `forked_from`).
