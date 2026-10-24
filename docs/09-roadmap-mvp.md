@@ -154,3 +154,9 @@ En una fase posterior a MVP2 se añadirá el sistema de propuestas in-app. Mecan
 **No requiere Autobase.** Cada escritura es single-writer en el log del autor correspondiente. La propuesta es un mensaje, no una escritura compartida.
 
 Ver [docs/17-propuestas.md](17-propuestas.md) para el detalle del mecanismo y las medidas anti-abuso.
+
+## Documentos relacionados
+
+- Testing: docs/12-testing.md
+- UI/UX: docs/13-ui-ux.md
+- ADRs: docs/14-adrs.md
