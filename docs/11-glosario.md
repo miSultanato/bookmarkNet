@@ -42,3 +42,6 @@
 | **bare-build --standalone** | Modo de empaquetado de Bare que genera un ejecutable único por plataforma con el core y los assets web embebidos |
 | **bare-build --package** | Modo de empaquetado de Bare que genera instaladores nativos (.pkg, .AppImage, .msix) |
 | **GitHub Releases** | Canal de publicación de binarios, hashes y notas de versión |
+| **ALLOWED_HOSTS** | Lista de hosts permitidos para la API local. Por defecto solo loopback. Configurable para acceso desde la LAN (caso NAS) |
+| **config.json** | Archivo de configuración del nodo, en el directorio de datos. Contiene puerto, data dir, bootstrap nodes, log level, allowed hosts |
+| **BOOKMARKNET_\*** | Variables de entorno que sobreescriben config.json. Útiles para Docker y overrides puntuales |
