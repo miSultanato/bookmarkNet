@@ -19,7 +19,7 @@ Todo parte del bookmark. Las personas existen, pero no son el foco. El foco est�
 
 ## 4. Separación Resource / Bookmark
 
-- Resource = URL canónica. Identidad LÓGICA global: el mismo `resource_id` en todos los nodos porque se deriva de la URL canónica (`sha256("v1:" + canonical_url)`).
+- Resource = URL canónica. Identidad LÓGICA global: el mismo `resource_id` en todos los nodos porque se deriva de la URL canónica (`resource_id = "r_" + sha256("v1:" + canonical_url).hex()`).
 - Bookmark = referencia contextual a un resource dentro de una colección.
 
 **Importante:** "global" se refiere a la identidad lógica, no a un registro físico global. En MVP no existe un registry centralizado de resources. Cada nodo materializa su propia vista de resources a partir de los `canonical_url` embebidos en las colecciones que replica (propias, seguidas y del Discovery Feed).
