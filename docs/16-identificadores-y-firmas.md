@@ -145,19 +145,20 @@ En MVP: un solo autor por colección. No hay colaboradores.
 
 ### Evento `collection_unpublished`
 
-`collection_unpublished` usa un `event_id` ULID y forma
-parte del log firmado por `collection_keypair`, como los
-demás eventos de la colección. Es el último evento que se
-escribe en el `collection_core`; informa a los seguidores
-de la despublicación, pero no elimina la copia que ya han
-replicado.
+`collection_unpublished` usa un `event_id` ULID y es un
+evento normal del `collection_core`. Lo firma el usuario con
+su `user_keypair`. Es el último evento que se escribe en el
+`collection_core`; después, el autor deja de anunciar el
+topic. Informa a los seguidores de la despublicación, pero no
+elimina la copia que ya han replicado.
 
 ### Firmas de modificaciones
 
-En MVP, todas las modificaciones las firma el mismo
+En MVP, las modificaciones ordinarias las firma el mismo
 collection_keypair (Hypercore), y el author_id del evento
-debe coincidir con el owner_id del génesis. No hay firmas
-individuales por evento más allá de la firma del bloque.
+debe coincidir con el owner_id del génesis. La excepción es
+`collection_unpublished`, que firma el usuario con su
+`user_keypair`.
 
 Cuando se añada multi-writer (Autobase, futuro), cada evento
 llevará una firma adicional del usuario que lo emite. Se
