@@ -71,3 +71,9 @@ Si todos los peers están offline, la colección no es accesible temporalmente. 
 - MVP3: descubrimiento por topic vía Hyperswarm DHT.
 - MVP4: Discovery Feed incluido en la app.
 - MVP5: métricas agregadas para tendencias.
+
+## Métricas y popularidad (MVP)
+
+Las métricas de popularidad que muestra el nodo ("este bookmark aparece en N colecciones", "esta colección ha sido duplicada M veces") son **locales al nodo** en MVP. Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y Discovery Feed).
+
+No existe una cifra global absoluta hasta MVP5 (métricas emergentes agregadas).
