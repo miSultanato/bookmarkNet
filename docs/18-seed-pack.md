@@ -9,7 +9,9 @@ Evitar que un usuario nuevo abra la app y vea una pantalla vacía. Desde el prim
 ## Composición
 
 - **Colecciones completas**, no punteros. Cada colección es un `collection_core` real, replicable y verificable.
-- **Creadas y mantenidas por el equipo** del proyecto. Firmadas con la clave del proyecto.
+- **Creadas y mantenidas por el equipo** del proyecto.
+
+  **Identidad del proyecto:** el equipo del proyecto tiene un `user_keypair` (la "identidad del proyecto"). Cada colección del seed pack tiene su propio `collection_keypair`. El `collection_genesis` de cada colección lo firma el `user_keypair` del proyecto. El `creator_peer_id` es el `node_id` del NAS o VPS del equipo que tiene la copia autorizada.
 - **Funcionan como cualquier otra colección:** se publican, se replican, se siguen y se duplican.
 
 ## Origen de las colecciones
