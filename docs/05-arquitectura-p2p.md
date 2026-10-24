@@ -36,6 +36,24 @@ Jerarquía de claves:
 
 Es decir, en el bloque 0 conviven DOS firmas distintas: la del usuario sobre los campos del génesis (`signature_by_owner`) y la firma del propio bloque Hypercore (`collection_keypair`).
 
+## Cores por dispositivo
+
+Además de los `collection_core` (uno por colección), cada
+dispositivo tiene su propio `device_core`:
+
+- Single-writer, firmado con una clave derivada de la
+  clave maestra del usuario + el `node_id`.
+- Contiene los borradores locales de las colecciones
+  propias y los metadatos del usuario.
+- Todos los dispositivos del mismo usuario se descubren
+  por un topic derivado del `user_id`.
+
+La vista local del usuario (`user_index`) se construye
+agregando los `device_core` de todos sus dispositivos.
+
+Esto no requiere Autobase: cada `device_core` es un
+Hypercore single-writer independiente.
+
 ## Nodos offline
 
 Los nodos offline son normales. Un portátil puede estar apagado el 80 % del tiempo. Requisito mínimo: al menos un nodo con la colección debe seguir online.
