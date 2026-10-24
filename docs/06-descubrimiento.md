@@ -3,7 +3,7 @@
 ## Flujo
 
 ```
-bmn://<collection_public_key>
+bmn://<collection_id>
         ↓
 topic = HASH(collection_public_key)
         ↓
@@ -29,7 +29,7 @@ El nodo sólo conoce `collection_public_key`. No conoce el nombre, descripción,
 Al recibir una colección se verifican DOS cosas distintas:
 
 1. **El génesis está firmado por el usuario.**
-   El bloque 0 (`collection_genesis`) contiene `signature_by_owner`, que es la firma del usuario sobre los campos de propiedad. Se verifica con `author_public_key`. Además, se comprueba que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`.
+   El bloque 0 (`collection_genesis`) contiene `signature_by_owner`, que es la firma del usuario sobre los campos de propiedad. Se verifica con `author_public_key`. Además, se comprueba que `author_id == "u_" + sha256(author_public_key).hex().slice(0, 16)`.
 
 2. **Los bloques están firmados por la colección.**
    Los bloques 1..N los firma `collection_keypair`. Hypercore lo verifica automáticamente al replicar.
