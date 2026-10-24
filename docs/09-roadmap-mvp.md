@@ -52,7 +52,7 @@ Escenario: Gorka (NAS 24/7) comparte «Japón 2027»; Laura (portátil ocasional
 Funcionalidades:
 - Añadir dispositivo mediante QR.
 - Replicación entre dispositivos propios.
-- Compartir colección por `bmn://collection/<id>`.
+- Compartir colección por `bmn://<collection_id>`.
 - Seguir colección por enlace.
 - Estado de sincronización en UI.
 - NAT traversal vía Hyperswarm (sin relays ni TURN).
