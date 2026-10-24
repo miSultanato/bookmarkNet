@@ -11,11 +11,11 @@ evitar colisiones accidentales.
 | Entidad | Formato | Ejemplo |
 |---------|---------|---------|
 | `user_id` | `"u_" + sha256(public_key).hex().slice(0, 16)` | `u_93c4fa12a8b3c4d5` |
-| `node_id` | `"n_" + random(8 bytes).hex()` | `n_12ae9f3b` |
+| `node_id` | `"n_" + random(8 bytes).hex()` | `n_a1b2c3d4e5f60718` |
 | `resource_id` | `"r_" + sha256("v1:" + canonical_url).hex()` | `r_7f6a...` (64 hex chars) |
 | `bookmark_id` | ULID | `01J8XLK3M...` |
 | `collection_id` | = `collection_public_key` (hex, sin prefijo) | `3df0c93d...` |
-| `group_id` | `"g_" + random(6 bytes).hex()` | `g_transp0` |
+| `group_id` | `"g_" + random(6 bytes).hex()` | `g_1a2b3c4d5e6f` |
 | `event_id` | ULID | `01J8XLK3M...` |
 
 ### Por qué estos formatos
