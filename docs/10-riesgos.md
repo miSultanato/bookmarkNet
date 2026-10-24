@@ -13,7 +13,7 @@
 **Mitigación:**
 - En MVP0–MVP2 no existe contribución. Solo duplicar y seguir.
 - En MVP3+ se añadirá un sistema de propuestas in-app (ver [docs/17-propuestas.md](17-propuestas.md)). Las propuestas son mensajes unidireccionales. El receptor las acepta o rechaza. Nunca hay escritura compartida.
-- Autobase queda como horizonte futuro solo para el `user_core` multidispositivo (Punto 6), no para propuestas.
+- Autobase queda pospuesto a MVP futuro, como horizonte posible para `user_core` multidispositivo y/o métricas globales de resources, no para propuestas. Ver ADR-004.
 
 ## R3 — Canonicalización de URLs
 
@@ -54,3 +54,14 @@
 2. Cuota de envío: límites diarios y por colección.
 3. Control absoluto del receptor: bloquear, silenciar, marcar spam.
 4. Límite de exposición: la propuesta se muestra como diff de bookmarks, no como contenido renderizado.
+
+
+## R9 — Adoptar Autobase en el futuro
+
+**Riesgo:** si en MVP futuro se adopta Autobase para `user_core` o para métricas globales, algunas decisiones actuales (`device_core` + `user_index`, propuestas sin Autobase) podrían revisarse. El cambio de modelo podría afectar a la compatibilidad de datos y a la UX.
+
+**Mitigación:**
+
+- Autobase se pospone a MVP futuro, cuando el producto esté validado.
+- Las decisiones actuales se documentan como "sin Autobase" para que quede claro que son deliberadas.
+- Si se adopta, se hará con un ADR nuevo que supersede al ADR-004 y documente la migración.
