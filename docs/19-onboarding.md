@@ -16,6 +16,8 @@ Al arrancar por primera vez, el nodo genera la identidad automáticamente (clave
 
 Las tres son opcionales. El usuario puede marcar una, ambas o ninguna.
 
+**Fase:** este flujo es el diseño completo. En MVP0 solo funciona "Importar bookmarks HTML". Las otras dos opciones se muestran pero no están operativas hasta MVP4 (seed pack).
+
 ## svgIdentidad y perfil
 
 - **Identidad:** se genera automáticamente al iniciar. No se pide nombre, email ni contraseña. Las claves son suficientes.
