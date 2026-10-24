@@ -85,7 +85,7 @@ updated: 2026-01-20
 - **Local (borrador):** antes de publicar, la colección vive solo en los `device_core` del usuario que la creó. Es privada, no replicable por terceros.
 - **Público (canal):** al publicar, se crea un `collection_core` single-writer con el estado actual congelado. A partir de ahí, cada cambio en la colección se escribe automáticamente tanto en el `device_core` del dispositivo que lo hace como en el `collection_core`.
 
-La escritura dual es transparente para el usuario. Si compartes una colección, quieres que se mantenga actualizada. Si quieres una copia congelada, la forkeas.
+La escritura dual es transparente para el usuario. Si sigues una colección, recibes las actualizaciones de su dueño y no puedes editarla. Si la duplicas, creas una copia propia congelada que puedes editar y publicar. Seguir y duplicar son operaciones independientes y no excluyentes: puedes hacer ambas sobre la misma colección. La copia duplicada tiene su propio `collection_core` y `collection_id`, y su `forked_from` apunta al original; los cambios posteriores del original no se propagan a la copia. Si quieres incorporar esos cambios, debes hacerlo manualmente.
 
 **Relación con el génesis:** cada colección tiene su propio `collection_keypair`. El bloque 0 (`collection_genesis`) contiene `collection_public_key`, `author_public_key` y `signature_by_owner` (firma del usuario sobre los campos del génesis). Los bloques posteriores los firma `collection_keypair` mediante Hypercore.
 
