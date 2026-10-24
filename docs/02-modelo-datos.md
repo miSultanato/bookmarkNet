@@ -48,7 +48,16 @@ description: Guide to hiking routes in Japan
 created: 2026-01-15
 ```
 
-**Globalidad lógica, no física:** el `resource_id` es el mismo en todos los nodos porque se deriva de la URL canónica. Pero en MVP no existe un registry global de resources. Cada nodo materializa su propia vista de qué resources conoce y en cuántas colecciones aparecen, a partir de los `canonical_url` embebidos en las colecciones que replica. Las métricas de popularidad ("X aparece en N colecciones") son locales al nodo hasta MVP5.
+**Globalidad lógica, no física:** el `resource_id` es el mismo en todos los nodos porque se deriva de la URL canónica. Pero en MVP no existe un registry global de resources. Cada nodo materializa su propia vista de qué resources conoce y en cuántas colecciones aparecen, a partir de los `canonical_url` embebidos en las colecciones que replica.
+
+**Métricas locales vs globales:**
+
+- **MVP3:** `collection_count` local (cuenta las
+  colecciones que el nodo tiene localmente).
+- **MVP5:** además del local, un `collection_count`
+  global estimado (gossip o seed peers agregadores).
+
+Hasta MVP5, todas las métricas son locales.
 
 **Horizonte:** un Autobase de resources (multi-writer) podrá agregar los resources conocidos para dar métricas globales en el futuro, sin cambiar el `resource_id` ni el schema de `add_bookmark`.
 
@@ -86,6 +95,12 @@ updated: 2026-01-20
 - **Público (canal):** al publicar, se crea un `collection_core` single-writer con el estado actual congelado. A partir de ahí, cada cambio en la colección se escribe automáticamente tanto en el `device_core` del dispositivo que lo hace como en el `collection_core`.
 
 La escritura dual es transparente para el usuario. Si sigues una colección, recibes las actualizaciones de su dueño y no puedes editarla. Si la duplicas, creas una copia propia congelada que puedes editar y publicar. Seguir y duplicar son operaciones independientes y no excluyentes: puedes hacer ambas sobre la misma colección. La copia duplicada tiene su propio `collection_core` y `collection_id`, y su `forked_from` apunta al original; los cambios posteriores del original no se propagan a la copia. Si quieres incorporar esos cambios, debes hacerlo manualmente.
+
+**Ciclo de vida del génesis:** una colección no publicada
+vive en los `device_core` del usuario como un borrador.
+No tiene `collection_genesis`. Al publicar, se crea el
+`collection_core` con su `collection_genesis` (firmado
+por el usuario) y se copian los eventos del borrador.
 
 **Relación con el génesis:** cada colección tiene su propio `collection_keypair`. El bloque 0 (`collection_genesis`) contiene `collection_public_key`, `author_public_key` y `signature_by_owner` (firma del usuario sobre los campos del génesis). Los bloques posteriores los firma `collection_keypair` mediante Hypercore.
 
