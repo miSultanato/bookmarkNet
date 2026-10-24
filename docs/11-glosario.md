@@ -51,3 +51,27 @@
 | Migración explícita | Migración de colecciones publicadas: el autor decide cuándo, con aviso único y `migrated_to` |
 | migrated_to | Campo opcional de `collection_unpublished` con el `collection_id` de la nueva versión |
 | Vista materializada | Estado actual construido por el fold. Se persiste en disco y se migra al vuelo |
+| **collection_genesis** | Bloque 0 de un collection_core. Vincula la identidad del usuario con la colección. Firmado por el usuario (signature_by_owner) |
+| **signature_by_owner** | Firma del usuario sobre los campos del collection_genesis. Se verifica con author_public_key |
+| **author_public_key** | Clave pública del autor de la colección, incluida en el génesis. Permite verificar signature_by_owner |
+| **canonical_url** | URL normalizada según las reglas de docs/04-canonicalizacion-url.md. Se usa para calcular resource_id |
+| **schema_version** | Versión del schema de eventos de un bloque. Obligatorio en cada bloque |
+| **fold** | Proceso de aplicar los eventos del log en orden para construir el estado actual (vista materializada) |
+| **proposal_core** | Hypercore single-writer por propuesta. Contiene el evento proposal con el diff de cambios |
+| **forked_from** | Campo del collection_genesis que indica que la colección es una copia congelada de otra. Se usa al duplicar |
+| **migrated_from** | Campo del collection_genesis que indica que la colección es una migración de schema de otra. Mutuamente excluyente con forked_from |
+| **identity_blob_cifrado** | Bloque de identidad cifrado con contraseña efímera, transferido en el QR de añadir dispositivo |
+| **user_keypair** | Par de claves del usuario (Ed25519). Firma el collection_genesis |
+| **collection_keypair** | Par de claves de una colección. Firma todos los bloques del collection_core. Derivado de user_master_key + collection_uuid |
+| **collection_uuid** | ULID generado al crear una colección. Se usa para derivar collection_keypair. No es el nombre visible |
+| **Hypercore single-writer** | Propiedad de Hypercore: cada core tiene un único escritor. Se resuelve con claves por colección |
+| **DHT** | Distributed Hash Table. Hyperswarm la usa para descubrir peers por topic |
+| **NAT traversal** | Técnica para establecer conexiones directas entre peers detrás de NAT. Hyperswarm lo hace automáticamente |
+| **CGNAT** | Carrier-Grade NAT. NAT de los ISP. Hyperswarm lo atraviesa sin abrir puertos |
+| **Origin** | Header HTTP que indica el origen de una petición. Se valida en mutaciones para evitar CSRF |
+| **CSRF** | Cross-Site Request Forgery. Ataque que fuerza al navegador a enviar peticiones no deseadas. Se mitiga validando Origin y Content-Type |
+| **DNS rebinding** | Ataque que hace que el navegador resuelva un dominio malicioso a 127.0.0.1. Se mitiga validando Host |
+| **ULID** | Universally Unique Lexicographically Sortable Identifier. Ordenable por tiempo, usado en bookmark_id y event_id |
+| **Ed25519** | Algoritmo de firma de clave pública. Usado para todas las firmas del sistema |
+| **AES-GCM** | Algoritmo de cifrado simétrico autenticado. Usado para cifrar identity_blob_cifrado |
+| **ChaCha20-Poly1305** | Alternativa a AES-GCM. Puede usarse para cifrar identity_blob_cifrado |
