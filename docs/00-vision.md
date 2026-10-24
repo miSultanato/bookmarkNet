@@ -24,6 +24,10 @@ El problema ya no es encontrar información, sino encontrar información valiosa
 | Conservar colecciones que evolucionan | No existe | Replicación + seguimiento |
 | Compartir curaduría con propiedad | No existe | Criptográfico |
 
+## Compartir y reutilizar
+
+Las contribuciones a colecciones ajenas se articulan como propuestas in-app (fase MVP3+): el receptor decide si las acepta. Nunca hay escritura directa en la colección de otro usuario.
+
 ## Visión a largo plazo
 
 Un Internet donde el valor no está en quién produce más contenido, sino en quién identifica, organiza y conecta el conocimiento existente.
