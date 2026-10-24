@@ -93,7 +93,7 @@ Demo de validación:
   3. Continuar.
 - Importación desde Pocket u otras fuentes: fuera de MVP4, en fases posteriores.
 
-Ver docs/18-seed-pack.md.
+Ver docs/18-seed-pack.md para el seed pack y docs/19-onboarding.md para el flujo de primera ejecución.
 ## MVP 5 — Métricas emergentes
 
 - Estadísticas agregadas (nunca bookmarks privados).
