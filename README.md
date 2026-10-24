@@ -51,14 +51,3 @@ MVP en diseño. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 | [21-distribucion](docs/21-distribucion.md) | Distribución |
 | [22-configuracion](docs/22-configuracion.md) | Configuración local |
 | [23-migraciones](docs/23-migraciones.md) | Migraciones de schema |
-| [01-principios](docs/01-principios.md) | Principios de diseño no negociables |
-| [02-modelo-datos](docs/02-modelo-datos.md) | Entidades y relaciones |
-| [03-identidad](docs/03-identidad.md) | Identidad multidispositivo |
-| [04-canonicalizacion-url](docs/04-canonicalizacion-url.md) | Reglas de canonicalización |
-| [05-arquitectura-p2p](docs/05-arquitectura-p2p.md) | Stack Hypercore/Hyperswarm |
-| [06-descubrimiento](docs/06-descubrimiento.md) | Descubrimiento por clave |
-| [07-api-local](docs/07-api-local.md) | API local del nodo |
-| [08-bootstrap-y-seeds](docs/08-bootstrap-y-seeds.md) | Nodos de arranque |
-| [09-roadmap-mvp](docs/09-roadmap-mvp.md) | Fases incrementales |
-| [10-riesgos](docs/10-riesgos.md) | Riesgos y mitigaciones |
-| [11-glosario](docs/11-glosario.md) | Términos |
