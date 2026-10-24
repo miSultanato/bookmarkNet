@@ -10,14 +10,14 @@ Cada usuario escribe siempre en su propio log. La propuesta es un mensaje unidir
 
 ## Flujo
 
-1. Laura duplica una colección de Gorka (copia congelada con `forked_from`).
+1. Laura duplica una colección de Marta (copia congelada con `forked_from`).
 2. Laura añade o modifica bookmarks en su copia.
 3. Laura pulsa "Proponer al autor original" dentro de la app.
 4. La app de Laura crea un `proposal_core` (Hypercore single-writer, firmado por Laura) y anuncia el topic derivado de `target_collection_id`.
-5. La app de Gorka, unida al topic de sus propias colecciones, descubre la propuesta y la replica.
-6. Gorka ve la propuesta en su bandeja de propuestas.
-7. Gorka revisa el diff y acepta o rechaza.
-8. Si acepta, la app de Gorka escribe los cambios en su propia colección (eventos `add_bookmark` o `edit_bookmark`, firmados por Gorka con su `collection_keypair`).
+5. La app de Marta, unida al topic de sus propias colecciones, descubre la propuesta y la replica.
+6. Marta ve la propuesta en su bandeja de propuestas.
+7. Marta revisa el diff y acepta o rechaza.
+8. Si acepta, la app de Marta escribe los cambios en su propia colección (eventos `add_bookmark` o `edit_bookmark`, firmados por Marta con su `collection_keypair`).
 
 ## Formato del evento `proposal`
 
