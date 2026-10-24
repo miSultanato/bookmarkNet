@@ -37,14 +37,16 @@ Cada bloque del Hypercore es un objeto JSON con esta forma:
 }
 ```
 
-Campos comunes
-Campo	Tipo	Descripción
-schema_version	int	Versión del schema. Empieza en 1
-event_id	ULID	Único globalmente, ordenable por tiempo
-event_type	string	Uno de los definidos abajo
-author_id	string	Identifica al autor lógico del evento (el `owner_id` de la colección). NO es el firmante criptográfico de cada bloque. Los bloques los firma `collection_keypair` mediante Hypercore. Solo el bloque génesis lleva una firma adicional del usuario (`signature_by_owner`)
-created_at	ISO8601	Timestamp del autor. No es fuente de verdad para orden (el orden lo da el log)
-payload	object	Depende del event_type
+## Campos comunes
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `schema_version` | int | Versión del schema. Empieza en 1 |
+| `event_id` | ULID | Único globalmente, ordenable por tiempo |
+| `event_type` | string | Uno de los definidos abajo |
+| `author_id` | string | Identifica al autor lógico del evento (el `owner_id` de la colección). NO es el firmante criptográfico de cada bloque. Los bloques los firma `collection_keypair` mediante Hypercore. Solo el bloque génesis lleva una firma adicional del usuario (`signature_by_owner`) |
+| `created_at` | ISO8601 | Timestamp del autor. No es fuente de verdad para orden (el orden lo da el log) |
+| `payload` | object | Depende del `event_type` |
 **Nota sobre firmas:** todos los bloques del `collection_core`
 (incluido el génesis) los firma `collection_keypair` mediante
 Hypercore. El bloque génesis lleva además una firma del usuario
@@ -90,12 +92,13 @@ colección no es válida.
     "description": "Recursos para un viaje de 30 días",
     "visibility": "public",
     "forked_from": null,
+    "migrated_from": null,
     "signature_by_owner": "sig_xxxxx"
   }
 }
 ```
 
-**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del usuario propietario (identificado por `author_id`) sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility` y `(forked_from ?? "")`:
+**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del usuario propietario (identificado por `author_id`) sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility`, `(forked_from ?? "")` y `(migrated_from ?? "")`:
 
 ```text
 sha256(
@@ -105,7 +108,8 @@ sha256(
   author_public_key ||
   name ||
   visibility ||
-  (forked_from ?? "")
+  (forked_from ?? "") ||
+  (migrated_from ?? "")
 )
 ```
 
@@ -118,6 +122,13 @@ Es lo que demuestra que el usuario es el dueño de la colección.
 - Es informativo, no verificable criptográficamente en MVP. Se usa para mostrar "duplicado de X" en la UI y para métricas de forks.
 - En el futuro, si se quiere verificación, se puede añadir una firma del autor original. Fuera de MVP.
 - `forked_from` no crea ningún vínculo de sincronización. Es una copia congelada en el momento del fork.
+
+**Reglas de `migrated_from`:**
+
+- `null` si la colección no es una migración.
+- `<collection_id>` de la colección original si es una migración de schema (v1 → v2, etc.).
+- Es informativo. El receptor no verifica que el `collection_id` destino exista.
+- `migrated_from` y `forked_from` son mutuamente excluyentes: una colección es una copia duplicada o una migración, no ambas.
 
 2. add_bookmark
 
@@ -218,7 +229,7 @@ Mueve un bookmark a otro grupo (o al Inbox).
   "created_at": "2026-10-23T15:15:00Z",
   "payload": {
     "bookmark_id": "01J8XL...",
-    "group_id": "g_transporte" 
+    "group_id": "g_1a2b3c4d5e6f" 
   }
 }
 ```
@@ -257,7 +268,7 @@ Crea un grupo dentro de la colección.
   "author_id": "u_93c4fa12...",
   "created_at": "2026-10-23T16:10:00Z",
   "payload": {
-    "group_id": "g_transporte",
+    "group_id": "g_1a2b3c4d5e6f",
     "name": "Transporte",
     "position": 0
   }
@@ -276,7 +287,7 @@ Elimina un grupo. Los bookmarks que contenía se mueven a Inbox.
   "author_id": "u_93c4fa12...",
   "created_at": "2026-10-23T16:30:00Z",
   "payload": {
-    "group_id": "g_transporte"
+    "group_id": "g_1a2b3c4d5e6f"
   }
 }
 ```
@@ -294,7 +305,7 @@ Cambia la posición de un bookmark dentro de un grupo (o del Inbox).
   "created_at": "2026-10-23T16:20:00Z",
   "payload": {
     "bookmark_id": "01J8XL...",
-    "group_id": "g_transporte",
+    "group_id": "g_1a2b3c4d5e6f",
     "position": 2
   }
 }
@@ -348,18 +359,20 @@ para cada bloque en el log (orden):
     aplicar(bloque, estado)
 ```
 
-Reglas de fold
-Evento	Efecto
-collection_genesis	Crea la colección con sus metadatos
-add_bookmark	Añade bookmark al estado (si no existe)
-edit_bookmark	Aplica cambios sobre el bookmark existente
-remove_bookmark	Marca el bookmark como eliminado (soft delete)
-move_bookmark	Cambia el group_id del bookmark
-reorder_bookmark	Actualiza la posición del bookmark en el grupo. Reajusta el resto
-update_metadata	Aplica cambios sobre la colección
-create_group	Añade grupo al estado
-delete_group	Marca grupo como eliminado y mueve sus bookmarks a Inbox
-collection_unpublished	Marca la colección como despublicada. No elimina bookmarks
+## Reglas de fold
+
+| Evento | Efecto |
+|---|---|
+| `collection_genesis` | Crea la colección con sus metadatos |
+| `add_bookmark` | Añade bookmark al estado (si no existe) |
+| `edit_bookmark` | Aplica cambios sobre el bookmark existente |
+| `remove_bookmark` | Marca el bookmark como eliminado (soft delete) |
+| `move_bookmark` | Cambia el `group_id` del bookmark |
+| `reorder_bookmark` | Actualiza la posición del bookmark en el grupo. Reajusta el resto |
+| `update_metadata` | Aplica cambios sobre la colección |
+| `create_group` | Añade grupo al estado |
+| `delete_group` | Marca grupo como eliminado y mueve sus bookmarks a Inbox |
+| `collection_unpublished` | Marca la colección como despublicada. No elimina bookmarks |
 Idempotencia
 
     add_bookmark con un bookmark_id ya existente → ignorar.
