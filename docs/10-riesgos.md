@@ -8,7 +8,7 @@
 
 ## R2 — Contribuciones y multi-writer
 
-**Riesgo:** la idea de "Pull Request" o contribución directa a una colección ajena requiere multi-writer (Autobase), que está fuera del MVP. Si se implementa mal, rompe el modelo single-writer de Hypercore.
+**Riesgo:** la contribución directa a una colección ajena requiere multi-writer (Autobase), que está fuera del MVP. Si se implementa mal, rompe el modelo single-writer de Hypercore.
 
 **Mitigación:**
 - En MVP0–MVP2 no existe contribución. Solo duplicar y seguir.
