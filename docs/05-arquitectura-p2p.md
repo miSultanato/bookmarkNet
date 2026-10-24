@@ -24,8 +24,8 @@
 - Cada bloque = un evento.
 - Verificación criptográfica bloque a bloque.
 
-Los 9 tipos de evento están definidos en `docs/15-schema-eventos.md`:
-`collection_genesis`, `add_bookmark`, `edit_bookmark`, `remove_bookmark`, `move_bookmark`, `reorder_bookmark`, `update_metadata`, `create_group`, `delete_group`.
+Los 10 tipos de evento están definidos en `docs/15-schema-eventos.md`:
+`collection_genesis`, `add_bookmark`, `edit_bookmark`, `remove_bookmark`, `move_bookmark`, `reorder_bookmark`, `update_metadata`, `create_group`, `delete_group`, `collection_unpublished`.
 
 La lista anterior es exhaustiva, no ilustrativa.
 
