@@ -143,6 +143,15 @@ Toda entidad compartible incluye `owner_id`:
 
 En MVP: un solo autor por colección. No hay colaboradores.
 
+### Evento `collection_unpublished`
+
+`collection_unpublished` usa un `event_id` ULID y forma
+parte del log firmado por `collection_keypair`, como los
+demás eventos de la colección. Es el último evento que se
+escribe en el `collection_core`; informa a los seguidores
+de la despublicación, pero no elimina la copia que ya han
+replicado.
+
 ### Firmas de modificaciones
 
 En MVP, todas las modificaciones las firma el mismo
