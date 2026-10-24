@@ -12,12 +12,14 @@ Componentes: Identity, Hypercore, Hyperbee, Web UI.
 - Distribución: binario nativo por plataforma + Docker (ver docs/21-distribucion.md).
 - Testing: unit tests para módulos críticos (ver docs/12-testing.md).
 - UI: pantallas de Explorar, Mis bookmarks, Colección, Bookmark y Ajustes (ver docs/13-ui-ux.md).
+- Onboarding básico: pantalla de primera ejecución con 3 opciones. Solo "Importar bookmarks HTML" funciona en MVP0. "Añadir colecciones iniciales" muestra "seed pack disponible próximamente". "Continuar" va directo a la app.
 
 Funcionalidades:
 - Crear identidad.
 - Inbox.
 - Crear, editar y eliminar bookmarks.
 - Crear, mover y eliminar colecciones.
+- Grupos: crear, mover bookmarks entre grupos, eliminar grupos. Los bookmarks sin grupo van al Inbox.
 - Web UI en `localhost:port`.
 
 Resultado: «Pocket local».
@@ -61,6 +63,8 @@ Funcionalidades:
 - Replicación entre dispositivos propios.
 - Compartir colección por `bmn://<collection_id>`.
 - Seguir colección por enlace.
+- Duplicar una colección ajena como copia propia congelada.
+- Publicar y despublicar colecciones propias.
 - Estado de sincronización en UI.
 - NAT traversal vía Hyperswarm (sin relays ni TURN).
 
@@ -90,15 +94,12 @@ Demo de validación:
 - Caché local de peers conocidos.
 - Búsqueda enriquecida: `collection_count` **local** por resource ("aparece en N colecciones locales").
 
-## MVP 4 — Seed pack y onboarding
+## MVP 4 — Seed pack completo
 
 - Seed pack: conjunto de colecciones completas incluidas en el binario.
 - Origen: awesome-lists de GitHub transformadas mediante script, más colecciones creadas manualmente.
 - Cada colección lleva el `creator_peer_id` del NAS o VPS del equipo.
-- Onboarding de primera ejecución con tres opciones independientes:
-  1. Importar bookmarks de mi navegador (HTML).
-  2. Añadir colecciones iniciales (seed pack).
-  3. Continuar.
+- Onboarding completo de primera ejecución: la opción "Añadir colecciones iniciales" instala el seed pack y permite explorar sus colecciones offline. El onboarding básico de MVP0 ya muestra las tres opciones, pero esta opción indica "seed pack disponible próximamente" hasta MVP4.
 - Importación desde Pocket u otras fuentes: fuera de MVP4, en fases posteriores.
 
 Ver docs/18-seed-pack.md para el seed pack y docs/19-onboarding.md para el flujo de primera ejecución.
