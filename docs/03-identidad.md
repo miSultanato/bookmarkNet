@@ -12,8 +12,8 @@
 ## Estructura
 
 ```yaml
-user_id: HASH(public_key)   # u_93c4fa12...
-public_key: pk_xxxxx
+user_id: "u_" + sha256(public_key).hex().slice(0, 16)
+public_key: pk_user_xxxxx
 private_key: (nunca sale del dispositivo)
 profile:
   display_name: Gorka
@@ -29,7 +29,7 @@ trusted_nodes: [n_12ae, n_98bc, ...]
 Primera ejecución de `bookmarknet-node`:
 
 1. Genera clave privada y pública.
-2. Calcula `user_id = HASH(public_key)`.
+2. Calcula `user_id = "u_" + sha256(public_key).hex().slice(0, 16)`.
 3. Crea un perfil vacío (rellenarlo es opcional).
 
 No hay registro, email ni contraseña.
