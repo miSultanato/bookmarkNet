@@ -157,6 +157,13 @@ En una fase posterior a MVP2 se añadirá el sistema de propuestas in-app. Mecan
 
 Ver [docs/17-propuestas.md](17-propuestas.md) para el detalle del mecanismo y las medidas anti-abuso.
 
+## Hitos operativos
+
+- **Antes del coding:** hacer el repositorio público (con LICENSE MIT, .gitignore, README). Ver docs/12-testing.md.
+- **MVP2:** avisos de sincronización (dispositivos offline al publicar, despublicación con migrated_to).
+- **MVP3:** notificación de nueva versión de la app.
+- **MVP4:** onboarding con seed pack completo.
+
 ## Documentos relacionados
 
 - Testing: docs/12-testing.md
