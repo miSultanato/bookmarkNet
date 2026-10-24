@@ -35,3 +35,7 @@
 | **Búsqueda literal** | Búsqueda por substring case-insensitive sobre título, descripción, tags y URL. Sin IA, sin NLP, sin búsqueda semántica |
 | **collection_count** | Número de colecciones locales que contienen un resource. Métrica local al nodo hasta MVP5 |
 | **co_occurrence** | Frecuencia con la que dos resources aparecen juntos en las mismas colecciones locales. Métrica local al nodo hasta MVP5 |
+| **Bare** | Runtime de JavaScript de Holepunch, zero-core, diseñado para embeber y compilar a binario standalone. Entorno nativo del stack Hyper* |
+| **Pear-end** | Core P2P de BookmarkNet que corre en un worker Bare. Contiene toda la lógica peer-to-peer y es portable entre desktop y móvil |
+| **Worklet** | Hilo aislado de Bare que corre dentro de una app nativa (móvil o desktop) y se comunica con el shell vía IPC |
+| **bare-build** | Herramienta de empaquetado de Bare que genera ejecutables standalone o instaladores nativos por plataforma |
