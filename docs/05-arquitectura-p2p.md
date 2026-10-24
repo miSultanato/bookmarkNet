@@ -36,6 +36,23 @@ Jerarquía de claves:
 
 Es decir, en el bloque 0 conviven DOS firmas distintas: la del usuario sobre los campos del génesis (`signature_by_owner`) y la firma del propio bloque Hypercore (`collection_keypair`).
 
+**Derivación de claves por colección:**
+
+```text
+collection_keypair = derive(
+  user_master_key,
+  "collection:" + collection_uuid
+)
+```
+
+Donde `collection_uuid` es un ULID generado al crear la
+colección. **No es el nombre visible.** El nombre es
+editable; el UUID no. Esto garantiza que:
+
+- Renombrar una colección no cambia su clave.
+- Dos colecciones con el mismo nombre tienen UUIDs
+  distintos y, por tanto, claves distintas.
+
 ## Cores por dispositivo
 
 Además de los `collection_core` (uno por colección), cada
@@ -60,10 +77,10 @@ Antes de publicar, una colección existe solo en los
 `device_core` del usuario. Al publicar:
 
 1. Se crea un `collection_core` nuevo (single-writer,
-   clave derivada de la clave maestra + nombre de
-   colección).
-2. Se escribe en él un `collection_genesis` y los
-   eventos necesarios para reconstruir el estado actual.
+   con `collection_keypair` derivado mediante el
+   `collection_uuid` estable de la colección).
+2. Se crea y escribe en él el `collection_genesis`, seguido
+   de los eventos necesarios para reconstruir el estado actual.
 3. El `collection_core` se anuncia en un topic derivado
    de su clave pública.
 
