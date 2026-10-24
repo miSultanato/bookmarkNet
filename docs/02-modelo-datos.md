@@ -16,7 +16,7 @@ Representa a una persona. Es la entidad propietaria de bookmarks, grupos, colecc
 user_id: "u_" + sha256(public_key).hex().slice(0, 16)
 public_key: pk_user_xxxxx
 private_key: (nunca se comparte)
-display_name: Gorka
+display_name: Marta
 bio: Homelab y privacidad
 created: 2026-01-15
 ```
