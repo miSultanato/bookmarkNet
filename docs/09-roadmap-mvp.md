@@ -69,6 +69,13 @@ Demo de validación:
 
 **Importante:** el primer momento mágico no es sincronizar el portátil con el NAS, sino encontrar una colección hecha por otra persona y añadirla a la biblioteca.
 
+**Publicación y despublicación:**
+
+- Publicar una colección crea un `collection_core` con el estado actual.
+- Escritura dual automática tras publicar.
+- Despublicar escribe `collection_unpublished` y deja de anunciar el topic.
+- No hay republicación.
+
 ## MVP 3 — Hyperswarm + descubrimiento inicial
 
 - Descubrimiento por topic vía DHT.
