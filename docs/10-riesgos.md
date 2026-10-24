@@ -6,11 +6,14 @@
 
 **Mitigación:** Discovery Feed v1 con colecciones concretas, no temas vacíos; seed peers con colecciones populares desde el día 1; el usuario debe poder abrir una colección y ver bookmarks reales.
 
-## R2 — Multi-writer en Hypercore
+## R2 — Contribuciones y multi-writer
 
-**Riesgo:** Hypercore nativo es single-writer. Las contribuciones tipo «Pull Request» requerirán Autobase o fork + merge.
+**Riesgo:** la idea de "Pull Request" o contribución directa a una colección ajena requiere multi-writer (Autobase), que está fuera del MVP. Si se implementa mal, rompe el modelo single-writer de Hypercore.
 
-**Mitigación:** no bloquea el MVP; documentar la decisión y elegir entre Autobase y fork/merge antes de MVP3.
+**Mitigación:**
+- En MVP0–MVP2 no existe contribución. Solo duplicar y seguir.
+- En MVP3+ se añadirá un sistema de propuestas in-app (ver [docs/17-propuestas.md](17-propuestas.md)). Las propuestas son mensajes unidireccionales. El receptor las acepta o rechaza. Nunca hay escritura compartida.
+- Autobase queda como horizonte futuro solo para el `user_core` multidispositivo (Punto 6), no para propuestas.
 
 ## R3 — Canonicalización de URLs
 
@@ -41,3 +44,13 @@
 **Riesgo:** si el descubrimiento no arranca, el producto es útil pero no cumple la visión.
 
 **Mitigación:** hito claro (A crea → B duplica → C descubre). No construir funcionalidades encima hasta validarlo; si no ocurre, reconsiderar antes de seguir.
+
+## R8 — Abuso del sistema de propuestas
+
+**Riesgo:** una vez añadido el sistema de propuestas en MVP3+, podría ser objeto de spam, suplantación, acoso o sondeo.
+
+**Mitigación:** cuatro capas de control (ver [docs/17-propuestas.md](17-propuestas.md)):
+1. Restricción de relación: solo puedes proponer a colecciones que has duplicado.
+2. Cuota de envío: límites diarios y por colección.
+3. Control absoluto del receptor: bloquear, silenciar, marcar spam.
+4. Límite de exposición: la propuesta se muestra como diff de bookmarks, no como contenido renderizado.
