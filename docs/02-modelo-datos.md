@@ -80,6 +80,13 @@ created: 2026-01-15
 updated: 2026-01-20
 ```
 
+**Dos planos de existencia:**
+
+- **Local (borrador):** antes de publicar, la colección vive solo en los `device_core` del usuario que la creó. Es privada, no replicable por terceros.
+- **Público (canal):** al publicar, se crea un `collection_core` single-writer con el estado actual congelado. A partir de ahí, cada cambio en la colección se escribe automáticamente tanto en el `device_core` del dispositivo que lo hace como en el `collection_core`.
+
+La escritura dual es transparente para el usuario. Si compartes una colección, quieres que se mantenga actualizada. Si quieres una copia congelada, la forkeas.
+
 **Relación con el génesis:** cada colección tiene su propio `collection_keypair`. El bloque 0 (`collection_genesis`) contiene `collection_public_key`, `author_public_key` y `signature_by_owner` (firma del usuario sobre los campos del génesis). Los bloques posteriores los firma `collection_keypair` mediante Hypercore.
 
 ## Relaciones
