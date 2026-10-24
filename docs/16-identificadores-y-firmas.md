@@ -59,6 +59,23 @@ sola colección). Por eso:
 - Los bloques del log los firma el `collection_keypair`
   (Hypercore lo hace automáticamente).
 
+**Derivación de claves por colección:**
+
+```text
+collection_keypair = derive(
+  user_master_key,
+  "collection:" + collection_uuid
+)
+```
+
+Donde `collection_uuid` es un ULID generado al crear la
+colección. **No es el nombre visible.** El nombre es
+editable; el UUID no. Esto garantiza que:
+
+- Renombrar una colección no cambia su clave.
+- Dos colecciones con el mismo nombre tienen UUIDs
+  distintos y, por tanto, claves distintas.
+
 ### El evento de génesis
 
 El bloque 0 de cada colección es `collection_genesis` (ver
@@ -68,6 +85,8 @@ El bloque 0 de cada colección es `collection_genesis` (ver
 {
   "collection_id": "3df0c93d...",
   "collection_public_key": "pk_col_xxxxx",
+  "author_id": "u_93c4fa12...",
+  "author_public_key": "pk_user_xxxxxxxxxxxx",
   "name": "Japón 2027",
   "description": "...",
   "visibility": "public",
@@ -82,11 +101,19 @@ El bloque 0 de cada colección es `collection_genesis` (ver
 sha256(
   collection_id ||
   collection_public_key ||
+  author_id ||
+  author_public_key ||
   name ||
   visibility ||
   (forked_from ?? "")
 )
 ```
+
+**Importante:** la firma incluye `author_id` y
+`author_public_key`. Esto vincula criptográficamente la
+identidad del autor con el génesis. Sin estos campos, un
+atacante podría cambiar el `author_id` sin invalidar la
+firma.
 
 **Nota:** `forked_from` se incluye en la firma aunque sea `null` en colecciones originales, para que la firma cubra la procedencia de la colección. Ver `docs/15-schema-eventos.md`.
 
