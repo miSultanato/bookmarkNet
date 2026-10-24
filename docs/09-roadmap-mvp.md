@@ -43,7 +43,9 @@ Resultado: «Pocket local».
 Son dos operaciones distintas:
 
 - **Seguir:** replicas la colección del autor. Recibes sus cambios. No puedes editar la colección original. Se materializa con un enlace `bmn://<collection_id>`.
-- **Duplicar:** creas una copia propia congelada en el momento del fork. El génesis de tu copia incluye `forked_from: <collection_id_original>`. Es una copia congelada: los cambios posteriores del autor original NO se propagan automáticamente a tu copia. Si quieres actualizarla, vuelves a duplicar.
+- **Duplicar:** creas una copia propia congelada en el momento del fork, con su propio `collection_core` y `collection_id`. El génesis de tu copia incluye `forked_from: <collection_id_original>`. Pasa a ser tuya: puedes editarla, publicarla y volver a forkearla. Los cambios posteriores del autor original NO se propagan automáticamente a tu copia; si quieres incorporarlos, debes hacerlo manualmente.
+
+Seguir y duplicar son operaciones independientes y no excluyentes. Puedes seguir una colección y duplicarla a la vez: la versión seguida recibe las actualizaciones de su dueño y no puedes editarla; la copia duplicada es tuya y la editas por separado. No necesitas dejar de seguir para duplicar, ni existe una conversión de la versión seguida en una colección propia.
 
 **Objetivo:** validar identidad multidispositivo y compartición entre usuarios, con NAT traversal básico y tolerancia a offline.
 
