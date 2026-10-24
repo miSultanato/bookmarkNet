@@ -90,7 +90,8 @@ El bloque 0 de cada colección es `collection_genesis` (ver
   "name": "Japón 2027",
   "description": "...",
   "visibility": "public",
-  "author_id": "u_93c4fa12...",
+  "forked_from": null,
+  "migrated_from": null,
   "signature_by_owner": "sig_xxxxx"
 }
 ```
@@ -105,7 +106,8 @@ sha256(
   author_public_key ||
   name ||
   visibility ||
-  (forked_from ?? "")
+  (forked_from ?? "") ||
+  (migrated_from ?? "")
 )
 ```
 
@@ -115,7 +117,7 @@ identidad del autor con el génesis. Sin estos campos, un
 atacante podría cambiar el `author_id` sin invalidar la
 firma.
 
-**Nota:** `forked_from` se incluye en la firma aunque sea `null` en colecciones originales, para que la firma cubra la procedencia de la colección. Ver `docs/15-schema-eventos.md`.
+**Nota:** `forked_from` y `migrated_from` se incluyen en la firma aunque sean `null` en colecciones originales, para que la firma cubra la procedencia de la colección. Son mutuamente excluyentes. Ver `docs/15-schema-eventos.md`.
 
 ### Cadena de verificación
 
