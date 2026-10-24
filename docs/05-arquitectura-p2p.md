@@ -30,8 +30,11 @@ Los 9 tipos de evento están definidos en `docs/15-schema-eventos.md`:
 La lista anterior es exhaustiva, no ilustrativa.
 
 Jerarquía de claves:
-- El usuario (`user_keypair`) firma el bloque 0 (`collection_genesis`) que vincula su identidad a la colección.
-- La colección (`collection_keypair`) firma los bloques posteriores. Hypercore lo hace automáticamente.
+- El usuario (`user_keypair`) firma los campos del bloque 0 (`collection_genesis`) mediante una firma llamada `signature_by_owner`. Esta firma se incluye en el payload del evento y se verifica con `author_public_key`.
+- La colección (`collection_keypair`) firma TODOS los bloques del Hypercore, incluido el bloque 0, como parte del protocolo de Hypercore. Esta firma es automática y garantiza la integridad del log.
+- Los bloques 1..N solo llevan la firma de Hypercore (hecha por `collection_keypair`). No llevan `signature_by_owner`.
+
+Es decir, en el bloque 0 conviven DOS firmas distintas: la del usuario sobre los campos del génesis (`signature_by_owner`) y la firma del propio bloque Hypercore (`collection_keypair`).
 
 ## Nodos offline
 
