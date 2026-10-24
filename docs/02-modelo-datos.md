@@ -13,8 +13,8 @@
 Representa a una persona. Es la entidad propietaria de bookmarks, grupos, colecciones y publicaciones.
 
 ```yaml
-user_id: u_93c4...          # HASH(public_key)
-public_key: pk_xxxxx
+user_id: "u_" + sha256(public_key).hex().slice(0, 16)
+public_key: pk_user_xxxxx
 private_key: (nunca se comparte)
 display_name: Gorka
 bio: Homelab y privacidad
