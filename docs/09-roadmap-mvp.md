@@ -88,7 +88,7 @@ Demo de validación:
 - Descubrimiento por topic vía DHT.
 - `announce(topic)` al publicar.
 - Caché local de peers conocidos.
-- Búsqueda enriquecida: `collection_count` por resource ("aparece en N colecciones locales").
+- Búsqueda enriquecida: `collection_count` **local** por resource ("aparece en N colecciones locales").
 
 ## MVP 4 — Seed pack y onboarding
 
@@ -104,6 +104,7 @@ Demo de validación:
 Ver docs/18-seed-pack.md para el seed pack y docs/19-onboarding.md para el flujo de primera ejecución.
 ## MVP 5 — Métricas emergentes
 
+- `collection_count` **global** estimado (gossip o seed peers agregadores).
 - Búsqueda con `co_occurrence` ("relacionado frecuente con X, Y, Z").
 - Estadísticas agregadas (nunca bookmarks privados).
 - Tendencias, más duplicados, más reutilizados y nuevos.
