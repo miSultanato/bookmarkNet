@@ -111,10 +111,14 @@ Si todos desaparecen, la colección queda temporalmente inaccesible. Cuando uno 
 
 ## Estado de sincronización (UI)
 
-- ✅ Sincronizada
-- ⏳ Sin cambios pendientes
-- ⚠ Última réplica hace N días
-- 🔴 Ningún peer disponible
+- ✅ Sincronizada: la colección se ha replicado completamente en todos los peers conocidos.
+- 🔄 Sincronizando: hay una replicación en curso.
+- ⏳ Pendiente: hay cambios locales que aún no se han replicado a ningún peer.
+- ⚠ Última réplica hace N días: no hay peers disponibles desde hace N días. Los cambios locales están seguros en el dispositivo.
+- 🔴 Sin peers: no se ha conectado nunca con un peer para esta colección.
+- 📦 Archivada: el autor ha despublicado la colección. Se conserva lo replicado.
+
+Cada estado es mutuamente excluyente.
 
 La UI debe comunicar: «Tu colección está segura en tu dispositivo. Se replicará cuando haya peers disponibles».
 
