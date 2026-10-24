@@ -140,3 +140,7 @@ Ninguna otra operación de la API genera eventos. Las operaciones de lectura (GE
 - JSON en request y response.
 - Errores: `{error: {code, message}}`.
 - La API es local; sin autenticación en el MVP. En el futuro, token local generado en la primera ejecución.
+
+**Seguridad:** la API local valida el header `Host` contra `allowed_hosts` (por defecto `localhost`, `127.0.0.1`, `[::1]`). Para acceso desde la LAN (ej. NAS), añadir la IP del NAS a `allowed_hosts`. Ver docs/22-configuracion.md.
+
+Las peticiones mutantes (`POST`, `PUT`, `PATCH`, `DELETE`) validan el `Origin` y exigen `Content-Type: application/json`.
