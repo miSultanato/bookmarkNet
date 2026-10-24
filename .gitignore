@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+bare_modules/
+
+# Datos locales de BookmarkNet
+*.bmn
+.bookmarknet/
+identity.bmn
+
+# Configuración local
+.env
+config.json
+*.local
+
+# Logs
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
