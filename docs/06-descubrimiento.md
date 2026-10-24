@@ -71,8 +71,10 @@ Si todos los peers están offline, la colección no es accesible temporalmente. 
 
 - MVP2: compartición directa por enlace, sin discovery automático.
 - MVP3: descubrimiento por topic vía Hyperswarm DHT.
-- MVP4: Discovery Feed incluido en la app.
+- MVP4: seed pack incluido en la app (ver docs/18-seed-pack.md). Colecciones completas que funcionan offline desde el primer arranque.
 - MVP5: métricas agregadas para tendencias.
+
+**Seed pack:** además del descubrimiento por topic, el nodo incluye el seed pack en el binario. Al arrancar por primera vez, el usuario puede añadir las colecciones del seed pack y explorarlas sin conexión. Ver docs/18-seed-pack.md.
 
 ## Avisos de publicación
 
@@ -102,6 +104,6 @@ Y el estado de la colección cambia a "Archivada".
 
 ## Métricas y popularidad (MVP)
 
-Las métricas de popularidad que muestra el nodo ("este bookmark aparece en N colecciones", "esta colección ha sido duplicada M veces") son **locales al nodo** en MVP. Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y Discovery Feed).
+Las métricas de popularidad que muestra el nodo ("este bookmark aparece en N colecciones", "esta colección ha sido duplicada M veces") son **locales al nodo** en MVP. Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y del seed pack).
 
 No existe una cifra global absoluta hasta MVP5 (métricas emergentes agregadas).
