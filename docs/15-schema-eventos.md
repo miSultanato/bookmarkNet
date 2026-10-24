@@ -308,7 +308,8 @@ seguidores conservan lo replicado y muestran un aviso.
   "author_id": "u_marta...",
   "created_at": "2026-10-24T17:00:00Z",
   "payload": {
-    "message": "La autora ha dejado de compartir esta colección. Conservas tu copia."
+    "message": "La autora ha dejado de compartir esta colección.",
+    "migrated_to": null
   }
 }
 ```
@@ -316,9 +317,11 @@ seguidores conservan lo replicado y muestran un aviso.
 **Reglas:**
 
 - Solo el autor de la colección puede emitirlo.
+- `migrated_to` es opcional. Si es `null` o está ausente, no hay migración.
+- Si `migrated_to` está presente, debe ser un `collection_id` válido (hex, sin prefijo).
+- El receptor no verifica que el `collection_id` destino exista o sea accesible. Es informativo.
+- El receptor no migra automáticamente. Muestra la opción; el usuario decide.
 - Tras este evento, el autor deja de anunciar el topic del `collection_core`.
-- Los seguidores que ya han replicado el core conservan lo replicado y no reciben más bloques.
-- No hay evento de «republicación». Publicar de nuevo crea un `collection_core` nuevo.
 
 Fold del log → estado actual
 
