@@ -19,8 +19,9 @@ Aplicar en este orden:
 3. **Eliminar fragmento (`#...`).** `https://ejemplo.com/pagina#seccion` → `https://ejemplo.com/pagina`
 4. **Eliminar parámetros de tracking conocidos:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `fbclid`, `gclid`, `mc_cid`, `mc_eid`; `ref` y `source` sólo si sus valores son de tracking conocidos.
 5. **Mantener el resto de parámetros de consulta**, pues pueden cambiar el recurso.
-6. **Normalizar trailing slash:** si el path está vacío, usar `/`; si el path no termina en `/`, mantenerlo tal cual. No forzar una barra final: algunos recursos distinguen ambas rutas.
-7. **Eliminar un `?` vacío final.**
+6. **Ordenar los parámetros de query alfabéticamente por nombre.** Si hay parámetros repetidos (`?a=1&a=2`), mantener el orden original de los valores (no ordenar valores).
+7. **Normalizar trailing slash:** si el path está vacío, usar `/`; si el path no termina en `/`, mantenerlo tal cual. No forzar una barra final: algunos recursos distinguen ambas rutas.
+8. **Eliminar un `?` vacío final.**
 
 ## Ejemplos
 
@@ -36,7 +37,6 @@ Aplicar en este orden:
 
 ## Casos abiertos (decidir antes de MVP3)
 
-- ¿`?a=1&b=2` y `?b=2&a=1` son el mismo resource? La propuesta v1 es que sí: ordenar parámetros.
 - ¿URLs con `?page=2` son recursos distintos? Sí, mantener.
 - ¿URLs acortadas (`bit.ly/...`)? En v1 no se resuelven.
 
