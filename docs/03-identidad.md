@@ -16,7 +16,7 @@ user_id: "u_" + sha256(public_key).hex().slice(0, 16)
 public_key: pk_user_xxxxx
 private_key: (nunca sale del dispositivo)
 profile:
-  display_name: Gorka
+  display_name: Marta
   bio: ...
   avatar: (opcional)
   website: (opcional)
