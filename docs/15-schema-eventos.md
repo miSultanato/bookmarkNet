@@ -5,6 +5,12 @@ formato exacto de cada evento que se escribe en un Hypercore de
 colección. Es append-only e inmutable. Cualquier cambio aquí
 requiere versionado y migración.
 
+**Alcance:** este documento define el schema de los
+eventos del `collection_core` (log público de una
+colección publicada). Los eventos del `device_core`
+(borradores locales) están definidos en
+docs/03-identidad.md.
+
 ## Principios
 
 - Append-only. Los bloques no se reescriben.
@@ -36,9 +42,16 @@ Campo	Tipo	Descripción
 schema_version	int	Versión del schema. Empieza en 1
 event_id	ULID	Único globalmente, ordenable por tiempo
 event_type	string	Uno de los definidos abajo
-author_id	string	user_id que firma el evento. Debe coincidir con el owner_id de la colección (o un colaborador autorizado en el futuro)
+author_id	string	Identifica al autor lógico del evento (el `owner_id` de la colección). NO es el firmante criptográfico de cada bloque. Los bloques los firma `collection_keypair` mediante Hypercore. Solo el bloque génesis lleva una firma adicional del usuario (`signature_by_owner`)
 created_at	ISO8601	Timestamp del autor. No es fuente de verdad para orden (el orden lo da el log)
 payload	object	Depende del event_type
+**Nota sobre firmas:** todos los bloques del `collection_core`
+(incluido el génesis) los firma `collection_keypair` mediante
+Hypercore. El bloque génesis lleva además una firma del usuario
+(`signature_by_owner`) sobre sus campos, que se verifica con
+`author_public_key`. Los bloques 1..N no llevan
+`signature_by_owner`.
+
 Tipos de evento (v1)
 
 **Nota sobre identificadores:** `collection_id` es igual a `collection_public_key` en hex, sin prefijo. Ver `docs/16-identificadores-y-firmas.md`.
@@ -82,12 +95,14 @@ colección no es válida.
 }
 ```
 
-**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del `author_id` sobre:
+**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del `author_id` sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility` y `(forked_from ?? "")`:
 
 ```text
 sha256(
   collection_id ||
   collection_public_key ||
+  author_id ||
+  author_public_key ||
   name ||
   visibility ||
   (forked_from ?? "")
