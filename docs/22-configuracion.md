@@ -67,7 +67,7 @@ La API local y la UI comparten puerto. Para evitar DNS rebinding y CSRF:
 
 ### Content-Type
 
-- Las peticiones `POST`, `PUT` y `PATCH` deben incluir `Content-Type: application/json`.
+- Las peticiones `POST`, `PUT` y `PATCH` deben incluir `Content-Type: application/json`. Las peticiones `DELETE` no requieren `Content-Type` porque no tienen body.
 - Esto fuerza un preflight CORS que el servidor no responde para orígenes externos, bloqueando CSRF.
 
 ### Bind
