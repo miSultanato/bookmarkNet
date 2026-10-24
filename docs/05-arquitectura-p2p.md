@@ -54,6 +54,38 @@ agregando los `device_core` de todos sus dispositivos.
 Esto no requiere Autobase: cada `device_core` es un
 Hypercore single-writer independiente.
 
+## Publicación y doble log
+
+Antes de publicar, una colección existe solo en los
+`device_core` del usuario. Al publicar:
+
+1. Se crea un `collection_core` nuevo (single-writer,
+   clave derivada de la clave maestra + nombre de
+   colección).
+2. Se escribe en él un `collection_genesis` y los
+   eventos necesarios para reconstruir el estado actual.
+3. El `collection_core` se anuncia en un topic derivado
+   de su clave pública.
+
+A partir de ese momento, cada modificación de la
+colección se escribe en dos sitios:
+
+- En el `device_core` del dispositivo que la hace (para
+  la vista local).
+- En el `collection_core` (para los seguidores).
+
+Esta **escritura dual** es automática y transparente.
+
+**Despublicar:** el autor escribe un evento
+`collection_unpublished` en el `collection_core`, espera
+un tiempo razonable a que los peers lo repliquen, y deja
+de anunciar el topic. Los seguidores conservan lo
+replicado y reciben el aviso.
+
+**No existe "republicar".** Publicar de nuevo significa
+crear un `collection_core` nuevo con un nuevo
+`collection_id`.
+
 ## Nodos offline
 
 Los nodos offline son normales. Un portátil puede estar apagado el 80 % del tiempo. Requisito mínimo: al menos un nodo con la colección debe seguir online.
