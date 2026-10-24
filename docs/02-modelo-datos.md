@@ -37,7 +37,7 @@ last_seen: 2026-10-23
 
 ### Resource
 
-Representa un recurso web único. Es la entidad global, compartida por toda la red.
+Representa un recurso web único. Su identidad lógica es global, pero no existe un registro físico compartido por toda la red en MVP.
 
 ```yaml
 resource_id: r_7f6a...      # sha256 completo en hex (64 caracteres)
@@ -47,6 +47,10 @@ title: Hiking in Japan
 description: Guide to hiking routes in Japan
 created: 2026-01-15
 ```
+
+**Globalidad lógica, no física:** el `resource_id` es el mismo en todos los nodos porque se deriva de la URL canónica. Pero en MVP no existe un registry global de resources. Cada nodo materializa su propia vista de qué resources conoce y en cuántas colecciones aparecen, a partir de los `canonical_url` embebidos en las colecciones que replica. Las métricas de popularidad ("X aparece en N colecciones") son locales al nodo hasta MVP5.
+
+**Horizonte:** un Autobase de resources (multi-writer) podrá agregar los resources conocidos para dar métricas globales en el futuro, sin cambiar el `resource_id` ni el schema de `add_bookmark`.
 
 ### Bookmark
 
@@ -89,3 +93,4 @@ Un mismo Resource puede aparecer en múltiples colecciones. Cada Bookmark conser
 3. Todo bookmark referencia un `resource_id` existente.
 4. Toda collection tiene un `owner_id`.
 5. Las modificaciones se firman con la clave privada de la colección (`collection_keypair`). El usuario firma el bloque génesis (`collection_genesis`) para vincular su identidad a la colección. Ver `docs/16-identificadores-y-firmas.md`.
+6. `resource_id` es independiente de dónde se almacene el resource. Se deriva siempre de la URL canónica y no cambia si en el futuro se introduce un registry global (Autobase).
