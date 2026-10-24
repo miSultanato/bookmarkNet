@@ -123,6 +123,21 @@ Si ese ciclo ocurre de forma natural, la red está validada. Todo lo demás se c
 
 Sin likes, comentarios, chat, IA, recomendaciones IA, rankings de usuarios, seguidores complejos, mensajería, moderación distribuida ni temas automáticos avanzados.
 
+## Migraciones de schema
+
+La política de migraciones está en
+docs/23-migraciones.md. Resumen:
+
+- Bloques inmutables. La migración se hace en la vista
+  materializada.
+- Vista materializada: migración automática y
+  transparente al arrancar.
+- Colecciones no publicadas (`device_core`): migración
+  eager automática.
+- Colecciones publicadas (`collection_core`): migración
+  explícita con aviso único al autor y
+  `collection_unpublished` + `migrated_to`.
+
 ## MVP3+ — Propuestas in-app (horizonte)
 
 En una fase posterior a MVP2 se añadirá el sistema de propuestas in-app. Mecanismo:
