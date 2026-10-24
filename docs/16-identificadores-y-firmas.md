@@ -124,7 +124,7 @@ Solución: el evento `collection_genesis` incluye también la clave completa `au
 El receptor verifica:
 
 ```text
-sha256(author_public_key).hex().slice(0,16) == author_id
+author_id == "u_" + sha256(author_public_key).hex().slice(0, 16)
 ```
 
 Y luego verifica la firma con `author_public_key`.
@@ -158,7 +158,7 @@ documentará entonces.
 Un bookmark es válido si:
 
 - Su `add_bookmark` está en el log de una colección válida.
-- El `resource_id` coincide con `sha256("v1:" + canonical_url)`.
+- `resource_id == "r_" + sha256("v1:" + canonical_url).hex()`
 - No ha sido eliminado por un `remove_bookmark` posterior.
 
 No hay firma individual por bookmark. La integridad la da el log.
