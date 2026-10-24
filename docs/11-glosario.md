@@ -21,3 +21,6 @@
 | **Momento mágico** | Encontrar una colección hecha por otra persona y añadirla a la biblioteca |
 | **Duplicar** | Crear una copia propia de una colección ajena (fork sin jerga) |
 | **Registry de resources** | Estructura física que almacenaría todos los resources conocidos. NO existe en MVP. En el futuro podría implementarse con Autobase |
+| **Propuesta** | Mensaje unidireccional mediante el cual un usuario sugiere cambios a una colección ajena que ha duplicado previamente. El receptor decide si los acepta. No es una escritura compartida |
+| **Cuota de propuestas** | Límites locales de envío de propuestas (por día, por colección, por intervalo) que el emisor aplica para evitar abusos |
+| **Bandeja de propuestas** | Lista local de propuestas recibidas que el receptor puede revisar, aceptar, rechazar, bloquear o marcar como spam |
