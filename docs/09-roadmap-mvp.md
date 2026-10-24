@@ -10,6 +10,7 @@ Componentes: Identity, Hypercore, Hyperbee, Web UI.
 
 - Stack: Bare + TypeScript, UI web local servida por el core (ver docs/20-stack-tecnico.md).
 - Distribución: binario nativo por plataforma + Docker (ver docs/21-distribucion.md).
+- Testing: unit tests para módulos críticos (ver docs/12-testing.md).
 
 Funcionalidades:
 - Crear identidad.
