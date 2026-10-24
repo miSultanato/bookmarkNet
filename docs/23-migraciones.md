@@ -62,7 +62,7 @@ migrate_add_bookmark(bloque, target_version):
 2. Autor actualiza la app a v2.
 3. La app muestra el aviso: "Tienes 1 colección publicada en v1. ¿Migrar a v2? [Migrar] [Más tarde]".
 4. Autor pulsa "Migrar".
-5. La app duplica A a v2 en un `collection_core` nuevo con `collection_id: B`. `forked_from: A`.
+5. La app duplica A a v2 en un `collection_core` nuevo con `collection_id: B`. `migrated_from: A`.
 6. La app escribe `collection_unpublished` en A con `migrated_to: B`.
 7. La app deja de anunciar el topic de A.
 8. La app publica B.
@@ -71,6 +71,8 @@ migrate_add_bookmark(bloque, target_version):
    Ha migrado a una nueva versión.
    [Seguir la nueva versión]"
 10. Si el seguidor pulsa "Seguir", su nodo deja de seguir A y empieza a seguir B.
+
+**Diferencia entre `forked_from` y `migrated_from`:** `forked_from` indica que la colección es una copia congelada de otra (duplicar). `migrated_from` indica que la colección es una migración de schema de otra. Son mutuamente excluyentes.
 
 ## Lo que NO se hace
 
