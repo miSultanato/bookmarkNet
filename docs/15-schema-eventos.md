@@ -341,7 +341,7 @@ reorder_bookmark	Actualiza la posición del bookmark en el grupo. Reajusta el re
 update_metadata	Aplica cambios sobre la colección
 create_group	Añade grupo al estado
 delete_group	Marca grupo como eliminado y mueve sus bookmarks a Inbox
-collection_unpublished	Informa que el autor deja de compartir la colección
+collection_unpublished	Marca la colección como despublicada. No elimina bookmarks
 Idempotencia
 
     add_bookmark con un bookmark_id ya existente → ignorar.
