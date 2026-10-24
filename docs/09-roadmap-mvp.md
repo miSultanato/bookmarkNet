@@ -9,6 +9,7 @@ Regla: cada fase debe producir algo utilizable por una persona real.
 Componentes: Identity, Hypercore, Hyperbee, Web UI.
 
 - Stack: Bare + TypeScript, UI web local servida por el core (ver docs/20-stack-tecnico.md).
+- Distribución: binario nativo por plataforma + Docker (ver docs/21-distribucion.md).
 
 Funcionalidades:
 - Crear identidad.
