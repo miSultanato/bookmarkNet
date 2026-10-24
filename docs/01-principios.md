@@ -26,6 +26,8 @@ Todo parte del bookmark. Las personas existen, pero no son el foco. El foco est�
 
 En una fase futura, un Autobase de resources podrá agregar los resources conocidos para dar métricas globales, sin cambiar el `resource_id` ni el schema de `add_bookmark`.
 
+**Autobase (futuro):** las menciones a un futuro Autobase de resources o de `user_core` son horizontes posibles, no decisiones cerradas. Se revisarán en MVP futuro cuando el producto esté validado.
+
 ## 5. Replicamos eventos, no estados
 
 Append-only. Tolerante a nodos offline. Los nodos offline son normales, nunca excepciones.
