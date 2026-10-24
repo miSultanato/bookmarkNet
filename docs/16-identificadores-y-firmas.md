@@ -181,7 +181,7 @@ Hypercore (log append-only)
  ▼
 Bookmark (01J8XL...)
  │
- │ resource_id = sha256("v1:" + canonical_url)
+ │ resource_id = "r_" + sha256("v1:" + canonical_url).hex()
  ▼
 Resource (r_7f6a...)
  │
