@@ -4,13 +4,13 @@ El seed pack es un conjunto de colecciones completas, creadas y mantenidas por e
 
 ## Objetivo
 
-Evitar que un usuario nuevo abra la app y vea una pantalla vacía. Desde el primer arranque, incluso sin conexión, el usuario tiene acceso a colecciones útiles que puede explorar, seguir o forkear.
+Evitar que un usuario nuevo abra la app y vea una pantalla vacía. Desde el primer arranque, incluso sin conexión, el usuario tiene acceso a colecciones útiles que puede explorar, seguir o duplicar.
 
 ## Composición
 
 - **Colecciones completas**, no punteros. Cada colección es un `collection_core` real, replicable y verificable.
 - **Creadas y mantenidas por el equipo** del proyecto. Firmadas con la clave del proyecto.
-- **Funcionan como cualquier otra colección:** se publican, se replican, se siguen, se forkеan.
+- **Funcionan como cualquier otra colección:** se publican, se replican, se siguen y se duplican.
 
 ## Origen de las colecciones
 
@@ -22,7 +22,7 @@ También puede haber colecciones creadas manualmente por el equipo.
 
 - El binario de BookmarkNet incluye un snapshot de los `collection_core` del seed pack en el momento del build.
 - Al arrancar, el nodo replica esos cores desde el snapshot local.
-- El usuario puede abrirlos, leerlos, forkearlos y seguirlos sin conexión.
+- El usuario puede abrirlos, leerlas, duplicarlas y seguirlas sin conexión.
 
 ## Actualización
 
