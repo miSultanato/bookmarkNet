@@ -23,6 +23,8 @@ Primera ejecución. Tres opciones independientes:
 
 Las tres opcionales. Si el usuario marca "Importar" pero no selecciona archivo, aviso suave. Después de "Continuar", va a Explorar (si marcó seed pack) o a un mensaje claro de qué puede hacer.
 
+**Fase:** el onboarding básico (esta pantalla) es MVP0. La opción "Añadir colecciones iniciales" solo funciona a partir de MVP4 (cuando existe el seed pack). En MVP0 muestra "disponible próximamente".
+
 ### 2. Explorar
 
 Pantalla principal tras el onboarding.
@@ -37,7 +39,7 @@ Vista principal de los datos del usuario.
 
 - **Tabs:** Inbox | Grupos | Colecciones.
 - **Inbox:** bookmarks sin organizar. Acción rápida para mover a un grupo o colección.
-- **Grupos:** lista de grupos con sus bookmarks.
+- **Grupos:** lista de grupos con sus bookmarks. La pestaña "Grupos" forma parte de MVP0.
 - **Colecciones:** lista de colecciones propias, con estado (privada, pública, archivada).
 
 ### 4. Colección
@@ -49,6 +51,8 @@ Vista de una colección concreta.
 - **Acciones:** seguir (si es ajena), duplicar, publicar (si es propia y privada), despublicar (si es propia y pública), editar metadatos.
 - **Si es ajena:** botón "Seguir" y botón "Duplicar".
 - **Si es propia:** botón "Publicar" o "Despublicar".
+
+**Fase:** las acciones "Seguir", "Duplicar", "Publicar" y "Despublicar" son MVP2. En MVP0 la pantalla de colección solo muestra los bookmarks y permite editarlos.
 
 ### 5. Bookmark
 
