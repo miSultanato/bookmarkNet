@@ -113,7 +113,7 @@ La búsqueda es literal (sin IA, sin NLP). Substring, case-insensitive, sobre t�
 **Métricas progresivas:**
 
 - **MVP0–MVP2:** búsqueda literal simple, sin métricas.
-- **MVP3:** + `collection_count` por resource ("Immich aparece en 142 colecciones de tu red").
-- **MVP5:** + `co_occurrence` ("Immich se relaciona frecuentemente con CrowdSec, Netbird, Vaultwarden").
+- **MVP3:** + `collection_count` local por resource ("Immich aparece en 142 colecciones locales").
+- **MVP5:** + `collection_count` global estimado (gossip o seed peers agregadores) y `co_occurrence` ("Immich se relaciona frecuentemente con CrowdSec, Netbird, Vaultwarden").
 
-**Todas las métricas son locales al nodo hasta MVP5.** Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y seed pack). La UI debe decir "en tu red" o "que conoces", nunca "en toda la red".
+El `collection_count` de MVP3 cuenta las colecciones que el nodo tiene localmente (propias, seguidas y seed pack). En MVP5 se añade una estimación global mediante gossip o seed peers agregadores. Hasta MVP5, todas las métricas son locales. La UI debe decir "en tu red" o "que conoces", nunca "en toda la red".
