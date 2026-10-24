@@ -24,3 +24,8 @@
 | **Propuesta** | Mensaje unidireccional mediante el cual un usuario sugiere cambios a una colección ajena que ha duplicado previamente. El receptor decide si los acepta. No es una escritura compartida |
 | **Cuota de propuestas** | Límites locales de envío de propuestas (por día, por colección, por intervalo) que el emisor aplica para evitar abusos |
 | **Bandeja de propuestas** | Lista local de propuestas recibidas que el receptor puede revisar, aceptar, rechazar, bloquear o marcar como spam |
+| **device_core** | Hypercore single-writer por dispositivo del mismo usuario. Contiene borradores locales de colecciones propias y metadatos |
+| **user_index** | Vista local agregada de los device_core de todos los dispositivos del mismo usuario |
+| **collection_core** | Hypercore single-writer de una colección publicada. Replicable por seguidores |
+| **Escritura dual** | Tras publicar una colección, cada cambio se escribe en el device_core y en el collection_core |
+| **Despublicar** | Escribir `collection_unpublished` y dejar de anunciar el topic del collection_core. No hay republicación |
