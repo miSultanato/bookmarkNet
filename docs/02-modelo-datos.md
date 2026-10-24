@@ -61,6 +61,8 @@ Hasta MVP5, todas las métricas son locales.
 
 **Horizonte:** un Autobase de resources (multi-writer) podrá agregar los resources conocidos para dar métricas globales en el futuro, sin cambiar el `resource_id` ni el schema de `add_bookmark`.
 
+**Nota:** el Autobase de resources es un horizonte posible, no una decisión cerrada. Se revisará en MVP futuro. Ver ADR-004.
+
 ### Bookmark
 
 Representa la inclusión de un Resource dentro de una colección. Es local al usuario o a la colección.
