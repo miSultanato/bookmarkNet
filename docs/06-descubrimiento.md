@@ -48,7 +48,7 @@ Una colección tiene 0..N réplicas. Mientras una esté online, la colección si
 
 ```
 Colección «Japón 2027»
-├─ Seeder A (NAS Gorka)
+├─ Seeder A (NAS Marta)
 ├─ Seeder B (Laura)
 └─ Seeder C (Carlos)
 ```
