@@ -47,7 +47,7 @@ Son dos operaciones distintas:
 
 **Objetivo:** validar identidad multidispositivo y compartición entre usuarios, con NAT traversal básico y tolerancia a offline.
 
-Escenario: Gorka (NAS 24/7) comparte «Japón 2027»; Laura (portátil ocasional) la sigue, se desconecta y Gorka añade tres bookmarks. Laura vuelve dos días después y se actualiza automáticamente.
+Escenario: Marta (NAS 24/7) comparte «Japón 2027»; Laura (portátil ocasional) la sigue, se desconecta y Marta añade tres bookmarks. Laura vuelve dos días después y se actualiza automáticamente.
 
 Funcionalidades:
 - Añadir dispositivo mediante QR.
@@ -109,12 +109,12 @@ Sin likes, comentarios, chat, IA, recomendaciones IA, rankings de usuarios, segu
 
 En una fase posterior a MVP2 se añadirá el sistema de propuestas in-app. Mecanismo:
 
-1. Laura duplica una colección de Gorka (copia congelada con `forked_from`).
+1. Laura duplica una colección de Marta (copia congelada con `forked_from`).
 2. Laura añade o modifica bookmarks en su copia.
 3. Laura pulsa "Proponer al autor original" dentro de la app.
-4. Gorka recibe la propuesta en su bandeja de propuestas.
-5. Gorka revisa el diff y acepta o rechaza.
-6. Si acepta, la app de Gorka escribe los cambios en su propia colección (eventos `add_bookmark` o `edit_bookmark`, firmados por Gorka).
+4. Marta recibe la propuesta en su bandeja de propuestas.
+5. Marta revisa el diff y acepta o rechaza.
+6. Si acepta, la app de Marta escribe los cambios en su propia colección (eventos `add_bookmark` o `edit_bookmark`, firmados por Marta).
 
 **No requiere Autobase.** Cada escritura es single-writer en el log del autor correspondiente. La propuesta es un mensaje, no una escritura compartida.
 
