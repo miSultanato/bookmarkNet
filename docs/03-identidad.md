@@ -68,12 +68,29 @@ Si se pierden todos los dispositivos pero se conserva `identity.bmn`:
 
 ## Sincronización multidispositivo
 
-Cada colección tiene su propio par de claves. El usuario firma el bloque génesis (`collection_genesis`) que vincula su identidad a la colección. Los bloques posteriores del log los firma la clave de la colección (Hypercore).
+Cada dispositivo del mismo usuario tiene su propio
+`device_core`: un Hypercore single-writer firmado con una
+clave derivada de la clave maestra del usuario y el
+`node_id` del dispositivo.
 
-Cuando un nodo recibe una modificación:
-- Verifica que el bloque está firmado por `collection_keypair` (Hypercore lo hace automáticamente).
-- Verifica que el `author_id` del evento coincide con el `owner_id` del génesis.
-- Si ambas verificaciones pasan → aceptar. Si no → rechazar.
+El `device_core` contiene:
+- Las colecciones propias que ese dispositivo ha creado.
+- Los bookmarks que ese dispositivo ha añadido o
+  modificado en colecciones propias.
+- Los cambios de perfil.
+- La lista de dispositivos que conoce.
+
+Todos los dispositivos del mismo usuario se unen a un topic
+derivado del `user_id` y replican los `device_core` de los
+demás (solo lectura para los ajenos).
+
+La vista unificada del usuario (qué colecciones tiene,
+cuál es su perfil actual) se construye **localmente**
+(`user_index`) sumando los `device_core` de todos sus
+dispositivos.
+
+**No hay un "dispositivo principal".** Cualquier
+dispositivo escribe en su propio `device_core`.
 
 ## Propiedad
 
