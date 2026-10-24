@@ -39,3 +39,6 @@
 | **Pear-end** | Core P2P de BookmarkNet que corre en un worker Bare. Contiene toda la lógica peer-to-peer y es portable entre desktop y móvil |
 | **Worklet** | Hilo aislado de Bare que corre dentro de una app nativa (móvil o desktop) y se comunica con el shell vía IPC |
 | **bare-build** | Herramienta de empaquetado de Bare que genera ejecutables standalone o instaladores nativos por plataforma |
+| **bare-build --standalone** | Modo de empaquetado de Bare que genera un ejecutable único por plataforma con el core y los assets web embebidos |
+| **bare-build --package** | Modo de empaquetado de Bare que genera instaladores nativos (.pkg, .AppImage, .msix) |
+| **GitHub Releases** | Canal de publicación de binarios, hashes y notas de versión |
