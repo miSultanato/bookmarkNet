@@ -26,15 +26,17 @@ El nodo sólo conoce `collection_public_key`. No conoce el nombre, descripción,
 
 ## Verificación
 
-Al recibir una colección se verifican DOS cosas distintas:
+Al recibir una colección se verifican DOS cosas distintas sobre el bloque 0:
 
-1. **El génesis está firmado por el usuario.**
-   El bloque 0 (`collection_genesis`) contiene `signature_by_owner`, que es la firma del usuario sobre los campos de propiedad. Se verifica con `author_public_key`. Además, se comprueba que `author_id == "u_" + sha256(author_public_key).hex().slice(0, 16)`.
+1. **Firma del usuario sobre los campos del génesis.**
+   El bloque 0 (`collection_genesis`) incluye en su payload el campo `signature_by_owner`, que es la firma del usuario sobre los campos de propiedad de la colección. Se verifica con `author_public_key` (también incluida en el payload). Además, se comprueba que `author_id == "u_" + sha256(author_public_key).hex().slice(0, 16)`.
 
-2. **Los bloques están firmados por la colección.**
-   Los bloques 1..N los firma `collection_keypair`. Hypercore lo verifica automáticamente al replicar.
+2. **Firma del bloque Hypercore (para TODOS los bloques, incluido el 0).**
+   El bloque 0, y todos los bloques 1..N, están firmados por `collection_keypair` como parte del protocolo de Hypercore. Hypercore lo verifica automáticamente al replicar.
 
-Si alguna verificación falla → rechazar la colección.
+Si alguna de las dos verificaciones falla → rechazar la colección.
+
+Los bloques 1..N solo llevan la firma de Hypercore (hecha por `collection_keypair`). No llevan `signature_by_owner`.
 
 ## Publicación
 
