@@ -38,6 +38,8 @@ Ni resúmenes, clasificación automática, recomendaciones IA, ni NLP. Búsqueda
 
 Sin chat, comentarios, likes, karma, puntos ni rankings. Seguir usuarios existe, pero es secundario al seguimiento de colecciones.
 
+**Propuestas, no escrituras compartidas.** En fases posteriores (MVP3+) se podrán enviar propuestas de cambios a colecciones ajenas. Las propuestas son mensajes unidireccionales: el receptor las revisa y decide si las acepta. Nunca se escribe en el log de otro usuario. Esto preserva el modelo single-writer de Hypercore sin necesidad de Autobase para propuestas.
+
 ## 8. Bootstrap ≠ centralización
 
 Los bootstrap peers ayudan a encontrar la red. No son servidores de bookmarks ni de búsqueda. Ninguna colección puede depender exclusivamente de un nodo oficial.
