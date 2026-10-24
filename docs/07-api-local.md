@@ -69,9 +69,54 @@ GET /discover/search                 # ?q=
 
 ## Búsqueda local
 
-`GET /search?q=` → `{bookmarks, collections, tags}`
+```http
+GET /search?q=<texto>&type=<bookmark|collection|tag>
+```
 
-Sin búsqueda semántica, IA ni NLP.
+Búsqueda literal, sin IA, sin NLP. Substring, case-insensitive.
+
+**Campos que se buscan:**
+
+- Bookmarks: título, descripción, tags, URL.
+- Colecciones: nombre, descripción.
+- Tags: el propio tag.
+
+**Alcance:** todo lo que el nodo tiene localmente (colecciones propias + seguidas + seed pack).
+
+**Respuesta:**
+
+```json
+{
+  "collections": [
+    {
+      "collection_id": "...",
+      "title": "...",
+      "description": "...",
+      "bookmarks_matching": 23
+    }
+  ],
+  "bookmarks": [
+    {
+      "bookmark_id": "...",
+      "title": "...",
+      "url": "...",
+      "collection_count": 142,
+      "collection_id": "..."
+    }
+  ],
+  "tags": ["..."]
+}
+```
+
+**Orden de resultados:**
+
+1. Colecciones primero (ordenadas por `bookmarks_matching` descendente).
+2. Bookmarks después (ordenados por `collection_count` descendente).
+3. Tags al final.
+
+**Filtro por tipo:** si `type` está presente, solo se devuelve ese tipo. Si no, se devuelven los tres.
+
+**Nota sobre `collection_count`:** es el número de colecciones que el nodo tiene localmente que contienen ese resource. No es una cifra global. La UI debe mostrarlo como "en tu red" o "que conoces".
 
 ## Correspondencia API ↔ eventos
 
