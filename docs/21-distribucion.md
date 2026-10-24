@@ -14,11 +14,9 @@ Ambos formatos contienen el mismo core Bare + UI web local. El binario arranca e
 
 ## Publicación
 
-- **GitHub Releases:** los binarios y la imagen Docker se publican en GitHub Releases.
-- Cada release incluye:
-  - Los binarios por plataforma.
-  - El hash SHA-256 de cada binario.
-  - Notas de la versión (cambios, bugs corregidos, mejoras).
+- **Binarios nativos:** se publican en **GitHub Releases**. Cada release incluye los binarios por plataforma, el hash SHA-256 de cada uno, y las notas de versión.
+- **Imagen Docker:** se publica en **GitHub Container Registry ([ghcr.io](https://ghcr.io/))**. Cada release incluye la nueva imagen con el tag de versión.
+- Las notas de versión de GitHub Releases enlazan tanto a los binarios como a la imagen Docker.
 - **Firma de código:** no en MVP0–MVP2. Se añadirá cuando haya usuarios no técnicos (notarización de Apple, firma EV de Windows).
 - **Firma GPG:** no en MVP0–MVP2. Se añadirá cuando haya usuarios técnicos que quieran verificar la integridad. Mientras tanto, el hash SHA-256 es suficiente.
 
