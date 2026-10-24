@@ -313,6 +313,13 @@ seguidores conservan lo replicado y muestran un aviso.
 }
 ```
 
+**Reglas:**
+
+- Solo el autor de la colección puede emitirlo.
+- Tras este evento, el autor deja de anunciar el topic del `collection_core`.
+- Los seguidores que ya han replicado el core conservan lo replicado y no reciben más bloques.
+- No hay evento de «republicación». Publicar de nuevo crea un `collection_core` nuevo.
+
 Fold del log → estado actual
 
 El estado actual de una colección se obtiene aplicando los
@@ -344,6 +351,8 @@ Idempotencia
     replicación desordenada).
 
     collection_genesis solo se aplica una vez (bloque 0).
+
+    collection_unpublished con el mismo event_id → ignorar.
 
     reorder_bookmark con el mismo position que ya tiene → ignorar.
 
