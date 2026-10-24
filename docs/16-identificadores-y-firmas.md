@@ -90,6 +90,7 @@ El bloque 0 de cada colección es `collection_genesis` (ver
   "name": "Japón 2027",
   "description": "...",
   "visibility": "public",
+  "author_id": "u_93c4fa12...",
   "forked_from": null,
   "migrated_from": null,
   "signature_by_owner": "sig_xxxxx"
