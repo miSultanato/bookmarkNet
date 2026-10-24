@@ -57,6 +57,12 @@ POST   /collections/:id/unfollow
 GET    /collections/:id/status      # {peers, last_sync, state}
 ```
 
+**Nota:** `POST /collections` crea un borrador local en
+el `device_core`. NO genera `collection_genesis` todavía.
+El `collection_genesis` se crea al publicar la colección
+(creación del `collection_core`). Ver
+[docs/02-modelo-datos.md](02-modelo-datos.md).
+
 ## Descubrimiento
 
 ```http
@@ -122,7 +128,8 @@ Búsqueda literal, sin IA, sin NLP. Substring, case-insensitive.
 
 | Endpoint | Evento generado |
 |---|---|
-| `POST /collections` | `collection_genesis` |
+| `POST /collections` | Ninguno (borrador local en `device_core`) |
+| `POST /collections/:id/publish` | `collection_genesis` (en el `collection_core`) |
 | `POST /bookmarks` | `add_bookmark` |
 | `PATCH /bookmarks/:id` | `edit_bookmark` |
 | `DELETE /bookmarks/:id` | `remove_bookmark` |
