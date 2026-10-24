@@ -104,8 +104,16 @@ Y el estado de la colección cambia a "Archivada".
 
 **Onboarding:** la primera experiencia del usuario está documentada en docs/19-onboarding.md. El usuario puede importar bookmarks, añadir el seed pack o continuar sin nada. Las tres opciones son independientes y opcionales.
 
-## Métricas y popularidad (MVP)
+## Búsqueda y métricas
 
-Las métricas de popularidad que muestra el nodo ("este bookmark aparece en N colecciones", "esta colección ha sido duplicada M veces") son **locales al nodo** en MVP. Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y del seed pack).
+La búsqueda es literal (sin IA, sin NLP). Substring, case-insensitive, sobre título, descripción, tags y URL de bookmarks, y nombre y descripción de colecciones.
 
-No existe una cifra global absoluta hasta MVP5 (métricas emergentes agregadas).
+**Orden de resultados:** colecciones primero, bookmarks después, tags al final.
+
+**Métricas progresivas:**
+
+- **MVP0–MVP2:** búsqueda literal simple, sin métricas.
+- **MVP3:** + `collection_count` por resource ("Immich aparece en 142 colecciones de tu red").
+- **MVP5:** + `co_occurrence` ("Immich se relaciona frecuentemente con CrowdSec, Netbird, Vaultwarden").
+
+**Todas las métricas son locales al nodo hasta MVP5.** Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y seed pack). La UI debe decir "en tu red" o "que conoces", nunca "en toda la red".
