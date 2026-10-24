@@ -74,6 +74,32 @@ Si todos los peers están offline, la colección no es accesible temporalmente. 
 - MVP4: Discovery Feed incluido en la app.
 - MVP5: métricas agregadas para tendencias.
 
+## Avisos de publicación
+
+**Al publicar con dispositivos offline:**
+
+Si el dispositivo que publica detecta que algún otro
+dispositivo del mismo usuario tiene cambios no
+replicados (divergencia real), muestra un aviso:
+
+> "Publicando con 2 de 3 dispositivos sincronizados.
+> Los cambios que aún no se han replicado desde
+> [dispositivo] no se incluirán en esta publicación.
+> ¿Publicar de todos modos? / Sincronizar primero"
+
+Si no hay divergencia real, no se muestra aviso.
+
+**Al recibir una despublicación:**
+
+Cuando un seguidor replica un evento
+`collection_unpublished`, muestra:
+
+> "[Autor] ha dejado de compartir esta colección.
+> Conservas la última versión que replicaste. No
+> recibirás más actualizaciones."
+
+Y el estado de la colección cambia a "Archivada".
+
 ## Métricas y popularidad (MVP)
 
 Las métricas de popularidad que muestra el nodo ("este bookmark aparece en N colecciones", "esta colección ha sido duplicada M veces") son **locales al nodo** en MVP. Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y Discovery Feed).
