@@ -14,7 +14,7 @@
 ```yaml
 user_id: "u_" + sha256(public_key).hex().slice(0, 16)
 public_key: pk_user_xxxxx
-private_key: (nunca sale del dispositivo)
+private_key: (nunca viaja en claro)
 profile:
   display_name: Marta
   bio: ...
@@ -49,7 +49,15 @@ Desde un nodo existente:
 6. Genera su propio `node_id` y se registra en la lista de dispositivos del usuario.
 7. El QR y la contraseña caducan a los 5 minutos o al completar la operación (lo que ocurra primero).
 
-**Seguridad:** la clave privada nunca viaja en claro por la red. El QR es de un solo uso y la contraseña se muestra solo en pantalla del nodo original. En LAN confiable se puede omitir la contraseña (opción configurable), pero por defecto se exige.
+**La clave privada nunca viaja en claro.** En el flujo de
+añadir dispositivo, se transfiere cifrada con una
+contraseña efímera de 6 dígitos (ver sección "Añadir
+dispositivo"). Nunca se transmite en texto plano ni se
+almacena fuera del dispositivo en forma legible.
+
+El QR es de un solo uso y la contraseña se muestra solo en
+pantalla del nodo original. En LAN confiable se puede omitir
+la contraseña (opción configurable), pero por defecto se exige.
 
 **Futuro (fuera de MVP):** intercambio de claves Diffie-Hellman entre dispositivos para evitar compartir la contraseña por canal visual. No se implementa en MVP.
 
@@ -79,6 +87,25 @@ El `device_core` contiene:
   modificado en colecciones propias.
 - Los cambios de perfil.
 - La lista de dispositivos que conoce.
+
+**Tipos de evento del `device_core`:**
+
+- `device_metadata`: perfil del usuario (nombre, bio,
+  avatar). Se aplica al `user_index` local.
+- `device_collection`: referencia a una colección propia
+  (publicada o borrador) con su `collection_id` y
+  estado (`draft`, `published`, `unpublished`).
+- `device_bookmark`: bookmark en una colección no
+  publicada. Incluye `collection_id`, `bookmark_id`,
+  `resource_id`, `canonical_url`, metadatos.
+- `device_group`: grupo en una colección no publicada.
+  Incluye `collection_id`, `group_id`, `name`, `position`.
+
+**Nota:** estos eventos son distintos de los del
+`collection_core` (docs/15-schema-eventos.md). El
+`device_core` es un log local por dispositivo; el
+`collection_core` es el log público de una colección
+publicada.
 
 Todos los dispositivos del mismo usuario se unen a un topic
 derivado del `user_id` y replican los `device_core` de los
