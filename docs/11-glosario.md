@@ -29,3 +29,6 @@
 | **collection_core** | Hypercore single-writer de una colección publicada. Replicable por seguidores |
 | **Escritura dual** | Tras publicar una colección, cada cambio se escribe en el device_core y en el collection_core |
 | **Despublicar** | Escribir `collection_unpublished` y dejar de anunciar el topic del collection_core. No hay republicación |
+| **Seed pack** | Conjunto de colecciones completas incluidas en el binario de BookmarkNet para resolver el arranque en frío. Ver docs/18-seed-pack.md |
+| **Awesome collection** | Colección generada a partir de una awesome-list de GitHub mediante un script de transformación. Incluye la fuente original en su descripción |
+| **Creator peer** | `node_id` del nodo que tiene la copia autorizada de una colección del seed pack. Permite replicarla sin depender del seed pack completo |
