@@ -102,6 +102,8 @@ Cuando un seguidor replica un evento
 
 Y el estado de la colección cambia a "Archivada".
 
+**Onboarding:** la primera experiencia del usuario está documentada en docs/19-onboarding.md. El usuario puede importar bookmarks, añadir el seed pack o continuar sin nada. Las tres opciones son independientes y opcionales.
+
 ## Métricas y popularidad (MVP)
 
 Las métricas de popularidad que muestra el nodo ("este bookmark aparece en N colecciones", "esta colección ha sido duplicada M veces") son **locales al nodo** en MVP. Se calculan sumando lo que el nodo tiene localmente (colecciones propias, seguidas y del seed pack).
