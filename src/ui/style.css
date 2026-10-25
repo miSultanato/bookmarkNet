@@ -472,3 +472,128 @@ select:disabled {
 .group-create-form input {
   flex: 1 1 14rem;
 }
+
+
+/* Detalle de bookmark */
+.bookmark-detail {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.bookmark-detail h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  line-height: 1.25;
+}
+
+.bookmark-detail .bookmark-url {
+  overflow-wrap: anywhere;
+}
+
+.bookmark-description {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.bookmark-notes {
+  margin: 0;
+  padding: 1rem;
+  border-left: 3px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background: #f1f5f9;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bookmark-meta {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.bookmark-meta p {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.bookmark-actions {
+  align-items: center;
+}
+
+.bookmark-detail .bookmark-form {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.bookmark-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.bookmark-form input,
+.bookmark-form textarea,
+.move-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--fg);
+  font: inherit;
+}
+
+.bookmark-form textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.bookmark-form button,
+.move-form button,
+.bookmark-actions button {
+  border: 1px solid var(--accent);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--accent);
+  color: #fff;
+}
+
+.bookmark-actions .danger-button {
+  border-color: #b91c1c;
+  background: #b91c1c;
+}
+
+.move-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dbe2ea;
+}
+
+.move-form select {
+  flex: 1 1 12rem;
+}
+
+.move-form button {
+  flex: 0 0 auto;
+}
+
+.move-form .error {
+  flex-basis: 100%;
+  margin: 0;
+}
