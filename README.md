@@ -4,6 +4,8 @@ Red P2P de bookmarks. El activo principal es el enlace, no el usuario, no el con
 
 > El conocimiento no se crea. Se descubre, se organiza y se comparte.
 
+> **Disclaimer:** este repositorio (documentación y código) se desarrolla con asistencia de un LLM local. Las decisiones de diseño, la revisión y la verificación son humanas.
+
 ## Qué es
 
 BookmarkNet indexa las decisiones humanas sobre qué recursos son valiosos, no las páginas web. Los usuarios guardan enlaces, los organizan en grupos y colecciones, y la red descubre patrones (stacks, rutas, relaciones) que emergen de cómo miles de personas organizan la información.
