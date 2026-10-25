@@ -55,7 +55,11 @@ collection_keypair = derive(
 
 Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
-editable; el UUID no. Esto garantiza que:
+editable; el UUID no.
+
+> **Nota:** el `collection_uuid` es el `collectionId` local del `device_core` (ver `docs/03-identidad.md`). En MVP0, el `device_core` usa ese ULID como identificador local de la colección. Al publicar (MVP2), se usa el mismo ULID para derivar la `collection_keypair`. No hay cambio de tipo ni migración entre MVP0 y MVP2.
+
+Esto garantiza que:
 
 - Renombrar una colección no cambia su clave.
 - Dos colecciones con el mismo nombre tienen UUIDs

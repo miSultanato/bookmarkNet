@@ -94,24 +94,174 @@ El `device_core` contiene:
 - Los cambios de perfil.
 - La lista de dispositivos que conoce.
 
-**Tipos de evento del `device_core`:**
+### Tipos de evento del `device_core`
 
-- `device_metadata`: perfil del usuario (nombre, bio,
-  avatar). Se aplica al `user_index` local.
-- `device_collection`: referencia a una colección propia
-  (publicada o borrador) con su `collection_id` y
-  estado (`draft`, `published`, `unpublished`).
-- `device_bookmark`: bookmark en una colección no
-  publicada. Incluye `collection_id`, `bookmark_id`,
-  `resource_id`, `canonical_url`, metadatos.
-- `device_group`: grupo en una colección no publicada.
-  Incluye `collection_id`, `group_id`, `name`, `position`.
+El `device_core` es un log single-writer local. Sus eventos son distintos de los del `collection_core` (`docs/15-schema-eventos.md`): el `device_core` contiene borradores locales, no colecciones publicadas. Los 11 eventos son:
 
-**Nota:** estos eventos son distintos de los del
-`collection_core` (docs/15-schema-eventos.md). El
-`device_core` es un log local por dispositivo; el
-`collection_core` es el log público de una colección
-publicada.
+1. `device_metadata`: perfil del usuario (nombre, bio, avatar). Reemplaza el perfil completo (no hace merge).
+2. `device_create_collection`: crea una colección local (borrador).
+3. `device_update_collection`: modifica metadatos de una colección local.
+4. `device_delete_collection`: marca una colección local como eliminada (soft delete en cascada: sus bookmarks y grupos también se marcan como eliminados).
+5. `device_add_bookmark`: añade un bookmark a una colección local.
+6. `device_edit_bookmark`: modifica campos de un bookmark.
+7. `device_remove_bookmark`: marca un bookmark como eliminado (soft delete).
+8. `device_move_bookmark`: mueve un bookmark a otro grupo (o a Inbox).
+9. `device_reorder_bookmark`: cambia la posición de un bookmark dentro de un grupo.
+10. `device_create_group`: crea un grupo en una colección local.
+11. `device_delete_group`: marca un grupo como eliminado (sus bookmarks se mueven a Inbox).
+
+Todos los eventos comparten los campos comunes de `docs/15`: `schema_version: 1`, `event_id` (ULID), `event_type`, `author_id` (el `user_id` del dueño del dispositivo), `created_at` (ISO8601), `payload`.
+
+#### Payloads
+
+```typescript
+interface DeviceMetadataPayload {
+  displayName?: string
+  bio?: string
+  avatar?: string
+}
+
+interface DeviceCreateCollectionPayload {
+  collectionId: string      // ULID (= collection_uuid, ver docs/05)
+  name: string
+  description?: string
+  visibility: 'public' | 'unlisted'
+}
+
+interface DeviceUpdateCollectionPayload {
+  collectionId: string
+  changes: {
+    name?: string
+    description?: string | null   // null = borrar
+    visibility?: 'public' | 'unlisted'
+  }
+}
+
+interface DeviceDeleteCollectionPayload {
+  collectionId: string
+}
+
+interface DeviceAddBookmarkPayload {
+  bookmarkId: string        // ULID
+  collectionId: string
+  resourceId: string        // r_...
+  canonicalUrl: string
+  title: string
+  description?: string
+  tags: string[]
+  notes?: string
+  groupId?: string | null   // null = Inbox
+}
+
+interface DeviceEditBookmarkPayload {
+  bookmarkId: string
+  changes: {
+    title?: string            // no se puede borrar con null
+    description?: string | null
+    tags?: string[]           // no se puede borrar con null
+    notes?: string | null
+  }
+}
+
+interface DeviceRemoveBookmarkPayload {
+  bookmarkId: string
+}
+
+interface DeviceMoveBookmarkPayload {
+  bookmarkId: string
+  groupId: string | null    // null = Inbox
+}
+
+interface DeviceReorderBookmarkPayload {
+  bookmarkId: string
+  groupId: string | null
+  position: number
+}
+
+interface DeviceCreateGroupPayload {
+  groupId: string           // ULID
+  collectionId: string
+  name: string
+  position: number
+}
+
+interface DeviceDeleteGroupPayload {
+  groupId: string
+  collectionId: string
+}
+```
+
+#### `collectionId` = `collection_uuid`
+
+El `collectionId` en el `device_core` es el `collection_uuid` de `docs/05-arquitectura-p2p.md`. Es un ULID. Al publicar (MVP2), se usa el mismo ULID para derivar la `collection_keypair` con HKDF-SHA256. El `collectionId` local no aparece en el `collection_core`, pero es el mismo valor que se usó para derivar la clave. No hay cambio de tipo ni migración entre MVP0 y MVP2.
+
+#### Estado del dispositivo
+
+El fold de los eventos `device_*` produce un `DeviceState`:
+
+```typescript
+interface DeviceState {
+  profile: {
+    displayName?: string
+    bio?: string
+    avatar?: string
+  }
+  collections: Map<string, DeviceCollectionState>  // collection_id -> estado
+  bookmarks: Map<string, DeviceBookmarkState>      // bookmark_id -> estado
+  groups: Map<string, DeviceGroupState>            // group_id -> estado
+}
+
+interface DeviceCollectionState {
+  collectionId: string
+  name: string
+  description?: string
+  visibility: 'public' | 'unlisted'
+  deleted: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
+interface DeviceBookmarkState {
+  bookmarkId: string
+  collectionId: string
+  resourceId: string
+  canonicalUrl: string
+  title: string
+  description?: string
+  tags: string[]
+  notes?: string
+  groupId: string | null
+  position: number | null
+  deleted: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
+interface DeviceGroupState {
+  groupId: string
+  collectionId: string
+  name: string
+  position: number
+  deleted: boolean
+  createdAt: string
+  updatedAt?: string
+}
+```
+
+#### Reglas de fold
+
+- **`device_metadata`:** reemplaza `state.profile` con el payload. Campos ausentes se eliminan.
+- **`device_create_collection`:** crea la colección si no existe. Si existe, ignora.
+- **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`).
+- **`device_delete_collection`:** si no existe, ignora. Marca `deleted: true`. Sus bookmarks y grupos también se marcan como eliminados (soft delete en cascada, definitivo: no se "resucitan" si la colección se vuelve a crear con el mismo `collectionId`; se crea una colección nueva).
+- **`device_add_bookmark`:** si la colección no existe o está eliminada, ignora. Si el `bookmarkId` ya existe, ignora. Crea el bookmark con `position: null` (orden por `createdAt`). Si `groupId` no es `null` y no existe, ignora.
+- **`device_edit_bookmark`:** si el bookmark no existe o está eliminado, ignora. Aplica `changes`. `title` y `tags` no se pueden borrar con `null` (ignora el cambio). `description` y `notes` sí.
+- **`device_remove_bookmark`:** si no existe o está eliminado, ignora. Marca `deleted: true`.
+- **`device_move_bookmark`:** si el bookmark no existe o está eliminado, ignora. Si `groupId` no es `null` y no existe, ignora. Actualiza `groupId` y resetea `position` a `null`.
+- **`device_reorder_bookmark`:** si el bookmark no existe o está eliminado, ignora. Si no está en el `groupId` indicado, ignora. Materializa posiciones del grupo (como en `collection_core`), reajusta, actualiza `updatedAt`.
+- **`device_create_group`:** si la colección no existe o está eliminada, ignora. Si el `groupId` ya existe, ignora. Crea el grupo.
+- **`device_delete_group`:** si el grupo no existe o está eliminado, ignora. Marca `deleted: true`. Los bookmarks del grupo se mueven a Inbox (`groupId: null`, `position: null`).
+- **Idempotencia:** el fold nunca lanza error. Ignora eventos inválidos.
 
 Todos los dispositivos del mismo usuario se unen a un topic
 derivado del `user_id` y replican los `device_core` de los
