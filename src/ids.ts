@@ -16,7 +16,8 @@ function sha256(input: Uint8Array): Uint8Array {
   return digest
 }
 
-function utf8Bytes(value: string): Uint8Array {
+/** Manual UTF-8 encoding for Bare, where TextEncoder is unavailable. */
+export function utf8Bytes(value: string): Uint8Array {
   const bytes: number[] = []
   for (let i = 0; i < value.length; i++) {
     let codePoint = value.charCodeAt(i)
@@ -45,10 +46,19 @@ function utf8Bytes(value: string): Uint8Array {
   return Uint8Array.from(bytes)
 }
 
-function toHex(bytes: Uint8Array): string {
+export function toHex(bytes: Uint8Array): string {
   let hex = ''
   for (const byte of bytes) hex += byte.toString(16).padStart(2, '0')
   return hex
+}
+
+/** Decodes lowercase or uppercase hexadecimal byte strings; callers validate canonical form. */
+export function fromHex(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
 }
 
 function isStringMatching(value: unknown, pattern: RegExp): value is string {
