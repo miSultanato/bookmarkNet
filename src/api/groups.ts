@@ -119,6 +119,7 @@ export async function handleMoveBookmarkToGroup(
   const event = deviceMoveBookmark({
     authorId: node.identity.user_id,
     bookmarkId: body.bookmark_id,
+    collectionId: group.collectionId,
     groupId
   })
   await node.apply(event)
