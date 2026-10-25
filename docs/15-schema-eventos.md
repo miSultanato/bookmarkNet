@@ -431,3 +431,25 @@ Los tipos TypeScript de los eventos viven en `src/events.ts`, junto con los cons
 **Validación:** los constructores validan tipos y campos obligatorios, y lanzan `RangeError` si falta algo. Esto es crítico porque los bloques de Hypercore son inmutables: un evento mal formado no se puede corregir. El fold valida reglas de negocio (por ejemplo, que un `bookmark_id` exista para `edit_bookmark`); si no se cumple, el fold ignora el evento (idempotencia).
 
 **Constructores y claves:** los constructores de eventos no derivan claves. Reciben los datos ya resueltos. En particular, `collectionGenesis` recibe `{ authorId, authorPublicKey, secretKey }` ya calculados. La derivación de claves (de `masterKey` a `userKeypair`) es responsabilidad de `src/identity.ts`, no de `src/events.ts`. Esto mantiene la separación de responsabilidades y facilita los tests.
+
+### Firma sobre hash
+
+`signature_by_owner` se calcula firmando el hash SHA-256 de la concatenación de los campos, no la concatenación directamente:
+
+```text
+message = collection_id || collection_public_key || author_id ||
+          author_public_key || name || visibility ||
+          (forked_from ?? "") || (migrated_from ?? "")
+hash = sha256(message)
+signature = ed25519.sign(hash, secretKey)
+```
+
+La verificación hace lo mismo: recalcula `sha256(message)` y verifica la firma sobre el hash.
+
+### Campos opcionales
+
+- **`description`:** no participa en la firma. Si no se pasa, se omite del payload. Si se pasa, se incluye como string.
+- **`forked_from`:** por defecto `null`. Se serializa como `""` en la firma (`(forkedFrom ?? "")`).
+- **`migrated_from`:** por defecto `null`. Se serializa como `""` en la firma (`(migratedFrom ?? "")`).
+
+`null` y `""` producen el mismo resultado en la firma para `forked_from` y `migrated_from`, lo cual es correcto y determinista.
