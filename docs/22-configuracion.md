@@ -33,6 +33,9 @@ Ubicación: `<data_dir>/config.json`.
 
 Todas las claves son opcionales. Si `config.json` no existe, se usan los valores por defecto.
 
+
+Nota de seguridad: la API local (GET /api/v1/config) no expone `dataDir`. Podría revelar la estructura del sistema si la API se expone en la LAN (caso NAS). Para conocer la ruta del directorio de datos, consulta este documento o el archivo `config.json` en el sistema.
+
 ## Variables de entorno (override)
 
 Las variables de entorno tienen prioridad sobre `config.json`:
