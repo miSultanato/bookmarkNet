@@ -1,4 +1,4 @@
-import { CollectionEvent } from './events.ts'
+import type { CollectionEvent } from './events.ts'
 
 export interface CollectionMeta {
   collectionId: string
@@ -58,7 +58,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
     case 'collection_genesis': {
       if (state.collection !== null) return state
       const payload = event.payload
-      const collection: CollectionMeta = {
+      const collection = {
         collectionId: payload.collection_id,
         collectionPublicKey: payload.collection_public_key,
         authorId: event.author_id,
@@ -78,7 +78,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       if (state.collection === null) return state
       const payload = event.payload
       if (state.bookmarks.has(payload.bookmark_id)) return state
-      const bookmark: BookmarkState = {
+      const bookmark = {
         bookmarkId: payload.bookmark_id,
         resourceId: payload.resource_id,
         canonicalUrl: payload.canonical_url,
@@ -117,7 +117,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       if (state.collection === null) return state
       const payload = event.payload
       if (state.groups.has(payload.group_id)) return state
-      const group: GroupState = {
+      const group = {
         groupId: payload.group_id,
         name: payload.name,
         position: payload.position,
