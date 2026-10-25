@@ -9,9 +9,11 @@
   },
   "devDependencies": {
     "brittle": "^4.5.0",
+    "holepunch-types": "^0.2.3",
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "hypercore": "^11.39.3",
     "sodium-native": "^5.2.0"
   }
 }
