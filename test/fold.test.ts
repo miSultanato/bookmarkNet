@@ -335,6 +335,39 @@ test('edit_bookmark only changes present fields, removes notes on null and updat
   t.is(added.bookmarks.get(BOOKMARK_ID)?.title, 'Ejemplo')
 })
 
+test('edit_bookmark ignores null for required title and tags but still updates updatedAt', (t) => {
+  const added = applyEvent(stateWithGenesis(), addBookmark())
+  const edited = applyEvent(added, event('edit_bookmark', {
+    bookmark_id: BOOKMARK_ID,
+    changes: { title: null, tags: null }
+  }, UPDATED_AT))
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.title, 'Ejemplo')
+  t.alike(edited.bookmarks.get(BOOKMARK_ID)?.tags, ['uno', 'dos'])
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+})
+
+test('edit_bookmark allows empty title and tags to clear required fields', (t) => {
+  const added = applyEvent(stateWithGenesis(), addBookmark())
+  const edited = applyEvent(added, event('edit_bookmark', {
+    bookmark_id: BOOKMARK_ID,
+    changes: { title: '', tags: [] }
+  }, UPDATED_AT))
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.title, '')
+  t.alike(edited.bookmarks.get(BOOKMARK_ID)?.tags, [])
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+})
+
+test('edit_bookmark removes description when changes.description is null', (t) => {
+  const added = applyEvent(stateWithGenesis(), addBookmark())
+  t.is(added.bookmarks.get(BOOKMARK_ID)?.description, 'Descripción del bookmark')
+  const edited = applyEvent(added, event('edit_bookmark', {
+    bookmark_id: BOOKMARK_ID,
+    changes: { description: null }
+  }, UPDATED_AT))
+  t.is(Object.prototype.hasOwnProperty.call(edited.bookmarks.get(BOOKMARK_ID), 'description'), false)
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+})
+
 test('move_bookmark ignores missing genesis, missing/deleted bookmarks and invalid destination groups', (t) => {
   const noGenesis = emptyState()
   t.is(applyEvent(noGenesis, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null })), noGenesis)
