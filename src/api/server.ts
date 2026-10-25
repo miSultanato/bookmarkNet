@@ -6,7 +6,7 @@ import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
 import { handleCreateGroup, handleDeleteGroup, handleListGroups, handleMoveBookmarkToGroup } from './groups.ts'
-import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleReorderBookmark, handleUpdateBookmark } from './bookmarks.ts'
+import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleMoveBookmark, handleReorderBookmark, handleUpdateBookmark } from './bookmarks.ts'
 import {
   handleCreateCollection,
   handleDeleteCollection,
@@ -43,11 +43,12 @@ function matchRoute(url: string | undefined): MatchedRoute {
   }
   const collectionMatch = /^\/api\/v1\/collections\/([^/]+)$/.exec(path)
   const bookmarkReorderMatch = /^\/api\/v1\/bookmarks\/([^/]+)\/reorder$/.exec(path)
+  const bookmarkMoveMatch = /^\/api\/v1\/bookmarks\/([^/]+)\/move$/.exec(path)
   const bookmarkMatch = /^\/api\/v1\/bookmarks\/([^/]+)$/.exec(path)
   const groupMoveMatch = /^\/api\/v1\/groups\/([^/]+)\/move$/.exec(path)
   const groupMatch = /^\/api\/v1\/groups\/([^/]+)$/.exec(path)
   const params: Record<string, string> = {}
-  const idMatch = collectionMatch ?? bookmarkReorderMatch ?? bookmarkMatch ?? groupMoveMatch ?? groupMatch
+  const idMatch = collectionMatch ?? bookmarkReorderMatch ?? bookmarkMoveMatch ?? bookmarkMatch ?? groupMoveMatch ?? groupMatch
   if (idMatch) {
     try {
       params.id = decodeURIComponent(idMatch[1])
@@ -298,6 +299,7 @@ async function dispatchBookmarkRequest(
   if (route.path === base && method === 'GET') {
     const result = await handleListBookmarks(node, {
       collection_id: route.query.collection_id,
+      inbox: route.query.inbox,
       group_id: route.query.group_id,
       tag: route.query.tag,
       q: route.query.q
@@ -316,13 +318,26 @@ async function dispatchBookmarkRequest(
     }
     const result = await handleCreateBookmark(node, body as {
       url: string
-      collection_id: string
+      collection_id?: string | null
       title?: string
       description?: string
       tags?: string[]
       notes?: string
       group_id?: string | null
     })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (route.path.endsWith('/move') && method === 'POST' && route.params.id !== undefined) {
+    let body: unknown
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      return true
+    }
+    const result = await handleMoveBookmark(node, route.params.id, body as { collection_id?: string | null; group_id?: string | null })
     sendJson(res, result.status, result.body)
     return true
   }
