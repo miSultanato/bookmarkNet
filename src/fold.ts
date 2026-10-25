@@ -207,8 +207,60 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       return { ...state, bookmarks }
     }
 
-    case 'reorder_bookmark':
-      return state
+    case 'reorder_bookmark': {
+      if (state.collection === null) return state
+      const payload = event.payload
+      const existing = state.bookmarks.get(payload.bookmark_id)
+      if (existing === undefined || existing.deleted) return state
+      if (existing.groupId !== payload.group_id) return state
+
+      const active = []
+      for (const bookmark of state.bookmarks.values()) {
+        if (!bookmark.deleted && bookmark.groupId === payload.group_id) active.push(bookmark)
+      }
+
+      const bookmarks = new Map(state.bookmarks)
+      if (active.some((bookmark) => bookmark.position === null)) {
+        active.sort((a, b) => {
+          if (a.createdAt < b.createdAt) return -1
+          if (a.createdAt > b.createdAt) return 1
+          if (a.bookmarkId < b.bookmarkId) return -1
+          if (a.bookmarkId > b.bookmarkId) return 1
+          return 0
+        })
+        for (let i = 0; i < active.length; i++) {
+          const bookmark = { ...active[i], position: i }
+          active[i] = bookmark
+          bookmarks.set(bookmark.bookmarkId, bookmark)
+        }
+      }
+
+      active.sort((a, b) => {
+        if (a.position !== b.position) return a.position - b.position
+        if (a.createdAt < b.createdAt) return -1
+        if (a.createdAt > b.createdAt) return 1
+        if (a.bookmarkId < b.bookmarkId) return -1
+        if (a.bookmarkId > b.bookmarkId) return 1
+        return 0
+      })
+
+      const currentIndex = active.findIndex((bookmark) => bookmark.bookmarkId === existing.bookmarkId)
+      if (currentIndex === -1) return state
+      const targetIndex = Math.min(payload.position, active.length - 1)
+      const reordered = active.splice(currentIndex, 1)[0]
+      active.splice(targetIndex, 0, reordered)
+
+      for (let i = 0; i < active.length; i++) {
+        const bookmark = active[i]
+        const updated = {
+          ...bookmark,
+          position: i,
+          ...(bookmark.bookmarkId === existing.bookmarkId ? { updatedAt: event.created_at } : {})
+        }
+        bookmarks.set(updated.bookmarkId, updated)
+      }
+      return { ...state, bookmarks }
+    }
   }
 }
 
