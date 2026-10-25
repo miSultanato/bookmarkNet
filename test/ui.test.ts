@@ -83,6 +83,15 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(apiModule.body.includes('getGroups'), 'API helper exposes group listing')
     t.ok(apiModule.body.includes('createGroup'), 'API helper exposes group creation')
     t.ok(apiModule.body.includes('deleteGroup'), 'API helper exposes group deletion')
+    t.ok(apiModule.body.includes('getProfile'), 'API helper exposes profile retrieval')
+    t.ok(apiModule.body.includes('updateProfile'), 'API helper exposes profile updates')
+    t.ok(apiModule.body.includes('getConfig'), 'API helper exposes configuration retrieval')
+
+    const settings = await request(api.port, '/assets/settings.js')
+    t.is(settings.statusCode, 200, 'settings module is served')
+    t.ok(settings.contentType?.startsWith('text/javascript; charset=utf-8'), 'settings module has JavaScript content type')
+    t.ok(settings.body.includes('getProfile'), 'settings module loads profile data')
+    t.ok(settings.body.includes('getConfig'), 'settings module loads configuration data')
 
     const collection = await request(api.port, '/assets/collection.js')
     t.is(collection.statusCode, 200, 'collection module is served')
