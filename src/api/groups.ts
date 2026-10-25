@@ -1,4 +1,5 @@
-import { deviceCreateGroup, deviceDeleteGroup } from '../device-events.ts'
+import { deviceCreateGroup, deviceDeleteGroup, deviceMoveBookmark } from '../device-events.ts'
+import { apiBookmark } from './bookmarks.ts'
 import type { DeviceGroupState } from '../device-fold.ts'
 import { newGroupId } from '../ids.ts'
 import type { Node } from '../node/start.ts'
@@ -94,4 +95,34 @@ export async function handleDeleteGroup(
   })
   await node.apply(event)
   return { status: 204, body: undefined }
+}
+
+
+export async function handleMoveBookmarkToGroup(
+  node: Node,
+  groupId: string,
+  body: { bookmark_id: string }
+): Promise<{ status: number; body: unknown }> {
+  if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
+  if (!isRecord(body) || typeof body.bookmark_id !== 'string' || body.bookmark_id.trim().length === 0) {
+    return error(400, 'INVALID_BOOKMARK_ID', 'bookmark_id debe ser un string no vacío')
+  }
+
+  const group = node.state.groups.get(groupId)
+  if (!group || group.deleted) return error(404, 'GROUP_NOT_FOUND', 'Grupo no encontrado')
+  const bookmark = node.state.bookmarks.get(body.bookmark_id)
+  if (!bookmark || bookmark.deleted) return error(404, 'BOOKMARK_NOT_FOUND', 'Bookmark no encontrado')
+  if (bookmark.collectionId !== group.collectionId) {
+    return error(400, 'COLLECTION_MISMATCH', 'El bookmark y el grupo deben pertenecer a la misma colección')
+  }
+
+  const event = deviceMoveBookmark({
+    authorId: node.identity.user_id,
+    bookmarkId: body.bookmark_id,
+    groupId
+  })
+  await node.apply(event)
+  const moved = node.state.bookmarks.get(body.bookmark_id)
+  if (!moved || moved.deleted) return error(404, 'BOOKMARK_NOT_FOUND', 'Bookmark no encontrado')
+  return { status: 200, body: { bookmark: apiBookmark(moved) } }
 }

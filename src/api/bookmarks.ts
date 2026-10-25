@@ -1,4 +1,4 @@
-import { deviceAddBookmark, deviceEditBookmark, deviceRemoveBookmark } from '../device-events.ts'
+import { deviceAddBookmark, deviceEditBookmark, deviceRemoveBookmark, deviceReorderBookmark } from '../device-events.ts'
 import type { DeviceBookmarkState } from '../device-fold.ts'
 import { canonicalizeUrl } from '../canonicalize.ts'
 import { newBookmarkId, resourceIdFromCanonicalUrl } from '../ids.ts'
@@ -215,4 +215,39 @@ export async function handleDeleteBookmark(
   const event = deviceRemoveBookmark({ authorId: node.identity.user_id, bookmarkId: id })
   await node.apply(event)
   return { status: 204, body: undefined }
+}
+
+
+export async function handleReorderBookmark(
+  node: Node,
+  id: string,
+  body: { group_id: string | null; position: number }
+): Promise<{ status: number; body: unknown }> {
+  if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
+  const bookmark = node.state.bookmarks.get(id)
+  if (!bookmark || bookmark.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  if (!isRecord(body)) return error(400, 'INVALID_POSITION', 'Debe indicarse group_id y una posición válida')
+
+  if (body.group_id !== null) {
+    if (typeof body.group_id !== 'string') return error(400, 'GROUP_NOT_FOUND', 'Grupo no encontrado')
+    const group = node.state.groups.get(body.group_id)
+    if (!group || group.deleted) return error(400, 'GROUP_NOT_FOUND', 'Grupo no encontrado')
+  }
+  if (typeof body.position !== 'number' || !Number.isInteger(body.position) || body.position < 0) {
+    return error(400, 'INVALID_POSITION', 'position debe ser un entero mayor o igual a cero')
+  }
+  if (bookmark.groupId !== body.group_id) {
+    return error(400, 'INVALID_GROUP', 'bookmark is not in the given group')
+  }
+
+  const event = deviceReorderBookmark({
+    authorId: node.identity.user_id,
+    bookmarkId: id,
+    groupId: body.group_id,
+    position: body.position
+  })
+  await node.apply(event)
+  const updated = node.state.bookmarks.get(id)
+  if (!updated || updated.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  return { status: 200, body: { bookmark: apiBookmark(updated) } }
 }
