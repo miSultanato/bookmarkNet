@@ -1,35 +1,112 @@
-const status = document.querySelector('#status')
+import { getIdentity, getCollections, getBookmarks } from './api.js'
+import { render as renderOnboarding } from './onboarding.js'
+import { render as renderBookmarks } from './bookmarks.js'
 
-async function loadIdentity() {
-  try {
-    const response = await fetch('/api/v1/identity')
-    if (!response.ok) {
-      let message = response.statusText || `HTTP ${response.status}`
-      try {
-        const body = await response.json()
-        message = body?.error?.message || message
-      } catch {
-        // Keep the HTTP status message when the response is not JSON.
-      }
-      throw new Error(message)
-    }
+const app = document.querySelector('#app')
+const state = {
+  identity: null,
+  collections: [],
+  bookmarks: [],
+  errors: []
+}
 
-    const body = await response.json()
-    if (body.identity === null) {
-      status.textContent = 'Sin identidad. La UI de onboarding vendrá en la siguiente tarea.'
-      return
-    }
+let initialized = false
+let dataLoadStarted = false
 
-    if (body.identity && typeof body.identity.user_id === 'string') {
-      status.textContent = `Identidad: ${body.identity.user_id}`
-      return
-    }
+function showError(message) {
+  state.errors.push(message)
+  renderCurrentRoute()
+}
 
-    throw new Error('Respuesta inesperada de la API')
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    status.textContent = `Error al conectar con la API: ${message}`
+function renderErrors() {
+  for (const message of state.errors) {
+    const error = document.createElement('p')
+    error.className = 'error'
+    error.textContent = message
+    app.append(error)
   }
 }
 
-loadIdentity()
+function navigate(path) {
+  if (window.location.hash === path) {
+    renderCurrentRoute()
+    return
+  }
+  window.location.hash = path
+}
+
+function renderCurrentRoute() {
+  if (!initialized) return
+
+  const requestedRoute = window.location.hash
+  if (!state.identity) {
+    if (requestedRoute !== '#/onboarding') {
+      if (requestedRoute === '') {
+        navigate('#/onboarding')
+      } else {
+        window.location.hash = '#/onboarding'
+      }
+      return
+    }
+    renderOnboarding(app, state, () => {
+      state.errors = []
+      navigate('#/bookmarks')
+    })
+  } else {
+    if (requestedRoute !== '#/bookmarks') {
+      if (requestedRoute === '') {
+        navigate('#/bookmarks')
+      } else {
+        window.location.hash = '#/bookmarks'
+      }
+      return
+    }
+    renderBookmarks(app, state)
+    loadDataIfNeeded()
+  }
+
+  renderErrors()
+}
+
+function loadDataIfNeeded() {
+  if (dataLoadStarted || !state.identity) return
+  dataLoadStarted = true
+
+  getCollections()
+    .then((result) => {
+      state.collections = result.collections
+    })
+    .catch((error) => {
+      showError(`Error al cargar colecciones: ${error instanceof Error ? error.message : String(error)}`)
+    })
+
+  getBookmarks()
+    .then((result) => {
+      state.bookmarks = result.bookmarks
+    })
+    .catch((error) => {
+      showError(`Error al cargar bookmarks: ${error instanceof Error ? error.message : String(error)}`)
+    })
+}
+
+window.addEventListener('hashchange', renderCurrentRoute)
+
+async function start() {
+  try {
+    const result = await getIdentity()
+    state.identity = result.identity
+    initialized = true
+    if (!window.location.hash) {
+      window.location.hash = state.identity ? '#/bookmarks' : '#/onboarding'
+    }
+    renderCurrentRoute()
+  } catch (error) {
+    app.replaceChildren()
+    const message = document.createElement('p')
+    message.className = 'error'
+    message.textContent = `Error al conectar con la API: ${error instanceof Error ? error.message : String(error)}`
+    app.append(message)
+  }
+}
+
+start()
