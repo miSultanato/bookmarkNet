@@ -4,6 +4,7 @@ import test from 'brittle'
 import { utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
+import { startNode } from '../src/node/start.ts'
 
 interface Response { statusCode: number; body: unknown }
 
@@ -41,9 +42,12 @@ function collectionBody(response: Response): Record<string, unknown> {
 test('collections API supports local collection lifecycle', async (t) => {
   const dataDir = './tmp-test-collections-api'
   let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
   await fs.rm(dataDir, { recursive: true, force: true })
   try {
-    api = await createServer({ ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }, dataDir)
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
 
     const empty = await request(api.port, 'GET', '/api/v1/collections')
     t.is(empty.statusCode, 200, 'empty list returns 200')
@@ -93,6 +97,7 @@ test('collections API supports local collection lifecycle', async (t) => {
     t.is(((await request(api.port, 'GET', '/api/v1/collections')).body as { collections: unknown[] }).collections.length, 0, 'deleted collection is omitted from list')
   } finally {
     if (api !== null) await api.close()
+    if (node !== null) await node.close()
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
@@ -100,14 +105,18 @@ test('collections API supports local collection lifecycle', async (t) => {
 test('collection writes require an identity', async (t) => {
   const dataDir = './tmp-test-collections-api-no-identity'
   let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
   await fs.rm(dataDir, { recursive: true, force: true })
   try {
-    api = await createServer({ ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }, dataDir)
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
     t.is((await request(api.port, 'POST', '/api/v1/collections', { name: 'Sin identidad' })).statusCode, 401, 'create without identity returns 401')
     t.is((await request(api.port, 'PATCH', '/api/v1/collections/01ARZ3NDEKTSV4RRFFQ69G5FAV', { name: 'No permitido' })).statusCode, 401, 'patch without identity returns 401')
     t.is((await request(api.port, 'DELETE', '/api/v1/collections/01ARZ3NDEKTSV4RRFFQ69G5FAV')).statusCode, 401, 'delete without identity returns 401')
   } finally {
     if (api !== null) await api.close()
+    if (node !== null) await node.close()
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
