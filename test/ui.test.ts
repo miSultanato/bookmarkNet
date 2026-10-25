@@ -73,6 +73,8 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(apiModule.body.includes('createCollection'), 'API helper exposes collection creation')
     t.ok(apiModule.body.includes('moveBookmark'), 'API helper exposes bookmark moves')
     t.ok(apiModule.body.includes('getCollection'), 'API helper exposes collection retrieval')
+    t.ok(apiModule.body.includes('getBookmark'), 'API helper exposes bookmark retrieval')
+    t.ok(apiModule.body.includes('updateBookmark'), 'API helper exposes bookmark updates')
     t.ok(apiModule.body.includes('updateCollection'), 'API helper exposes collection updates')
     t.ok(apiModule.body.includes('deleteCollection'), 'API helper exposes collection deletion')
     t.ok(apiModule.body.includes('getCollectionBookmarks'), 'API helper exposes collection bookmark listing')
@@ -88,6 +90,13 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(collection.body.includes('getCollection'), 'collection module loads a collection')
     t.ok(collection.body.includes('getGroups'), 'collection module loads groups')
     t.ok(collection.body.includes('createGroup'), 'collection module can create groups')
+
+
+    const bookmark = await request(api.port, '/assets/bookmark.js')
+    t.is(bookmark.statusCode, 200, 'bookmark detail module is served')
+    t.ok(bookmark.contentType?.startsWith('text/javascript; charset=utf-8'), 'bookmark module has JavaScript content type')
+    t.ok(bookmark.body.includes('getBookmark'), 'bookmark module loads a bookmark')
+    t.ok(bookmark.body.includes('updateBookmark'), 'bookmark module can update a bookmark')
 
     const onboarding = await request(api.port, '/assets/onboarding.js')
     t.is(onboarding.statusCode, 200, 'onboarding module is served')
