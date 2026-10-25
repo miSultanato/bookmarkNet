@@ -28,7 +28,7 @@ export interface DeviceUpdateCollectionPayload {
 export interface DeviceDeleteCollectionPayload { collectionId: string }
 export interface DeviceAddBookmarkPayload {
   bookmarkId: string
-  collectionId: string
+  collectionId: string | null
   resourceId: string
   canonicalUrl: string
   title: string
@@ -42,7 +42,7 @@ export interface DeviceEditBookmarkPayload {
   changes: { title?: string | null; description?: string | null; tags?: string[]; notes?: string | null }
 }
 export interface DeviceRemoveBookmarkPayload { bookmarkId: string }
-export interface DeviceMoveBookmarkPayload { bookmarkId: string; groupId: string | null }
+export interface DeviceMoveBookmarkPayload { bookmarkId: string; collectionId: string | null; groupId: string | null }
 export interface DeviceReorderBookmarkPayload { bookmarkId: string; groupId: string | null; position: number }
 export interface DeviceCreateGroupPayload { groupId: string; collectionId: string; name: string; position: number }
 export interface DeviceDeleteGroupPayload { groupId: string; collectionId: string }
@@ -192,14 +192,20 @@ export function deviceDeleteCollection(params: DeviceDeleteCollectionParams): De
 }
 
 export interface DeviceAddBookmarkParams {
-  authorId: string; bookmarkId: string; collectionId: string; resourceId: string; canonicalUrl: string
+  authorId: string; bookmarkId: string; collectionId: string | null; resourceId: string; canonicalUrl: string
   title: string; description?: string; tags: string[]; notes?: string; groupId?: string | null
 }
 export function deviceAddBookmark(params: DeviceAddBookmarkParams): DeviceAddBookmarkEvent {
   requireRecord(params, 'params')
   requireAuthorId(params.authorId)
   requireBookmarkId(params.bookmarkId)
-  requireCollectionId(params.collectionId)
+  if (params.collectionId === null) {
+    if (params.groupId !== undefined && params.groupId !== null) {
+      throw new RangeError('groupId must be null when collectionId is null (Inbox global)')
+    }
+  } else {
+    requireCollectionId(params.collectionId)
+  }
   if (!isResourceId(params.resourceId)) throw new RangeError('resourceId must be a valid resource ID')
   requireNonEmptyString(params.canonicalUrl, 'canonicalUrl')
   requireNonEmptyString(params.title, 'title')
@@ -246,13 +252,28 @@ export function deviceRemoveBookmark(params: DeviceRemoveBookmarkParams): Device
   return makeEvent(params.authorId, 'device_remove_bookmark', { bookmarkId: params.bookmarkId })
 }
 
-export interface DeviceMoveBookmarkParams { authorId: string; bookmarkId: string; groupId: string | null }
+export interface DeviceMoveBookmarkParams {
+  authorId: string
+  bookmarkId: string
+  collectionId: string | null
+  groupId: string | null
+}
 export function deviceMoveBookmark(params: DeviceMoveBookmarkParams): DeviceMoveBookmarkEvent {
   requireRecord(params, 'params')
   requireAuthorId(params.authorId)
   requireBookmarkId(params.bookmarkId)
-  requireGroupIdOrNull(params.groupId)
-  return makeEvent(params.authorId, 'device_move_bookmark', { bookmarkId: params.bookmarkId, groupId: params.groupId })
+  if (params.collectionId !== null) requireCollectionId(params.collectionId)
+  if (params.groupId !== null) {
+    if (typeof params.groupId !== 'string' || params.groupId.length === 0 || !isGroupId(params.groupId)) {
+      throw new RangeError('groupId must be a non-empty valid group ID or null')
+    }
+  }
+  if (params.collectionId === null && params.groupId !== null) {
+    throw new RangeError('groupId must be null when collectionId is null (Inbox global)')
+  }
+  return makeEvent(params.authorId, 'device_move_bookmark', {
+    bookmarkId: params.bookmarkId, collectionId: params.collectionId, groupId: params.groupId
+  })
 }
 
 export interface DeviceReorderBookmarkParams { authorId: string; bookmarkId: string; groupId: string | null; position: number }
