@@ -4,6 +4,7 @@ import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
+import { handleCreateGroup, handleDeleteGroup, handleListGroups } from './groups.ts'
 import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleUpdateBookmark } from './bookmarks.ts'
 import {
   handleCreateCollection,
@@ -41,8 +42,9 @@ function matchRoute(url: string | undefined): MatchedRoute {
   }
   const collectionMatch = /^\/api\/v1\/collections\/([^/]+)$/.exec(path)
   const bookmarkMatch = /^\/api\/v1\/bookmarks\/([^/]+)$/.exec(path)
+  const groupMatch = /^\/api\/v1\/groups\/([^/]+)$/.exec(path)
   const params: Record<string, string> = {}
-  const idMatch = collectionMatch ?? bookmarkMatch
+  const idMatch = collectionMatch ?? bookmarkMatch ?? groupMatch
   if (idMatch) {
     try {
       params.id = decodeURIComponent(idMatch[1])
@@ -107,6 +109,48 @@ function readJsonBody(req: any): Promise<unknown> {
     })
     req.on('error', reject)
   })
+}
+
+async function dispatchGroupRequest(
+  node: Node,
+  method: string,
+  route: MatchedRoute,
+  req: any,
+  res: any
+): Promise<boolean> {
+  const base = '/api/v1/groups'
+  if (route.path === base && method === 'GET') {
+    const result = await handleListGroups(node, { collection_id: route.query.collection_id })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (route.path === base && method === 'POST') {
+    let body: unknown
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      return true
+    }
+    const result = await handleCreateGroup(node, body as { name: string; collection_id: string })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (!route.path.startsWith(base + '/') || route.params.id === undefined) return false
+  const id = route.params.id
+  if (id.length === 0) {
+    sendJson(res, 404, errorBody('NOT_FOUND', 'Grupo no encontrado'))
+    return true
+  }
+  if (method === 'DELETE') {
+    const result = await handleDeleteGroup(node, id)
+    if (result.status === 204) sendEmpty(res, 204)
+    else sendJson(res, result.status, result.body)
+    return true
+  }
+  return false
 }
 
 async function dispatchCollectionRequest(
@@ -304,6 +348,7 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
 
     try {
       if (await dispatchBookmarkRequest(node, method, route, req, res)) return
+      if (await dispatchGroupRequest(node, method, route, req, res)) return
       if (await dispatchCollectionRequest(node, method, route, req, res)) return
     } catch {
       sendJson(res, 500, errorBody('INTERNAL', 'Error interno del servidor'))
