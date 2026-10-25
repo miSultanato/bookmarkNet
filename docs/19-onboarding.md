@@ -4,11 +4,11 @@ Este documento define la primera experiencia del usuario al abrir BookmarkNet po
 
 ## Principio
 
-El onboarding debe ser lo más rápido posible. La identidad se crea automáticamente. El perfil es opcional y se puede ajustar en cualquier momento. El usuario debe poder estar dentro de la app en menos de 30 segundos si así lo quiere.
+El onboarding debe ser lo más rápido posible. La identidad se crea cuando el usuario pulsa "Continuar" (o al importar bookmarks), llamando a `POST /api/v1/identity/create`. El nodo arranca sin identidad y la UI muestra el onboarding hasta que se crea. El perfil es opcional y se puede ajustar en cualquier momento. El usuario debe poder estar dentro de la app en menos de 30 segundos si así lo quiere.
 
 ## Flujo
 
-Al arrancar por primera vez, el nodo genera la identidad automáticamente (claves). A continuación muestra una única pantalla con tres opciones independientes:
+Al arrancar por primera vez, el nodo no tiene identidad (`GET /api/v1/identity` devuelve `{ identity: null }`). La UI muestra el onboarding. Cuando el usuario pulsa "Continuar" (o "Importar"), la UI llama a `POST /api/v1/identity/create` y luego a `POST /api/v1/identity/import` si procede. A continuación, el usuario ve la pantalla principal. La pantalla de onboarding ofrece tres opciones independientes:
 
 1. **Importar bookmarks de mi navegador** (HTML).
 2. **Añadir colecciones iniciales** (seed pack).
@@ -20,7 +20,7 @@ Las tres son opcionales. El usuario puede marcar una, ambas o ninguna.
 
 ## Identidad y perfil
 
-- **Identidad:** se genera automáticamente al iniciar. No se pide nombre, email ni contraseña. Las claves son suficientes.
+- **Identidad:** se crea cuando el usuario confirma el onboarding (llamada a `POST /api/v1/identity/create`). No se pide nombre, email ni contraseña. Las claves son suficientes.
 - **Perfil:** opcional. Se puede ajustar en cualquier momento desde ajustes.
 - **Al compartir por primera vez:** la app ofrece la opción de ajustar el perfil (nombre, bio). No es obligatorio. Se puede omitir y compartir igualmente.
 
