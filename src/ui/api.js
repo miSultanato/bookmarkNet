@@ -141,3 +141,19 @@ export async function moveBookmark(bookmarkId, { collection_id, group_id } = {})
     body: JSON.stringify(body)
   })
 }
+
+export async function getProfile() {
+  return request('/api/v1/profile')
+}
+
+export async function updateProfile(changes) {
+  return request('/api/v1/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes)
+  })
+}
+
+export async function getConfig() {
+  return request('/api/v1/config')
+}
