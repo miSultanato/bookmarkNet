@@ -37,14 +37,11 @@ test('loadConfig returns documented defaults when config.json is absent', async 
   const saved = saveEnv()
   await resetTemp()
   try {
-    process.env.BOOKMARKNET_DATA_DIR = TMP_DIR
-    for (const key of ['BOOKMARKNET_PORT', 'BOOKMARKNET_LOG_LEVEL', 'BOOKMARKNET_ALLOWED_HOSTS', 'BOOKMARKNET_BIND']) {
-      delete process.env[key]
-    }
-    const config = loadConfig()
+    for (const key of ENV_KEYS) delete process.env[key]
+    const config = loadConfig(CONFIG_PATH)
     const defaults = defaultConfig()
     t.is(config.port, 7575)
-    t.is(config.dataDir, TMP_DIR)
+    t.is(config.dataDir, defaults.dataDir)
     t.is(config.logLevel, 'info')
     t.is(config.openBrowserOnStart, true)
     t.alike(config.allowedHosts, ['localhost', '127.0.0.1', '[::1]'])
