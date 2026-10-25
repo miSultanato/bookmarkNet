@@ -61,3 +61,30 @@ El core no importa frameworks de UI. La UI es HTML/CSS/JS estático servido por 
 ## Migración desde Node.js (si se hubiera elegido)
 
 Si en algún momento se necesita migrar código Node.js a Bare, la documentación oficial de Holepunch cubre el proceso de port. El código TypeScript es portable; los cambios son principalmente en la capa de módulos (Bare tiene su propia librería estándar opt-in).
+
+## Limitaciones del soporte de TypeScript en Bare
+
+Bare v1.30.0 añadió soporte de TypeScript, pero **no es un transpilador completo**. Usa `bare-type-stripper`, un lexer heurístico que elimina la sintaxis de TypeScript y produce JavaScript plano [citation:1][citation:7]. Ese stripper funciona por eliminación léxica, no por análisis semántico, así que algunas construcciones no se pueden eliminar sin cambiar el comportamiento en runtime.
+
+### Lo que se elimina correctamente
+
+- `import type { Foo } from 'mod'` — se elimina entero.
+- `interface`, `type`, anotaciones de tipo simples (`const x: string = ...`).
+- Genéricos en call sites (`foo<number>()`), type assertions (`x as Foo`, `x satisfies Foo`).
+- Modificadores de clase (`public`, `private`, `readonly`), `implements`.
+
+### Lo que falla en runtime
+
+- **`import { Foo }` sin `type` cuando `Foo` es solo un tipo.** El stripper no sabe si `Foo` es un tipo o un valor, lo deja como está, y en runtime se intenta resolver como módulo y falla. **Regla: usar siempre `import type` para tipos importados.**
+- **`enum` / `const enum`.** Emiten un objeto en runtime que el stripper no puede eliminar. Lanza `SyntaxError`.
+- **`namespace` / `module` con cuerpo.** Emiten código en runtime. Lanza `SyntaxError`.
+- **Parameter properties** (`constructor(public x: number)`). Implican una asignación `this.x = x` que el stripper perdería. Lanza `SyntaxError`.
+- **Type assertions con angle brackets** (`<Foo>expr`). Indistinguibles de JSX. Lanza `SyntaxError`.
+
+### Reglas prácticas para BookmarkNet
+
+- Siempre `import type` para tipos. Nunca `import { SomeType }` si es solo un tipo.
+- Evitar `enum` y `namespace`. Usar `const` objects con `as const` y tipo derivado.
+- Evitar parameter properties en clases.
+- Las anotaciones de tipo simples (`const x: string = ...`) son seguras. El problema no es la anotación en sí, sino que el tipo referenciado no se importe como `type`.
+
