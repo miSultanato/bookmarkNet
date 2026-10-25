@@ -186,7 +186,27 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       return { ...state, bookmarks }
     }
 
-    case 'move_bookmark':
+    case 'move_bookmark': {
+      if (state.collection === null) return state
+      const payload = event.payload
+      const existing = state.bookmarks.get(payload.bookmark_id)
+      if (existing === undefined || existing.deleted) return state
+      if (payload.group_id !== null) {
+        const group = state.groups.get(payload.group_id)
+        if (group === undefined || group.deleted) return state
+      }
+
+      // Repeating a move to the current group is idempotent for placement,
+      // but the explicit event still records its timestamp in updatedAt.
+      const bookmarks = new Map(state.bookmarks)
+      bookmarks.set(existing.bookmarkId, {
+        ...existing,
+        groupId: payload.group_id,
+        updatedAt: event.created_at
+      })
+      return { ...state, bookmarks }
+    }
+
     case 'reorder_bookmark':
       return state
   }
