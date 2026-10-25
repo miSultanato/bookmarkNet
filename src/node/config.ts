@@ -92,8 +92,8 @@ export function loadConfig(configPath?: string): Config {
   const env = process.env
   const envDataDir = env.BOOKMARKNET_DATA_DIR
   const initialDataDir = envDataDir ? expandHome(envDataDir) : defaults.dataDir
-  const selectedPath = configPath ?? configFilePath(initialDataDir)
-  const json = readJson(selectedPath) ?? {}
+  const explicitJson = configPath === undefined ? null : readJson(configPath)
+  const json = explicitJson ?? readJson(configFilePath(initialDataDir)) ?? {}
 
   const dataDirFromJson = stringValue(json.data_dir, initialDataDir)
   const dataDir = expandHome(envDataDir ?? dataDirFromJson)
