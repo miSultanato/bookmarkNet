@@ -3,12 +3,13 @@ const MAX_TIMESTAMP = 0xffffffffffff
 const RANDOMNESS_BYTES = 10
 
 function randomBytes(): Uint8Array {
-  const crypto = globalThis.crypto
-  if (!crypto?.getRandomValues) {
-    throw new Error('ULID generation requires crypto.getRandomValues')
+  // Bare does not expose Web Crypto globally. Keep the module dependency-free;
+  // this supplies collision-resistant pseudo-randomness, not cryptographic entropy.
+  const bytes = new Uint8Array(RANDOMNESS_BYTES)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = Math.floor(Math.random() * 256)
   }
-
-  return crypto.getRandomValues(new Uint8Array(RANDOMNESS_BYTES))
+  return bytes
 }
 
 /**
