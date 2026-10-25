@@ -220,7 +220,7 @@ export function deviceAddBookmark(params: DeviceAddBookmarkParams): DeviceAddBoo
 
 export interface DeviceEditBookmarkParams {
   authorId: string; bookmarkId: string
-  changes: { title?: string | null; description?: string | null; tags?: string[]; notes?: string | null }
+  changes: { title?: string; description?: string | null; tags?: string[]; notes?: string | null }
 }
 export function deviceEditBookmark(params: DeviceEditBookmarkParams): DeviceEditBookmarkEvent {
   requireRecord(params, 'params')
@@ -229,7 +229,7 @@ export function deviceEditBookmark(params: DeviceEditBookmarkParams): DeviceEdit
   requireChanges(params.changes, ['title', 'description', 'tags', 'notes'])
   if (Object.prototype.hasOwnProperty.call(params.changes, 'title')) {
     const title = params.changes.title
-    if (title !== null) requireNonEmptyString(title, 'changes.title')
+    if (typeof title !== 'string') throw new RangeError('changes.title must be a string')
   }
   if (Object.prototype.hasOwnProperty.call(params.changes, 'description')) requireNullableString(params.changes.description, 'changes.description')
   if (Object.prototype.hasOwnProperty.call(params.changes, 'notes')) requireNullableString(params.changes.notes, 'changes.notes')
