@@ -4,6 +4,7 @@ import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
+import { handleCreateBookmark, handleGetBookmark, handleListBookmarks } from './bookmarks.ts'
 import {
   handleCreateCollection,
   handleDeleteCollection,
@@ -39,10 +40,12 @@ function matchRoute(url: string | undefined): MatchedRoute {
     }
   }
   const collectionMatch = /^\/api\/v1\/collections\/([^/]+)$/.exec(path)
+  const bookmarkMatch = /^\/api\/v1\/bookmarks\/([^/]+)$/.exec(path)
   const params: Record<string, string> = {}
-  if (collectionMatch) {
+  const idMatch = collectionMatch ?? bookmarkMatch
+  if (idMatch) {
     try {
-      params.id = decodeURIComponent(collectionMatch[1])
+      params.id = decodeURIComponent(idMatch[1])
     } catch {
       params.id = ''
     }
@@ -169,6 +172,61 @@ async function dispatchCollectionRequest(
   return false
 }
 
+
+async function dispatchBookmarkRequest(
+  node: Node,
+  method: string,
+  route: MatchedRoute,
+  req: any,
+  res: any
+): Promise<boolean> {
+  const base = '/api/v1/bookmarks'
+  if (route.path === base && method === 'GET') {
+    const result = await handleListBookmarks(node, {
+      collection_id: route.query.collection_id,
+      group_id: route.query.group_id,
+      tag: route.query.tag,
+      q: route.query.q
+    })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (route.path === base && method === 'POST') {
+    let body: unknown
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      return true
+    }
+    const result = await handleCreateBookmark(node, body as {
+      url: string
+      collection_id: string
+      title?: string
+      description?: string
+      tags?: string[]
+      notes?: string
+      group_id?: string | null
+    })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (!route.path.startsWith(base + '/') || route.params.id === undefined) return false
+  const id = route.params.id
+  if (id.length === 0) {
+    sendJson(res, 404, errorBody('NOT_FOUND', 'Bookmark no encontrado'))
+    return true
+  }
+  if (method === 'GET') {
+    const result = await handleGetBookmark(node, id)
+    sendJson(res, result.status, result.body)
+    return true
+  }
+  return false
+}
+
 export async function createServer(config: Config, node: Node): Promise<ApiServer> {
   const server = http.createServer(async (req, res) => {
     const host = req.headers.host
@@ -222,6 +280,7 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
     }
 
     try {
+      if (await dispatchBookmarkRequest(node, method, route, req, res)) return
       if (await dispatchCollectionRequest(node, method, route, req, res)) return
     } catch {
       sendJson(res, 500, errorBody('INTERNAL', 'Error interno del servidor'))
