@@ -63,6 +63,9 @@ test('HTML import requires an identity and validates html', async (t) => {
     t.is(noIdentity.status, 401, 'import without identity returns 401')
     t.is(noIdentity.body.error.code, 'NO_IDENTITY', 'missing identity has a stable error code')
 
+    const identity = await request(api.port, '/api/v1/identity/create', {})
+    t.is(identity.status, 201, 'identity is created to validate the request body')
+
     const missingHtml = await request(api.port, IMPORT_PATH, {})
     t.is(missingHtml.status, 400, 'missing html returns 400')
     t.is(missingHtml.body.error.code, 'INVALID_HTML', 'missing html has a stable error code')
