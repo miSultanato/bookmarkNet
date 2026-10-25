@@ -42,8 +42,8 @@ export function defaultConfig(): Config {
 
 function readJson(path: string): JsonConfig | null {
   try {
-    const contents = fs.readFileSync(path)
-    const parsed = JSON.parse(new TextDecoder().decode(contents)) as unknown
+    const contents = fs.readFileSync(path, 'utf8')
+    const parsed = JSON.parse(contents) as unknown
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new RangeError(`Invalid config JSON at ${path}: expected an object`)
     }
