@@ -20,6 +20,7 @@ function request(port: number, path: string, method = 'GET', headers: Record<str
       method,
       headers: {
         Host: `127.0.0.1:${port}`,
+        Connection: 'close',
         ...headers
       }
     }, (res) => {
