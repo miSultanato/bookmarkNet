@@ -20,6 +20,8 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: Install Bare runtime
+        run: npm install -g bare-runtime
       - run: npm ci
 
       - run: npm test
