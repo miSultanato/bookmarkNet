@@ -99,7 +99,13 @@ test('invalid BOOKMARKNET_PORT throws RangeError', async (t) => {
   try {
     env.BOOKMARKNET_DATA_DIR = TMP_DIR
     env.BOOKMARKNET_PORT = 'not-a-port'
-    t.exception(() => loadConfig(), RangeError)
+    let threw = false
+    try {
+      loadConfig()
+    } catch (error) {
+      threw = error instanceof RangeError
+    }
+    t.is(threw, true, 'invalid port throws RangeError')
   } finally {
     restoreEnv(saved)
     await fs.rm(TMP_DIR, { recursive: true, force: true })
@@ -133,7 +139,13 @@ test('invalid JSON throws a clear RangeError', async (t) => {
   await resetTemp()
   try {
     await fs.writeFile(CONFIG_PATH, '{ invalid json')
-    t.exception(() => loadConfig(CONFIG_PATH), RangeError)
+    let threw = false
+    try {
+      loadConfig(CONFIG_PATH)
+    } catch (error) {
+      threw = error instanceof RangeError
+    }
+    t.is(threw, true, 'invalid JSON throws RangeError')
   } finally {
     restoreEnv(saved)
     await fs.rm(TMP_DIR, { recursive: true, force: true })
