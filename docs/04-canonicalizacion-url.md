@@ -43,3 +43,17 @@ Aplicar en este orden:
 ## Versionado
 
 La función de canonicalización tiene versión para permitir migraciones futuras: `resource_id = "r_" + sha256("v1:" + canonical_url).hex()`.
+
+## Decisiones v1 (casos no cubiertos)
+
+Estas decisiones complementan los 8 pasos anteriores y se aplican en v1. No son parte del algoritmo de canonicalización en sí, sino de la política de aceptación de `canonicalizeUrl`.
+
+- **Credenciales (`user:pass@host`):** se eliminan. Si la URL tiene `username` o `password` (`https://user:pass@host/`), se eliminan. La URL canónica no incluye credenciales. **Consecuencia:** dos URLs que solo difieran en credenciales (`https://example.com/path` y `https://user:pass@example.com/path`) producen el mismo `resource_id`.
+- **Validar el esquema.** Solo se aceptan `http:` y `https:`. Cualquier otro esquema (`mailto:`, `ftp:`, `file:`, etc.) o una URL sin esquema (`example.com/path`) se rechaza con `RangeError`. La app puede intentar normalizar URLs sin esquema en la UI (añadiendo `https://`), pero la función `canonicalizeUrl` no lo hace.
+- **Puertos no estándar (`:8080`):** se mantienen. Un puerto no estándar identifica un recurso distinto.
+- **Encoding en el path (`%20` vs `+`):** se mantiene tal cual. La normalización de encoding se pospone a v2.
+- **`ref` y `source`:** en v1 se mantienen siempre. El doc no define qué valores son "de tracking conocidos", así que no se eliminan para no fragmentar `resource_id` por una lista inventada. La lista explícita, si se decide, irá en v2.
+
+## Implementación
+
+El parseo de URLs usa `bare-url` (implementación WHATWG mantenida por Holepunch, disponible para Bare). No se usa `URL` global, que no está garantizado en Bare.
