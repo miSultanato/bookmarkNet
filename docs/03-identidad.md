@@ -24,6 +24,8 @@ nodes: [n_12ae, n_98bc, ...]
 trusted_nodes: [n_12ae, n_98bc, ...]
 ```
 
+**Relación entre `user_master_key` y `user_keypair`:** la clave privada del usuario (`private_key`) **es** el `user_master_key` (32 bytes). El `user_keypair` Ed25519 se construye directamente a partir de esta semilla: `public_key = Ed25519.getPublicKey(user_master_key)`. No hay dos claves distintas. Las claves de colección se derivan de la misma semilla con HKDF-SHA256 (ver `docs/05-arquitectura-p2p.md`).
+
 ## Creación
 
 Primera ejecución de `bookmarknet-node`:
