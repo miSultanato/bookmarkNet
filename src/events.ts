@@ -336,8 +336,8 @@ function validateGenesisSigningParams(params: GenesisSigningParams): void {
 
 /**
  * Hashes the exact genesis signing preimage specified in docs/15.
- * Fields are concatenated without separators; null and undefined provenance
- * fields both serialize as the empty string. Description is deliberately excluded.
+ * Fields are separated by a null byte; null and undefined provenance fields
+ * both serialize as the empty string. Description is deliberately excluded.
  */
 export function genesisSigningHash(params: GenesisSigningParams): Uint8Array {
   validateGenesisSigningParams(params)
@@ -350,7 +350,7 @@ export function genesisSigningHash(params: GenesisSigningParams): Uint8Array {
     params.visibility,
     params.forkedFrom ?? '',
     params.migratedFrom ?? ''
-  ].join('')
+  ].join('\x00')
   const hash = new Uint8Array(32)
   sodium.crypto_hash_sha256(hash, utf8Bytes(message))
   return hash
