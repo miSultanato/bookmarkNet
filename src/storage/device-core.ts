@@ -8,7 +8,7 @@ import type { CollectionEvent } from '../events.ts'
  * so this import works without depending on Node.js fs compatibility.
  */
 export async function openDeviceCore(dataDir: string): Promise<Hypercore> {
-  await fs.mkdir(dataDir, { recursive: true })
+  await fs.mkdir(dataDir, { recursive: true, mode: 0o700 })
   const storagePath = dataDir.replace(/\/+$/, '') + '/device-core'
   const core = new Hypercore(storagePath, { valueEncoding: 'json' })
   await core.ready()
