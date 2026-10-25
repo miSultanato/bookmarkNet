@@ -165,16 +165,16 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       const changes = payload.changes
       if (changes === undefined || changes === null) return state
       if (Object.prototype.hasOwnProperty.call(changes, 'title')) {
-        if (changes.title === null) Reflect.deleteProperty(bookmark, 'title')
-        else bookmark.title = changes.title
+        // title is required in BookmarkState, so null is ignored; use "" to clear it.
+        if (changes.title !== null) bookmark.title = changes.title
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'description')) {
         if (changes.description === null) delete bookmark.description
         else bookmark.description = changes.description
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'tags')) {
-        if (changes.tags === null) Reflect.deleteProperty(bookmark, 'tags')
-        else bookmark.tags = [...changes.tags]
+        // tags is required in BookmarkState, so null is ignored; use [] to clear it.
+        if (changes.tags !== null) bookmark.tags = [...changes.tags]
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'notes')) {
         if (changes.notes === null) delete bookmark.notes
