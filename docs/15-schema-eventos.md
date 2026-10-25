@@ -200,6 +200,8 @@ Notas:
 
     Para borrar un campo: "notes": null.
 
+    **Campos borrables con `null`:** solo `description` y `notes` se pueden borrar pasando `null` en `changes`. `title` y `tags` son obligatorios en el estado (`BookmarkState.title: string`, `BookmarkState.tags: string[]`), así que `title: null` y `tags: null` se ignoran en el fold (el campo se mantiene como estaba). Para "limpiar" `title` o `tags`, se pasa `""` o `[]` respectivamente.
+
 4. remove_bookmark
 
 Marca un bookmark como eliminado. No borra el bloque anterior.
