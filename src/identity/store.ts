@@ -13,7 +13,7 @@ export interface StoredIdentity {
 }
 
 function identityPath(dataDir: string): string {
-  return dataDir.replace(/\\/+$/, '') + '/identity.bmn'
+  return dataDir.replace(/\/+$/, '') + '/identity.bmn'
 }
 
 function isStoredIdentity(value: unknown): value is StoredIdentity {
