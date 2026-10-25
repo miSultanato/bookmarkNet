@@ -8,8 +8,9 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    const message = body?.error?.message || `HTTP ${response.status}`
-    throw new Error(message)
+    const error = new Error(body?.error?.message || `HTTP ${response.status}`)
+    if (body?.error?.code !== undefined) error.code = body.error.code
+    throw error
   }
 
   return body
@@ -31,12 +32,57 @@ export async function getCollections() {
   return request('/api/v1/collections')
 }
 
+export async function getCollection(id) {
+  return request('/api/v1/collections/' + encodeURIComponent(id))
+}
+
+export async function updateCollection(id, { name, description, visibility } = {}) {
+  const body = {}
+  if (name !== undefined) body.name = name
+  if (description !== undefined) body.description = description
+  if (visibility !== undefined) body.visibility = visibility
+  return request('/api/v1/collections/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+}
+
+export async function deleteCollection(id) {
+  return request('/api/v1/collections/' + encodeURIComponent(id), {
+    method: 'DELETE'
+  })
+}
+
 export async function getBookmarks() {
   return request('/api/v1/bookmarks')
 }
 
+export async function getCollectionBookmarks(collectionId) {
+  return request('/api/v1/bookmarks?collection_id=' + encodeURIComponent(collectionId))
+}
+
 export async function getInboxBookmarks() {
   return request('/api/v1/bookmarks?inbox=true')
+}
+
+export async function createBookmark({ url, title, description, tags, collection_id, group_id } = {}) {
+  const body = { url, collection_id }
+  if (title !== undefined) body.title = title
+  if (description !== undefined) body.description = description
+  if (tags !== undefined) body.tags = tags
+  if (group_id !== undefined) body.group_id = group_id
+  return request('/api/v1/bookmarks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+}
+
+export async function deleteBookmark(id) {
+  return request('/api/v1/bookmarks/' + encodeURIComponent(id), {
+    method: 'DELETE'
+  })
 }
 
 export async function createCollection({ name, description, visibility } = {}) {
