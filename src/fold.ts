@@ -146,7 +146,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
 
     case 'collection_unpublished': {
       if (state.collection === null || state.collection.unpublished) return state
-      const collection: CollectionMeta = {
+      const collection = {
         ...state.collection,
         unpublished: true,
         migratedTo: event.payload.migrated_to ?? null
