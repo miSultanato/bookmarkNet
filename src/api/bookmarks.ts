@@ -1,4 +1,4 @@
-import { deviceAddBookmark, deviceEditBookmark, deviceRemoveBookmark, deviceReorderBookmark } from '../device-events.ts'
+import { deviceAddBookmark, deviceEditBookmark, deviceMoveBookmark, deviceRemoveBookmark, deviceReorderBookmark } from '../device-events.ts'
 import type { DeviceBookmarkState } from '../device-fold.ts'
 import { canonicalizeUrl } from '../canonicalize.ts'
 import { newBookmarkId, resourceIdFromCanonicalUrl } from '../ids.ts'
@@ -7,7 +7,7 @@ import type { Node } from '../node/start.ts'
 export function apiBookmark(bookmark: DeviceBookmarkState): object {
   const result: {
     bookmark_id: string
-    collection_id: string
+    collection_id: string | null
     resource_id: string
     canonical_url: string
     title: string
@@ -45,10 +45,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export async function handleListBookmarks(
   node: Node,
-  query: { collection_id?: string; group_id?: string; tag?: string; q?: string }
+  query: { collection_id?: string; group_id?: string; tag?: string; q?: string; inbox?: string }
 ): Promise<{ status: number; body: unknown }> {
+  if (query.inbox === 'true' && query.collection_id !== undefined) {
+    return error(400, 'INVALID_QUERY', 'inbox and collection_id are mutually exclusive')
+  }
+
   let bookmarks = [...node.state.bookmarks.values()].filter((bookmark) => !bookmark.deleted)
 
+  if (query.inbox === 'true') {
+    bookmarks = bookmarks.filter((bookmark) => bookmark.collectionId === null)
+  }
   if (query.collection_id !== undefined) {
     const collection = node.state.collections.get(query.collection_id)
     if (!collection || collection.deleted) bookmarks = []
@@ -78,7 +85,7 @@ export async function handleCreateBookmark(
   node: Node,
   body: {
     url: string
-    collection_id: string
+    collection_id?: string | null
     title?: string
     description?: string
     tags?: string[]
@@ -90,12 +97,19 @@ export async function handleCreateBookmark(
   if (!isRecord(body) || typeof body.url !== 'string' || body.url.trim().length === 0) {
     return error(400, 'INVALID_URL', 'url debe ser un string no vacío')
   }
-  if (typeof body.collection_id !== 'string' || body.collection_id.trim().length === 0) {
-    return error(400, 'COLLECTION_NOT_FOUND', 'collection_id debe identificar una colección existente')
-  }
-  const collection = node.state.collections.get(body.collection_id)
-  if (!collection || collection.deleted) {
-    return error(400, 'COLLECTION_NOT_FOUND', 'Colección no encontrada')
+  const collectionId = body.collection_id ?? null
+  if (collectionId === null) {
+    if (body.group_id !== undefined && body.group_id !== null) {
+      return error(400, 'INVALID_GROUP_FOR_INBOX', 'group_id must be null when collection_id is null (Inbox global)')
+    }
+  } else {
+    if (typeof collectionId !== 'string' || collectionId.trim().length === 0) {
+      return error(400, 'COLLECTION_NOT_FOUND', 'collection_id debe identificar una colección existente')
+    }
+    const collection = node.state.collections.get(collectionId)
+    if (!collection || collection.deleted) {
+      return error(400, 'COLLECTION_NOT_FOUND', 'Colección no encontrada')
+    }
   }
 
   let canonicalUrl: string
@@ -108,7 +122,7 @@ export async function handleCreateBookmark(
 
   if (body.group_id !== undefined && body.group_id !== null) {
     const group = node.state.groups.get(body.group_id)
-    if (!group || group.deleted || group.collectionId !== body.collection_id) {
+    if (collectionId === null || !group || group.deleted || group.collectionId !== collectionId) {
       return error(400, 'GROUP_NOT_FOUND', 'Grupo no encontrado en la colección indicada')
     }
   }
@@ -130,7 +144,7 @@ export async function handleCreateBookmark(
   const event = deviceAddBookmark({
     authorId: node.identity.user_id,
     bookmarkId,
-    collectionId: body.collection_id,
+    collectionId,
     resourceId,
     canonicalUrl,
     title: body.title ?? canonicalUrl,
@@ -143,6 +157,72 @@ export async function handleCreateBookmark(
   const bookmark = node.state.bookmarks.get(bookmarkId)
   if (!bookmark) return error(500, 'INTERNAL', 'No se pudo crear el bookmark')
   return { status: 201, body: { bookmark: apiBookmark(bookmark) } }
+}
+
+export async function handleMoveBookmark(
+  node: Node,
+  id: string,
+  body: { collection_id?: string | null; group_id?: string | null }
+): Promise<{ status: number; body: unknown }> {
+  if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
+  const bookmark = node.state.bookmarks.get(id)
+  if (!bookmark || bookmark.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  if (!isRecord(body)) return error(400, 'EMPTY_MOVE', 'at least one of collection_id or group_id is required')
+  if (body.collection_id === undefined && body.group_id === undefined) {
+    return error(400, 'EMPTY_MOVE', 'at least one of collection_id or group_id is required')
+  }
+
+  let targetCollectionId: string | null
+  if (body.collection_id === null) {
+    targetCollectionId = null
+  } else if (body.collection_id === undefined) {
+    targetCollectionId = bookmark.collectionId
+  } else if (typeof body.collection_id === 'string' && body.collection_id.trim().length > 0) {
+    const collection = node.state.collections.get(body.collection_id)
+    if (!collection || collection.deleted) return error(400, 'COLLECTION_NOT_FOUND', 'Colección no encontrada')
+    targetCollectionId = body.collection_id
+  } else {
+    return error(400, 'COLLECTION_NOT_FOUND', 'collection_id debe identificar una colección existente')
+  }
+
+  let targetGroupId: string | null
+  if (body.collection_id === null) {
+    if (body.group_id !== undefined && body.group_id !== null) {
+      return error(400, 'INVALID_GROUP_FOR_INBOX', 'group_id must be null when collection_id is null (Inbox global)')
+    }
+    targetGroupId = null
+  } else if (body.group_id === null) {
+    targetGroupId = null
+  } else if (typeof body.group_id === 'string') {
+    const group = node.state.groups.get(body.group_id)
+    if (!group || group.deleted || group.collectionId !== targetCollectionId) {
+      return error(400, 'GROUP_NOT_FOUND', 'Grupo no encontrado en la colección indicada')
+    }
+    targetGroupId = body.group_id
+  } else if (body.group_id === undefined) {
+    if (bookmark.groupId === null) {
+      targetGroupId = null
+    } else {
+      const currentGroup = node.state.groups.get(bookmark.groupId)
+      if (!currentGroup || currentGroup.deleted || currentGroup.collectionId !== targetCollectionId) {
+        return error(400, 'GROUP_NOT_FOUND', 'Grupo actual no pertenece a la colección de destino')
+      }
+      targetGroupId = bookmark.groupId
+    }
+  } else {
+    return error(400, 'GROUP_NOT_FOUND', 'Grupo no encontrado en la colección indicada')
+  }
+
+  const event = deviceMoveBookmark({
+    authorId: node.identity.user_id,
+    bookmarkId: id,
+    collectionId: targetCollectionId,
+    groupId: targetGroupId
+  })
+  await node.apply(event)
+  const updated = node.state.bookmarks.get(id)
+  if (!updated || updated.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  return { status: 200, body: { bookmark: apiBookmark(updated) } }
 }
 
 export async function handleGetBookmark(
