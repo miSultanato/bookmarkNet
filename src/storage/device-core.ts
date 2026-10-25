@@ -1,6 +1,6 @@
 import fs from 'bare-fs'
 import Hypercore from 'hypercore'
-import type { CollectionEvent } from '../events.ts'
+import type { DeviceEvent } from '../device-events.ts'
 
 /**
  * Opens the local, single-writer event log for this device.
@@ -16,16 +16,16 @@ export async function openDeviceCore(dataDir: string): Promise<Hypercore> {
 }
 
 /** Appends an event and returns its zero-based block index. */
-export async function appendEvent(core: Hypercore, event: CollectionEvent): Promise<number> {
+export async function appendEvent(core: Hypercore, event: DeviceEvent): Promise<number> {
   await core.append(event)
   return core.length - 1
 }
 
 /** Reads every event in append order. */
-export async function readAllEvents(core: Hypercore): Promise<CollectionEvent[]> {
-  const events: CollectionEvent[] = []
+export async function readAllEvents(core: Hypercore): Promise<DeviceEvent[]> {
+  const events: DeviceEvent[] = []
   for (let i = 0; i < core.length; i++) {
-    events.push(await core.get(i) as CollectionEvent)
+    events.push(await core.get(i) as DeviceEvent)
   }
   return events
 }
