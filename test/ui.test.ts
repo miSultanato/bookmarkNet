@@ -62,8 +62,21 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     const app = await request(api.port, '/assets/app.js')
     t.is(app.statusCode, 200, 'application module is served')
     t.ok(app.contentType?.startsWith('text/javascript; charset=utf-8'), 'application module has JavaScript content type')
-    t.ok(app.body.includes('fetch('), 'application module fetches the identity API')
-    t.ok(app.body.includes('/api/v1/identity'), 'application module calls the identity endpoint')
+    t.ok(app.body.includes("from './api.js'"), 'application module imports the API helper')
+    t.ok(app.body.includes('hashchange'), 'application module listens for hash changes')
+
+    const apiModule = await request(api.port, '/assets/api.js')
+    t.is(apiModule.statusCode, 200, 'API helper module is served')
+    t.ok(apiModule.body.includes('fetch('), 'API helper uses fetch')
+    t.ok(apiModule.body.includes('/api/v1/identity'), 'API helper calls the identity endpoint')
+
+    const onboarding = await request(api.port, '/assets/onboarding.js')
+    t.is(onboarding.statusCode, 200, 'onboarding module is served')
+    t.ok(onboarding.body.includes('createIdentity'), 'onboarding module creates an identity')
+
+    const bookmarks = await request(api.port, '/assets/bookmarks.js')
+    t.is(bookmarks.statusCode, 200, 'bookmarks module is served')
+    t.ok(bookmarks.body.includes('Mis bookmarks'), 'bookmarks module contains the placeholder title')
 
     const missing = await request(api.port, '/assets/nope.css')
     t.is(missing.statusCode, 404, 'missing static asset returns 404')
