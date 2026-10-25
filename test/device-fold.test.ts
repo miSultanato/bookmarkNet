@@ -129,7 +129,8 @@ test('device_add_bookmark ignores invalid parents and duplicates; absent group m
   t.is(applyDeviceEvent(added, bookmark(BOOKMARK_ID, null, T2)), added)
   t.is(applyDeviceEvent(state, bookmark(BOOKMARK_ID, GROUP_ID)), state)
   const withGroup = applyDeviceEvent(initial(), group())
-  t.is(applyDeviceEvent(withGroup, bookmark(BOOKMARK_ID, GROUP_ID)), withGroup)
+  const groupedBookmark = applyDeviceEvent(withGroup, bookmark(BOOKMARK_ID, GROUP_ID))
+  t.is(groupedBookmark.bookmarks.get(BOOKMARK_ID)?.groupId, GROUP_ID)
   const deletedGroup = applyDeviceEvent(withGroup, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }))
   t.is(applyDeviceEvent(deletedGroup, bookmark(BOOKMARK_ID, GROUP_ID)), deletedGroup)
 })
@@ -138,15 +139,16 @@ test('device_edit_bookmark handles nulls, empty values, missing and deleted book
   const empty = emptyDeviceState()
   t.is(applyDeviceEvent(empty, deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: 'x' } })), empty)
   const added = applyDeviceEvent(initial(), bookmark())
-  const nullChanges = deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: null } })
+  const nullChanges = deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: 'temporal' } })
+  ;(nullChanges.payload.changes as any).title = null
   ;(nullChanges.payload.changes as any).tags = null
   const edited = applyDeviceEvent(added, eventOn(nullChanges, T2))
   t.is(edited.bookmarks.get(BOOKMARK_ID)?.title, 'Título')
   t.alike(edited.bookmarks.get(BOOKMARK_ID)?.tags, ['uno', 'dos'])
   t.is(edited.bookmarks.get(BOOKMARK_ID)?.updatedAt, T2)
-  const cleared = applyDeviceEvent(edited, eventOn(deviceEditBookmark({
-    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { description: null, notes: null, title: '', tags: [] }
-  }), T3))
+  const clearChanges = deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { description: null, notes: null, title: 'temporal', tags: [] } })
+  ;(clearChanges.payload.changes as any).title = ''
+  const cleared = applyDeviceEvent(edited, eventOn(clearChanges, T3))
   t.is(cleared.bookmarks.get(BOOKMARK_ID)?.title, '')
   t.alike(cleared.bookmarks.get(BOOKMARK_ID)?.tags, [])
   t.is(Object.prototype.hasOwnProperty.call(cleared.bookmarks.get(BOOKMARK_ID), 'description'), false)
