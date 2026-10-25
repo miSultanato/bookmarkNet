@@ -1,6 +1,6 @@
 import sodium from 'sodium-native'
-import { isBookmarkId, isCollectionId, isGroupId, isResourceId, isUserId, toHex, utf8Bytes } from './ids.ts'
-import { serializePublicKey, serializeSignature, sign, userIdFromPublicKey } from './identity.ts'
+import { isBookmarkId, isCollectionId, isGroupId, isResourceId, isUserId, toHex, utf8Bytes, userIdFromPublicKey } from './ids.ts'
+import { serializePublicKey, serializeSignature, sign } from './identity.ts'
 import { serializeCollectionPublicKey } from './keys.ts'
 import { ulid } from './ulid.ts'
 
