@@ -38,3 +38,62 @@ a {
   color: var(--muted);
   line-height: 1.5;
 }
+
+.onboarding {
+  width: min(100%, 36rem);
+  margin: 3rem auto;
+}
+
+.onboarding h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  line-height: 1.2;
+}
+
+.onboarding p {
+  line-height: 1.6;
+}
+
+.onboarding .actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.onboarding button {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  color: var(--fg);
+  text-align: left;
+}
+
+.onboarding button.primary {
+  margin-top: 0.5rem;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  text-align: center;
+}
+
+.onboarding button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.error {
+  color: #b91c1c;
+  line-height: 1.5;
+}
+
+.placeholder {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.placeholder h1 {
+  color: var(--fg);
+}
