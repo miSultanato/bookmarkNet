@@ -467,6 +467,7 @@ message = collection_id + "\x00" +
           visibility + "\x00" +
           (forked_from ?? "") + "\x00" +
           (migrated_from ?? "")
+```
 
 ## Estado del fold
 
