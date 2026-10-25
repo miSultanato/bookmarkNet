@@ -36,6 +36,8 @@ Primera ejecución de `bookmarknet-node`:
 
 No hay registro, email ni contraseña.
 
+**Cuándo se crea la identidad:** la identidad no se crea automáticamente al arrancar el nodo. El nodo arranca sin identidad (`GET /api/v1/identity` devuelve `{ identity: null }`). La identidad se crea explícitamente con `POST /api/v1/identity/create` (o se importa con `POST /api/v1/identity/import`). La UI muestra el onboarding (`docs/19-onboarding.md`) hasta que hay identidad.
+
 ## Añadir dispositivo
 
 Desde un nodo existente:
@@ -66,6 +68,8 @@ la contraseña (opción configurable), pero por defecto se exige.
 ## Backup
 
 Formato: `identity.bmn`. Contenido: `private_key`, `public_key`, `profile`. Debe cifrarse siempre con contraseña antes de exportarlo. **No contiene bookmarks**, sólo identidad.
+
+**Ubicación en el dispositivo:** la `user_master_key` (la clave privada del usuario) se guarda en `dataDir/identity.bmn` en claro, protegida por los permisos `0700` del directorio de datos. El cifrado con contraseña se aplica solo al exportar (`POST /identity/export`) y al importar (`POST /identity/import`). El archivo exportado es el que se cifra; el archivo en disco no.
 
 ## Recuperación
 

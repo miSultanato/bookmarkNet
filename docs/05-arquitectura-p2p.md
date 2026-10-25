@@ -50,7 +50,7 @@ collection_keypair = derive(
 - `user_master_key` se genera con `crypto.randomBytes(32)` en la primera ejecución.
 - `collection_keypair` se deriva de `user_master_key` mediante **HKDF-SHA256** con la info `"bookmarknet:collection:" + collection_uuid`.
 - El resultado (32 bytes) se usa como seed de Ed25519.
-- La `user_master_key` se almacena cifrada en el `device_core` (ver `docs/03-identidad.md`).
+- La `user_master_key` se almacena en `dataDir/identity.bmn` en claro, protegida por los permisos `0700` del directorio de datos. El cifrado con contraseña se aplica solo al exportar (`POST /identity/export`) y al importar (`POST /identity/import`). El `device_core` se abre con una clave derivada de la `user_master_key` (que está en `identity.bmn`), no con una clave que esté dentro del `device_core`; así se evita la dependencia circular.
 - La derivación es determinista: el mismo `user_master_key` + `collection_uuid` produce siempre el mismo `collection_keypair`.
 
 Donde `collection_uuid` es un ULID generado al crear la
