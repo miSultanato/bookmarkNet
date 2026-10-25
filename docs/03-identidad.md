@@ -108,7 +108,7 @@ El `device_core` es un log single-writer local. Sus eventos son distintos de los
 8. `device_move_bookmark`: mueve un bookmark a otro grupo (o a Inbox).
 9. `device_reorder_bookmark`: cambia la posición de un bookmark dentro de un grupo.
 10. `device_create_group`: crea un grupo en una colección local.
-11. `device_delete_group`: marca un grupo como eliminado (sus bookmarks se mueven a Inbox).
+11. `device_delete_group`: marca un grupo como eliminado (sus bookmarks vuelven a la raíz de su colección).
 
 Todos los eventos comparten los campos comunes de `docs/15`: `schema_version: 1`, `event_id` (ULID), `event_type`, `author_id` (el `user_id` del dueño del dispositivo), `created_at` (ISO8601), `payload`.
 
@@ -143,14 +143,14 @@ interface DeviceDeleteCollectionPayload {
 
 interface DeviceAddBookmarkPayload {
   bookmarkId: string        // ULID
-  collectionId: string
+  collectionId: string | null
   resourceId: string        // r_...
   canonicalUrl: string
   title: string
   description?: string
   tags: string[]
   notes?: string
-  groupId?: string | null   // null = Inbox
+  groupId?: string | null   // null = raíz de colección; con collectionId: null, debe ser null (Inbox global)
 }
 
 interface DeviceEditBookmarkPayload {
@@ -169,7 +169,8 @@ interface DeviceRemoveBookmarkPayload {
 
 interface DeviceMoveBookmarkPayload {
   bookmarkId: string
-  groupId: string | null    // null = Inbox
+  collectionId: string | null
+  groupId: string | null
 }
 
 interface DeviceReorderBookmarkPayload {
@@ -190,6 +191,19 @@ interface DeviceDeleteGroupPayload {
   collectionId: string
 }
 ```
+
+**Inbox global vs Inbox de colección:** el Inbox global contiene bookmarks con `collectionId: null` y `groupId: null`. No pertenecen a ninguna colección. El Inbox de colección (también llamado raíz de la colección) contiene bookmarks con `collectionId: "c_..."` y `groupId: null`: pertenecen a esa colección, pero no a un grupo. Son conceptos distintos y la UI los muestra de forma distinta.
+
+Para `device_add_bookmark`, si `collectionId` es `null`, `groupId` debe ser `null`; el constructor lanza `RangeError` si `collectionId: null` y `groupId` no es `null`.
+
+Reglas adicionales del constructor `device_move_bookmark`: acepta el payload `{ bookmarkId, collectionId, groupId }`. Si `collectionId` es `null`, `groupId` debe ser `null`; el constructor lanza `RangeError` si no se cumple.
+
+| Regla de movimiento | Resultado |
+|---|---|
+| `collectionId` distinto del actual | Cambia de colección y establece `position: null`. |
+| `collectionId` igual al actual | Solo cambia `groupId` y establece `position: null`. |
+| `collectionId: null` y `groupId: null` | Mueve al Inbox global. |
+| `collectionId: null` y `groupId` no es `null` | Inválido: el constructor lanza `RangeError` y el fold ignora el evento. |
 
 #### `collectionId` = `collection_uuid`
 
@@ -223,7 +237,7 @@ interface DeviceCollectionState {
 
 interface DeviceBookmarkState {
   bookmarkId: string
-  collectionId: string
+  collectionId: string | null
   resourceId: string
   canonicalUrl: string
   title: string
@@ -254,13 +268,13 @@ interface DeviceGroupState {
 - **`device_create_collection`:** crea la colección si no existe. Si existe, ignora.
 - **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`).
 - **`device_delete_collection`:** si no existe, ignora. Marca `deleted: true`. Sus bookmarks y grupos también se marcan como eliminados (soft delete en cascada, definitivo: no se "resucitan" si la colección se vuelve a crear con el mismo `collectionId`; se crea una colección nueva).
-- **`device_add_bookmark`:** si la colección no existe o está eliminada, ignora. Si el `bookmarkId` ya existe, ignora. Crea el bookmark con `position: null` (orden por `createdAt`). Si `groupId` no es `null` y no existe, ignora.
+- **`device_add_bookmark`:** si `collectionId` es `null`, se acepta sin validar colección (Inbox global), pero `groupId` debe ser `null`; si no lo es, se ignora. Si `collectionId` no es `null` y la colección no existe o está eliminada, se ignora. Si el `bookmarkId` ya existe, se ignora. Si `groupId` no es `null` y no existe o no pertenece a `collectionId`, se ignora. Crea el bookmark con `position: null` (orden por `createdAt`).
 - **`device_edit_bookmark`:** si el bookmark no existe o está eliminado, ignora. Aplica `changes`. `title` y `tags` no se pueden borrar con `null` (ignora el cambio). `description` y `notes` sí.
 - **`device_remove_bookmark`:** si no existe o está eliminado, ignora. Marca `deleted: true`.
-- **`device_move_bookmark`:** si el bookmark no existe o está eliminado, ignora. Si `groupId` no es `null` y no existe, ignora. Actualiza `groupId` y resetea `position` a `null`.
+- **`device_move_bookmark`:** si el bookmark no existe o está eliminado, se ignora. Si `collectionId` es `null` y `groupId` no es `null`, el evento es inválido y se ignora. Si `collectionId` no es `null` y la colección no existe o está eliminada, se ignora. Si `groupId` no es `null` y no existe, está eliminado o no pertenece a `collectionId`, se ignora. Si `collectionId` es distinto del actual, cambia de colección y resetea `position` a `null`; si es igual, solo cambia `groupId` y resetea `position` a `null`. `collectionId: null` y `groupId: null` mueve el bookmark al Inbox global.
 - **`device_reorder_bookmark`:** si el bookmark no existe o está eliminado, ignora. Si no está en el `groupId` indicado, ignora. Materializa posiciones del grupo (como en `collection_core`), reajusta, actualiza `updatedAt`.
 - **`device_create_group`:** si la colección no existe o está eliminada, ignora. Si el `groupId` ya existe, ignora. Crea el grupo.
-- **`device_delete_group`:** si el grupo no existe o está eliminado, ignora. Marca `deleted: true`. Los bookmarks del grupo se mueven a Inbox (`groupId: null`, `position: null`).
+- **`device_delete_group`:** si el grupo no existe o está eliminado, ignora. Marca `deleted: true`. Los bookmarks del grupo vuelven a la raíz de su colección (`groupId: null`, `position: null`); no se mueven al Inbox global.
 - **Idempotencia:** el fold nunca lanza error. Ignora eventos inválidos.
 
 Todos los dispositivos del mismo usuario se unen a un topic
