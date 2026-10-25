@@ -52,3 +52,112 @@ export function emptyState(): CollectionState {
     groups: new Map()
   }
 }
+
+export function applyEvent(state: CollectionState, event: CollectionEvent): CollectionState {
+  switch (event.event_type) {
+    case 'collection_genesis': {
+      if (state.collection !== null) return state
+      const payload = event.payload
+      const collection: CollectionMeta = {
+        collectionId: payload.collection_id,
+        collectionPublicKey: payload.collection_public_key,
+        authorId: event.author_id,
+        authorPublicKey: payload.author_public_key,
+        name: payload.name,
+        visibility: payload.visibility,
+        forkedFrom: payload.forked_from,
+        migratedFrom: payload.migrated_from,
+        createdAt: event.created_at,
+        unpublished: false
+      }
+      if (payload.description !== undefined) collection.description = payload.description
+      return { ...state, collection }
+    }
+
+    case 'add_bookmark': {
+      if (state.collection === null) return state
+      const payload = event.payload
+      if (state.bookmarks.has(payload.bookmark_id)) return state
+      const bookmark: BookmarkState = {
+        bookmarkId: payload.bookmark_id,
+        resourceId: payload.resource_id,
+        canonicalUrl: payload.canonical_url,
+        title: payload.title,
+        tags: [...payload.tags],
+        groupId: payload.group_id ?? null,
+        position: null,
+        createdAt: event.created_at,
+        deleted: false
+      }
+      if (payload.description !== undefined) bookmark.description = payload.description
+      if (payload.notes !== undefined) bookmark.notes = payload.notes
+      const bookmarks = new Map(state.bookmarks)
+      bookmarks.set(bookmark.bookmarkId, bookmark)
+      return { ...state, bookmarks }
+    }
+
+    case 'remove_bookmark': {
+      if (state.collection === null) return state
+      const existing = state.bookmarks.get(event.payload.bookmark_id)
+      if (existing === undefined || existing.deleted) return state
+      const bookmarks = new Map(state.bookmarks)
+      bookmarks.set(existing.bookmarkId, { ...existing, deleted: true, updatedAt: event.created_at })
+      return { ...state, bookmarks }
+    }
+
+    case 'update_metadata': {
+      if (state.collection === null) return state
+      return {
+        ...state,
+        collection: { ...state.collection, ...event.payload.changes }
+      }
+    }
+
+    case 'create_group': {
+      if (state.collection === null) return state
+      const payload = event.payload
+      if (state.groups.has(payload.group_id)) return state
+      const group: GroupState = {
+        groupId: payload.group_id,
+        name: payload.name,
+        position: payload.position,
+        createdAt: event.created_at,
+        deleted: false
+      }
+      const groups = new Map(state.groups)
+      groups.set(group.groupId, group)
+      return { ...state, groups }
+    }
+
+    case 'delete_group': {
+      if (state.collection === null) return state
+      const existing = state.groups.get(event.payload.group_id)
+      if (existing === undefined || existing.deleted) return state
+      const groups = new Map(state.groups)
+      groups.set(existing.groupId, { ...existing, deleted: true })
+      const bookmarks = new Map(state.bookmarks)
+      for (const [bookmarkId, bookmark] of bookmarks) {
+        if (bookmark.groupId === existing.groupId && !bookmark.deleted) {
+          bookmarks.set(bookmarkId, { ...bookmark, groupId: null, updatedAt: event.created_at })
+        }
+      }
+      return { ...state, groups, bookmarks }
+    }
+
+    case 'collection_unpublished': {
+      if (state.collection === null || state.collection.unpublished) return state
+      const collection: CollectionMeta = {
+        ...state.collection,
+        unpublished: true,
+        migratedTo: event.payload.migrated_to ?? null
+      }
+      if (event.payload.message !== undefined) collection.unpublishedMessage = event.payload.message
+      return { ...state, collection }
+    }
+
+    case 'edit_bookmark':
+    case 'move_bookmark':
+    case 'reorder_bookmark':
+      return state
+  }
+}
