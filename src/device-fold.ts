@@ -32,7 +32,7 @@ export interface DeviceCollectionState {
 
 export interface DeviceBookmarkState {
   bookmarkId: string
-  collectionId: string
+  collectionId: string | null
   resourceId: string
   canonicalUrl: string
   title: string
@@ -137,7 +137,12 @@ function applyDeleteCollection(state: DeviceState, event: DeviceDeleteCollection
 
 function applyAddBookmark(state: DeviceState, event: DeviceAddBookmarkEvent): DeviceState {
   const p = event.payload
-  if (!collectionIsActive(state, p.collectionId) || state.bookmarks.has(p.bookmarkId)) return state
+  if (state.bookmarks.has(p.bookmarkId)) return state
+  if (p.collectionId === null) {
+    if (p.groupId !== null) return state
+  } else if (!collectionIsActive(state, p.collectionId)) {
+    return state
+  }
   if (p.groupId !== null && !groupIsActive(state, p.groupId)) return state
   const bookmark: DeviceBookmarkState = {
     bookmarkId: p.bookmarkId,
@@ -188,10 +193,19 @@ function applyRemoveBookmark(state: DeviceState, event: DeviceRemoveBookmarkEven
 
 function applyMoveBookmark(state: DeviceState, event: DeviceMoveBookmarkEvent): DeviceState {
   const current = state.bookmarks.get(event.payload.bookmarkId)
-  const groupId = event.payload.groupId
-  if (!current || current.deleted || (groupId !== null && !groupIsActive(state, groupId))) return state
+  const { collectionId, groupId } = event.payload
+  if (!current || current.deleted) return state
+  if (collectionId === null) {
+    if (groupId !== null) return state
+  } else if (!collectionIsActive(state, collectionId)) {
+    return state
+  }
+  if (groupId !== null) {
+    const group = state.groups.get(groupId)
+    if (!group || group.deleted || group.collectionId !== collectionId) return state
+  }
   const bookmarks = new Map(state.bookmarks)
-  bookmarks.set(current.bookmarkId, { ...current, groupId, position: null, updatedAt: event.created_at })
+  bookmarks.set(current.bookmarkId, { ...current, collectionId, groupId, position: null, updatedAt: event.created_at })
   return { ...state, bookmarks }
 }
 
