@@ -81,10 +81,14 @@ test('deviceAddBookmark constructs event and normalizes missing group to Inbox',
   t.is(grouped.payload.groupId, GROUP_ID)
 })
 
-test('deviceEditBookmark accepts title null for fold to ignore', (t) => {
-  const event = deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: null } })
+test('deviceEditBookmark accepts an empty title', (t) => {
+  const event = deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: '' } })
   assertCommon(t, event, 'device_edit_bookmark')
-  t.is(event.payload.changes.title, null)
+  t.is(event.payload.changes.title, '')
+})
+
+test('deviceEditBookmark rejects a null title', (t) => {
+  expectRangeError(t, () => deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: null as any } }))
 })
 
 test('deviceRemoveBookmark constructs event', (t) => {
@@ -155,7 +159,7 @@ test('bookmark constructors validate IDs, strings, tags, groups, and non-empty c
   expectRangeError(t, () => deviceAddBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, resourceId: RESOURCE_ID, canonicalUrl: 'x', title: 'x', tags: [], groupId: 'bad' }))
   expectRangeError(t, () => deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: 'bad', changes: { title: 'x' } }))
   expectRangeError(t, () => deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: {} }))
-  expectRangeError(t, () => deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: '' } }))
+  expectRangeError(t, () => deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: 1 as any } }))
   expectRangeError(t, () => deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { tags: 'bad' as any } }))
   expectRangeError(t, () => deviceRemoveBookmark({ authorId: AUTHOR_ID, bookmarkId: 'bad' }))
   expectRangeError(t, () => deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: 'bad' }))
