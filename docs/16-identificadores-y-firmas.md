@@ -73,6 +73,8 @@ collection_keypair = derive(
 HKDF-SHA256 con separación de dominios
 (`"bookmarknet:collection:"`).
 
+**El `user_master_key` es la semilla del `user_keypair`.** La clave privada Ed25519 del usuario y el `user_master_key` son el mismo valor (32 bytes). No hay dos claves. Las claves de colección se derivan de esta semilla con HKDF-SHA256 y separación de dominios (`"bookmarknet:collection:"`).
+
 Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
 editable; el UUID no. Esto garantiza que:
