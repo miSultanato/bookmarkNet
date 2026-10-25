@@ -467,3 +467,74 @@ message = collection_id + "\x00" +
           visibility + "\x00" +
           (forked_from ?? "") + "\x00" +
           (migrated_from ?? "")
+
+## Estado del fold
+
+El fold aplica los eventos en orden sobre un estado. Esta sección define la forma canónica del estado y las reglas que no están en la tabla de fold.
+
+### Forma del estado
+
+```typescript
+interface CollectionState {
+  collection: {
+    collectionId: string
+    collectionPublicKey: string       // pk_col_...
+    authorId: string                  // u_...
+    authorPublicKey: string           // pk_user_...
+    name: string
+    description?: string
+    visibility: 'public' | 'unlisted'
+    forkedFrom: string | null
+    migratedFrom: string | null
+    createdAt: string                 // ISO8601 del génesis
+    unpublished: boolean              // true si collection_unpublished
+    unpublishedMessage?: string       // message del collection_unpublished
+    migratedTo?: string | null        // migrated_to del collection_unpublished
+  } | null                            // null si no hay génesis
+  bookmarks: Map<string, BookmarkState>  // bookmark_id -> estado
+  groups: Map<string, GroupState>        // group_id -> estado
+}
+
+interface BookmarkState {
+  bookmarkId: string                  // ULID
+  resourceId: string                  // r_...
+  canonicalUrl: string
+  title: string
+  description?: string
+  tags: string[]
+  notes?: string
+  groupId: string | null              // null = Inbox
+  position: number | null             // null = no reordenado, usar createdAt
+  createdAt: string                   // ISO8601 del add_bookmark
+  updatedAt?: string                  // ISO8601 del último evento que lo modificó
+  deleted: boolean                    // true si remove_bookmark
+}
+
+interface GroupState {
+  groupId: string                     // g_...
+  name: string
+  position: number                    // del create_group, obligatorio
+  createdAt: string                   // ISO8601 del create_group
+  deleted: boolean                    // true si delete_group
+}
+```
+
+### Reglas
+
+- **Sin génesis, no hay colección.** Si el primer evento del log no es `collection_genesis`, el estado queda con `collection: null` y el fold ignora todos los eventos posteriores. Un log sin génesis no es una colección válida.
+- **Idempotencia silenciosa.** El fold nunca lanza error por un evento inválido (por ejemplo, `edit_bookmark` sobre un `bookmark_id` inexistente, `remove_bookmark` sobre uno ya eliminado, `move_bookmark` sobre un grupo inexistente). Devuelve el estado sin cambios. Esto es crítico porque el fold se aplica sobre logs que pueden venir de otros nodos: un evento inválido en un log ajeno no debe romper la replicación.
+- **Soft delete.** `remove_bookmark` marca `deleted: true`; `delete_group` marca `deleted: true` en el grupo y mueve sus bookmarks a Inbox (`groupId: null`). Los bookmarks y grupos eliminados siguen en el estado (no se borran), pero no se muestran en la UI. Un `edit_bookmark` posterior sobre un bookmark eliminado se ignora (no lo "resucita").
+- **`position` en `add_bookmark`.** `add_bookmark` pone `position: null`. El orden por defecto (por `createdAt` ascendente) se calcula al consultar. Solo `reorder_bookmark` asigna un número.
+- **Materialización de posiciones en `reorder_bookmark`.** Al aplicar `reorder_bookmark`, el fold materializa las posiciones de todos los bookmarks no eliminados del grupo antes de reajustar. Los que tenían `position: null` reciben una posición numérica basada en `createdAt`. Resultado: o todos los bookmarks del grupo tienen `position` numérica, o todos tienen `null` (si nunca se ha reordenado). Nunca se mezclan.
+- **`reorder_bookmark` ignora casos inválidos.** Si el bookmark no existe, está eliminado, o no está en el grupo indicado, el fold ignora el evento. Para mover y reordenar, se emiten dos eventos: `move_bookmark` y luego `reorder_bookmark`.
+
+### Algoritmo de `reorder_bookmark`
+
+1. Si el bookmark no existe o está eliminado → ignorar.
+2. Si el bookmark no está en el grupo indicado → ignorar.
+3. Obtener todos los bookmarks no eliminados del grupo.
+4. Si alguno tiene `position: null`, materializar posiciones numéricas para todos los no eliminados, ordenando por `createdAt`.
+5. Aplicar el reajuste: mover el bookmark a la nueva posición, desplazar los demás no eliminados.
+6. Actualizar `updatedAt` del bookmark reordenado.
+
+Los bookmarks eliminados mantienen su `position` (o `null`) pero no cuentan para el reajuste.
