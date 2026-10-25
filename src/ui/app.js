@@ -2,6 +2,7 @@ import { getIdentity, getCollections, getBookmarks, getInboxBookmarks } from './
 import { render as renderOnboarding } from './onboarding.js'
 import { render as renderBookmarks } from './bookmarks.js'
 import { render as renderCollection } from './collection.js'
+import { render as renderBookmark } from './bookmark.js'
 
 const app = document.querySelector('#app')
 const state = {
@@ -74,7 +75,13 @@ function renderCurrentRoute() {
     })
     loadDataIfNeeded()
   } else if (/^#\/bookmarks\/[^/]+$/.test(routePath)) {
-    renderPlaceholder('Bookmark próximamente', 'La vista de bookmark estará disponible próximamente.')
+    const bookmarkId = decodeURIComponent(routePath.slice('#/bookmarks/'.length))
+    renderBookmark(app, state, bookmarkId, {
+      onReload: reloadData,
+      onDeleted: (collectionId) => navigate(collectionId === null
+        ? '#/bookmarks'
+        : '#/collections/' + encodeURIComponent(collectionId))
+    })
     loadDataIfNeeded()
   } else if (routePath === '#/onboarding') {
     navigate('#/bookmarks')
