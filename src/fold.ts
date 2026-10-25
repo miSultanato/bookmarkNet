@@ -161,3 +161,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       return state
   }
 }
+
+export function foldEvents(events: CollectionEvent[]): CollectionState {
+  return events.reduce((state, event) => applyEvent(state, event), emptyState())
+}
