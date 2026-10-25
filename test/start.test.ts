@@ -100,3 +100,27 @@ test('startNode close resolves without throwing', async (t) => {
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
+
+test('Node.apply persists events before updating state', async (t) => {
+  const dataDir = DATA_DIR + '-apply-persist'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), dataDir }
+    node = await startNode(config)
+    const event = deviceMetadata({ authorId: authorId(), displayName: 'Persistida' })
+    await node.apply(event)
+    t.is(node.core.length, 1, 'apply appends the event to device_core')
+    t.is(node.state.profile.displayName, 'Persistida', 'apply updates in-memory state')
+
+    await node.close()
+    node = null
+    node = await startNode(config)
+    t.is(node.core.length, 1, 'event remains in device_core after restart')
+    t.is(node.state.profile.displayName, 'Persistida', 'fold restores state from the applied event')
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
