@@ -45,6 +45,14 @@ collection_keypair = derive(
 )
 ```
 
+**Algoritmo de derivación:**
+
+- `user_master_key` se genera con `crypto.randomBytes(32)` en la primera ejecución.
+- `collection_keypair` se deriva de `user_master_key` mediante **HKDF-SHA256** con la info `"bookmarknet:collection:" + collection_uuid`.
+- El resultado (32 bytes) se usa como seed de Ed25519.
+- La `user_master_key` se almacena cifrada en el `device_core` (ver `docs/03-identidad.md`).
+- La derivación es determinista: el mismo `user_master_key` + `collection_uuid` produce siempre el mismo `collection_keypair`.
+
 Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
 editable; el UUID no. Esto garantiza que:
@@ -102,6 +110,15 @@ replicado y reciben el aviso.
 **No existe "republicar".** Publicar de nuevo significa
 crear un `collection_core` nuevo con un nuevo
 `collection_id`.
+
+**Escritura dual y fallos:**
+
+- Si la escritura en el `collection_core` falla (peer no disponible, error de red, etc.), el evento se escribe igualmente en el `device_core` y se marca como "pendiente de publicar".
+- El nodo reintenta la escritura en el `collection_core` en segundo plano, con backoff exponencial.
+- La UI muestra el estado "pendiente" en la colección. Cuando la escritura se completa, el estado pasa a "sincronizada".
+- No hay divergencia silenciosa: el usuario siempre sabe si hay cambios pendientes.
+- Si el `collection_core` no está accesible durante mucho tiempo, el estado pasa a "offline" (ver sección "Estado de sincronización").
+
 
 ## Nodos offline
 
