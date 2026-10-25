@@ -327,7 +327,7 @@ sha256(
   author_id ||              // "u_" + hex
   author_public_key ||      // "pk_user_" + hex
   name ||                   // UTF-8
-  visibility ||             // "public" | "private" | "unlisted"
+  visibility ||             // "public" | "unlisted"
   (forked_from ?? "") ||    // collection_id o ""
   (migrated_from ?? "")     // collection_id o ""
 )

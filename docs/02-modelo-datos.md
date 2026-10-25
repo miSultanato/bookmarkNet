@@ -86,7 +86,7 @@ collection_id: 3df0c93d...
 owner_id: u_93c4
 name: Japón 2027
 description: Recursos para un viaje de 30 días
-visibility: public      # public | private
+visibility: public      # ver enum en docs/15-schema-eventos.md
 created: 2026-01-15
 updated: 2026-01-20
 ```
