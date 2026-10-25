@@ -1,15 +1,22 @@
-import { getIdentity, getCollections, getBookmarks, getInboxBookmarks } from './api.js'
+import { getIdentity, getCollections, getBookmarks, getInboxBookmarks, getProfile, getConfig } from './api.js'
 import { render as renderOnboarding } from './onboarding.js'
 import { render as renderBookmarks } from './bookmarks.js'
 import { render as renderCollection } from './collection.js'
 import { render as renderBookmark } from './bookmark.js'
+import { render as renderSettings } from './settings.js'
 
 const app = document.querySelector('#app')
+const content = document.createElement('div')
+content.className = 'app-content'
+app.replaceChildren(content)
 const state = {
   identity: null,
   collections: [],
   bookmarks: [],
   inboxBookmarks: [],
+  profile: {},
+  config: null,
+  settingsNotice: null,
   collectionsLoading: false,
   collectionsError: null,
   inboxError: null,
@@ -25,7 +32,7 @@ function renderErrors() {
     const error = document.createElement('p')
     error.className = 'error'
     error.textContent = message
-    app.append(error)
+    content.append(error)
   }
 }
 
@@ -49,8 +56,28 @@ function renderPlaceholder(title, message) {
   app.append(section)
 }
 
+function renderHeader() {
+  app.replaceChildren()
+  if (state.identity) {
+    const header = document.createElement('header')
+    header.className = 'app-header'
+    const brand = document.createElement('a')
+    brand.className = 'app-brand'
+    brand.href = '#/bookmarks'
+    brand.textContent = 'BookmarkNet'
+    const settingsLink = document.createElement('a')
+    settingsLink.href = '#/settings'
+    settingsLink.textContent = 'Ajustes'
+    if ((window.location.hash || '').split('?')[0] === '#/settings') settingsLink.setAttribute('aria-current', 'page')
+    header.append(brand, settingsLink)
+    app.append(header)
+  }
+  app.append(content)
+}
+
 function renderCurrentRoute() {
   if (!initialized) return
+  renderHeader()
 
   const requestedRoute = window.location.hash || ''
   const routePath = requestedRoute.split('?')[0]
@@ -60,28 +87,31 @@ function renderCurrentRoute() {
       navigate('#/onboarding')
       return
     }
-    renderOnboarding(app, state, () => {
+    renderOnboarding(content, state, () => {
       state.errors = []
       navigate('#/bookmarks')
     })
   } else if (routePath === '' || routePath === '#/bookmarks') {
-    renderBookmarks(app, state, { onReload: reloadData })
+    renderBookmarks(content, state, { onReload: reloadData })
     loadDataIfNeeded()
   } else if (/^#\/collections\/[^/]+$/.test(routePath)) {
     const collectionId = decodeURIComponent(routePath.slice('#/collections/'.length))
-    renderCollection(app, state, collectionId, {
+    renderCollection(content, state, collectionId, {
       onReload: reloadData,
       onDeleted: () => navigate('#/bookmarks')
     })
     loadDataIfNeeded()
   } else if (/^#\/bookmarks\/[^/]+$/.test(routePath)) {
     const bookmarkId = decodeURIComponent(routePath.slice('#/bookmarks/'.length))
-    renderBookmark(app, state, bookmarkId, {
+    renderBookmark(content, state, bookmarkId, {
       onReload: reloadData,
       onDeleted: (collectionId) => navigate(collectionId === null
         ? '#/bookmarks'
         : '#/collections/' + encodeURIComponent(collectionId))
     })
+    loadDataIfNeeded()
+  } else if (routePath === '#/settings') {
+    renderSettings(content, state, { onReload: reloadData })
     loadDataIfNeeded()
   } else if (routePath === '#/onboarding') {
     navigate('#/bookmarks')
@@ -109,11 +139,18 @@ async function reloadData() {
   renderCurrentRoute()
 
   dataReloadPromise = (async () => {
-    const [collectionsResult, bookmarksResult, inboxResult] = await Promise.allSettled([
+    const [identityResult, collectionsResult, bookmarksResult, inboxResult, profileResult, configResult] = await Promise.allSettled([
+      getIdentity(),
       getCollections(),
       getBookmarks(),
-      getInboxBookmarks()
+      getInboxBookmarks(),
+      getProfile(),
+      getConfig()
     ])
+
+    if (identityResult.status === 'fulfilled') state.identity = identityResult.value.identity
+    if (profileResult.status === 'fulfilled') state.profile = profileResult.value.profile ?? {}
+    if (configResult.status === 'fulfilled') state.config = configResult.value.config ?? null
 
     if (collectionsResult.status === 'fulfilled') {
       state.collections = collectionsResult.value.collections ?? []
@@ -164,11 +201,11 @@ async function start() {
     }
     renderCurrentRoute()
   } catch (error) {
-    app.replaceChildren()
+    content.replaceChildren()
     const message = document.createElement('p')
     message.className = 'error'
     message.textContent = `Error al conectar con la API: ${error instanceof Error ? error.message : String(error)}`
-    app.append(message)
+    content.append(message)
   }
 }
 

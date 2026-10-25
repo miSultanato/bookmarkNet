@@ -597,3 +597,114 @@ select:disabled {
   flex-basis: 100%;
   margin: 0;
 }
+
+
+/* Ajustes */
+.settings-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.settings-section {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 0.85rem;
+  background: #fff;
+}
+
+.settings-section h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.settings-section p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.settings-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.settings-form input,
+.settings-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--fg);
+  font: inherit;
+}
+
+.settings-form textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.settings-form button,
+.settings-section > button {
+  justify-self: start;
+  border: 1px solid var(--accent);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--accent);
+  color: #fff;
+}
+
+.settings-disabled:disabled {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--muted);
+}
+
+.settings-config {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr);
+  gap: 0.55rem 1rem;
+  margin: 0;
+}
+
+.settings-config dt {
+  color: var(--muted);
+}
+
+.settings-config dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem max(1rem, calc((100% - 48rem) / 2));
+  border-bottom: 1px solid #dbe2ea;
+  background: #fff;
+}
+
+.app-header a {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.app-header .app-brand {
+  color: var(--fg);
+  font-size: 1.05rem;
+}
+
+.app-header a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
