@@ -5,20 +5,45 @@ const COLLECTION_UUID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/
 const COLLECTION_PUBLIC_KEY_PREFIX = 'pk_col_'
 const COLLECTION_PUBLIC_KEY_RE = /^pk_col_[0-9a-f]{64}$/
 
+function hmacSha256(key: Uint8Array, message: Uint8Array): Uint8Array {
+  // sodium-native exposes SHA-256 but not the HMAC-SHA256 binding, so implement
+  // standard HMAC with SHA-256's 64-byte block size using the native hash API.
+  const blockSize = 64
+  const normalizedKey = new Uint8Array(blockSize)
+  normalizedKey.set(key)
+
+  const innerPad = new Uint8Array(blockSize)
+  const outerPad = new Uint8Array(blockSize)
+  for (let i = 0; i < blockSize; i++) {
+    innerPad[i] = normalizedKey[i] ^ 0x36
+    outerPad[i] = normalizedKey[i] ^ 0x5c
+  }
+
+  const innerInput = new Uint8Array(innerPad.length + message.length)
+  innerInput.set(innerPad)
+  innerInput.set(message, innerPad.length)
+  const innerDigest = new Uint8Array(32)
+  sodium.crypto_hash_sha256(innerDigest, innerInput)
+
+  const outerInput = new Uint8Array(outerPad.length + innerDigest.length)
+  outerInput.set(outerPad)
+  outerInput.set(innerDigest, outerPad.length)
+  const output = new Uint8Array(32)
+  sodium.crypto_hash_sha256(output, outerInput)
+  return output
+}
+
 function hkdfSha256(ikm: Uint8Array, info: Uint8Array): Uint8Array {
   // RFC 5869: an all-zero HashLen salt is equivalent to the specified empty salt
-  // for HMAC-SHA256 (HashLen = 32). sodium-native exposes HMAC-SHA256, not HKDF.
+  // for HMAC-SHA256 (HashLen = 32).
   const salt = new Uint8Array(32)
-  const prk = new Uint8Array(32)
-  sodium.crypto_auth_hmacsha256(prk, ikm, salt)
+  const prk = hmacSha256(salt, ikm)
 
   // HKDF-Expand for L=32 needs only T(1) = HMAC(PRK, info || 0x01).
   const expandInput = new Uint8Array(info.length + 1)
   expandInput.set(info)
   expandInput[info.length] = 1
-  const output = new Uint8Array(32)
-  sodium.crypto_auth_hmacsha256(output, expandInput, prk)
-  return output
+  return hmacSha256(prk, expandInput)
 }
 
 /**
