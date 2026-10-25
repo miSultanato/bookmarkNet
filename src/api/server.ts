@@ -4,8 +4,8 @@ import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
-import { handleCreateGroup, handleDeleteGroup, handleListGroups } from './groups.ts'
-import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleUpdateBookmark } from './bookmarks.ts'
+import { handleCreateGroup, handleDeleteGroup, handleListGroups, handleMoveBookmarkToGroup } from './groups.ts'
+import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleReorderBookmark, handleUpdateBookmark } from './bookmarks.ts'
 import {
   handleCreateCollection,
   handleDeleteCollection,
@@ -41,10 +41,12 @@ function matchRoute(url: string | undefined): MatchedRoute {
     }
   }
   const collectionMatch = /^\/api\/v1\/collections\/([^/]+)$/.exec(path)
+  const bookmarkReorderMatch = /^\/api\/v1\/bookmarks\/([^/]+)\/reorder$/.exec(path)
   const bookmarkMatch = /^\/api\/v1\/bookmarks\/([^/]+)$/.exec(path)
+  const groupMoveMatch = /^\/api\/v1\/groups\/([^/]+)\/move$/.exec(path)
   const groupMatch = /^\/api\/v1\/groups\/([^/]+)$/.exec(path)
   const params: Record<string, string> = {}
-  const idMatch = collectionMatch ?? bookmarkMatch ?? groupMatch
+  const idMatch = collectionMatch ?? bookmarkReorderMatch ?? bookmarkMatch ?? groupMoveMatch ?? groupMatch
   if (idMatch) {
     try {
       params.id = decodeURIComponent(idMatch[1])
@@ -134,6 +136,19 @@ async function dispatchGroupRequest(
       return true
     }
     const result = await handleCreateGroup(node, body as { name: string; collection_id: string })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (route.path.endsWith('/move') && method === 'POST' && route.params.id !== undefined) {
+    let body: unknown
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      return true
+    }
+    const result = await handleMoveBookmarkToGroup(node, route.params.id, body as { bookmark_id: string })
     sendJson(res, result.status, result.body)
     return true
   }
@@ -253,6 +268,19 @@ async function dispatchBookmarkRequest(
       notes?: string
       group_id?: string | null
     })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+
+  if (route.path.endsWith('/reorder') && method === 'POST' && route.params.id !== undefined) {
+    let body: unknown
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      return true
+    }
+    const result = await handleReorderBookmark(node, route.params.id, body as { group_id: string | null; position: number })
     sendJson(res, result.status, result.body)
     return true
   }
