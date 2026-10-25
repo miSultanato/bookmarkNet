@@ -4,7 +4,7 @@ import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
-import { handleCreateBookmark, handleGetBookmark, handleListBookmarks } from './bookmarks.ts'
+import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleUpdateBookmark } from './bookmarks.ts'
 import {
   handleCreateCollection,
   handleDeleteCollection,
@@ -222,6 +222,29 @@ async function dispatchBookmarkRequest(
   if (method === 'GET') {
     const result = await handleGetBookmark(node, id)
     sendJson(res, result.status, result.body)
+    return true
+  }
+  if (method === 'PATCH') {
+    let body: unknown
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      return true
+    }
+    const result = await handleUpdateBookmark(node, id, body as {
+      title?: string
+      description?: string | null
+      tags?: string[]
+      notes?: string | null
+    })
+    sendJson(res, result.status, result.body)
+    return true
+  }
+  if (method === 'DELETE') {
+    const result = await handleDeleteBookmark(node, id)
+    if (result.status === 204) sendEmpty(res, 204)
+    else sendJson(res, result.status, result.body)
     return true
   }
   return false
