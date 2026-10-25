@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "bare-http1": "^4.6.3",
+    "bare-process": "^4.5.1",
     "hypercore": "^11.39.3",
     "sodium-native": "^5.2.0"
   }
