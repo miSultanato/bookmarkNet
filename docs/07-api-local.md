@@ -34,11 +34,15 @@ Este endpoint genera un evento `reorder_bookmark`.
 ## Grupos
 
 ```http
-GET    /groups
-POST   /groups                      # {name}
+GET    /groups                      # ?collection_id=
+POST   /groups                      # {name, collection_id}
 DELETE /groups/:id
-POST   /groups/:id/move             # {bookmark_id}
+POST   /groups/:id/move             # {bookmark_id} → 200 con el bookmark actualizado
 ```
+
+- `POST /groups` requiere `{ name, collection_id }`. El grupo pertenece a esa colección.
+- `GET /groups` acepta `?collection_id=` (opcional). Si no se pasa, devuelve todos los grupos no eliminados.
+- `POST /groups/:id/move` mueve el bookmark indicado al grupo `:id` y devuelve `200` con el bookmark actualizado (`group_id` nuevo, `position: null`).
 
 **Nota:** en MVP los grupos no se renombran. Para cambiar el nombre, eliminar el grupo (sus bookmarks vuelven a Inbox) y crear uno nuevo. El schema de eventos (doc 15) no define un evento `update_group`.
 
