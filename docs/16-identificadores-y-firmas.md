@@ -68,6 +68,11 @@ collection_keypair = derive(
 )
 ```
 
+**Algoritmo de derivación:** ver
+[docs/05-arquitectura-p2p.md](05-arquitectura-p2p.md). La derivación usa
+HKDF-SHA256 con separación de dominios
+(`"bookmarknet:collection:"`).
+
 Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
 editable; el UUID no. Esto garantiza que:
