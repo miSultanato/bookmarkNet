@@ -196,7 +196,7 @@ async function dispatchGroupRequest(
     return true
   }
 
-  if (route.path.endsWith('/move') && method === 'POST' && route.params.id !== undefined) {
+  if (route.path.startsWith(base + '/') && route.path.endsWith('/move') && method === 'POST' && route.params.id !== undefined) {
     let body: unknown
     try {
       body = await readJsonBody(req)
