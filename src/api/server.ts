@@ -2,7 +2,6 @@ import http from 'bare-http1'
 import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
-import { startNode } from '../node/start.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
 import {
@@ -170,9 +169,7 @@ async function dispatchCollectionRequest(
   return false
 }
 
-export async function createServer(config: Config, dataDir: string, suppliedNode?: Node): Promise<ApiServer> {
-  const ownsNode = suppliedNode === undefined
-  const node = suppliedNode ?? await startNode({ ...config, dataDir })
+export async function createServer(config: Config, node: Node): Promise<ApiServer> {
   const server = http.createServer(async (req, res) => {
     const host = req.headers.host
     const method = (req.method ?? 'GET').toUpperCase()
@@ -250,14 +247,12 @@ export async function createServer(config: Config, dataDir: string, suppliedNode
       server.listen(config.port, config.bind)
     })
   } catch (error) {
-    if (ownsNode) await node.close()
     throw error
   }
 
   const address = server.address() as { port?: number } | string | null
   if (address === null || typeof address === 'string' || typeof address.port !== 'number') {
     await new Promise<void>((resolve) => server.close(() => resolve()))
-    if (ownsNode) await node.close()
     throw new Error('No se pudo determinar el puerto del servidor HTTP')
   }
 
@@ -268,7 +263,6 @@ export async function createServer(config: Config, dataDir: string, suppliedNode
       await new Promise<void>((resolve, reject) => {
         server.close((error?: Error) => error ? reject(error) : resolve())
       })
-      if (ownsNode) await node.close()
     }
   }
 }
