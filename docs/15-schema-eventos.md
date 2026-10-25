@@ -423,3 +423,11 @@ Lo que el log NO contiene
     agregando los tags de sus bookmarks.
 
 Solo eventos sobre bookmarks y metadatos de la colección.
+
+## Tipos y validación
+
+Los tipos TypeScript de los eventos viven en `src/events.ts`, junto con los constructores. El fold vive en `src/fold.ts`. No se separan tipos y lógica en archivos distintos: el proyecto es pequeño y la separación añadiría fricción sin beneficio.
+
+**Validación:** los constructores validan tipos y campos obligatorios, y lanzan `RangeError` si falta algo. Esto es crítico porque los bloques de Hypercore son inmutables: un evento mal formado no se puede corregir. El fold valida reglas de negocio (por ejemplo, que un `bookmark_id` exista para `edit_bookmark`); si no se cumple, el fold ignora el evento (idempotencia).
+
+**Constructores y claves:** los constructores de eventos no derivan claves. Reciben los datos ya resueltos. En particular, `collectionGenesis` recibe `{ authorId, authorPublicKey, secretKey }` ya calculados. La derivación de claves (de `masterKey` a `userKeypair`) es responsabilidad de `src/identity.ts`, no de `src/events.ts`. Esto mantiene la separación de responsabilidades y facilita los tests.
