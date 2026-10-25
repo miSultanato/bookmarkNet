@@ -58,6 +58,23 @@ export async function getBookmarks() {
   return request('/api/v1/bookmarks')
 }
 
+export async function getBookmark(id) {
+  return request('/api/v1/bookmarks/' + encodeURIComponent(id))
+}
+
+export async function updateBookmark(id, { title, description, tags, notes } = {}) {
+  const body = {}
+  if (title !== undefined) body.title = title
+  if (description !== undefined) body.description = description
+  if (tags !== undefined) body.tags = tags
+  if (notes !== undefined) body.notes = notes
+  return request('/api/v1/bookmarks/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+}
+
 export async function getCollectionBookmarks(collectionId) {
   return request('/api/v1/bookmarks?collection_id=' + encodeURIComponent(collectionId))
 }
