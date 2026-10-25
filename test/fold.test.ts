@@ -300,10 +300,127 @@ test('applyEvent does not mutate the input state or its Maps', (t) => {
   t.is(after.groups, before.groups)
 })
 
-test('unimplemented edit, move, and reorder events are ignored without error', (t) => {
+
+
+const THIRD_BOOKMARK_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAX'
+function groupedBookmarks() {
+  let state = applyEvent(stateWithGenesis(), event('create_group', { group_id: GROUP_ID, name: 'Lectura', position: 0 }))
+  state = applyEvent(state, addBookmark(BOOKMARK_ID, { group_id: GROUP_ID }, '2026-10-24T10:10:00.000Z'))
+  state = applyEvent(state, addBookmark(SECOND_BOOKMARK_ID, { group_id: GROUP_ID }, '2026-10-24T10:11:00.000Z'))
+  state = applyEvent(state, addBookmark(THIRD_BOOKMARK_ID, { group_id: GROUP_ID }, '2026-10-24T10:12:00.000Z'))
+  return state
+}
+
+test('edit_bookmark ignores missing genesis, missing bookmarks and deleted bookmarks', (t) => {
+  const noGenesis = emptyState()
+  t.is(applyEvent(noGenesis, event('edit_bookmark', { bookmark_id: BOOKMARK_ID, changes: { title: 'x' } })), noGenesis)
+  const state = stateWithGenesis()
+  t.is(applyEvent(state, event('edit_bookmark', { bookmark_id: BOOKMARK_ID, changes: { title: 'x' } })), state)
+  const added = applyEvent(state, addBookmark())
+  const deleted = applyEvent(added, event('remove_bookmark', { bookmark_id: BOOKMARK_ID }, UPDATED_AT))
+  const edited = applyEvent(deleted, event('edit_bookmark', { bookmark_id: BOOKMARK_ID, changes: { title: 'x' } }))
+  t.is(edited, deleted)
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.deleted, true)
+})
+
+test('edit_bookmark only changes present fields, removes notes on null and updates updatedAt', (t) => {
+  const added = applyEvent(stateWithGenesis(), addBookmark())
+  const edited = applyEvent(added, event('edit_bookmark', { bookmark_id: BOOKMARK_ID, changes: { title: 'Nuevo' } }, UPDATED_AT))
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.title, 'Nuevo')
+  t.alike(edited.bookmarks.get(BOOKMARK_ID)?.tags, ['uno', 'dos'])
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.notes, 'Nota')
+  t.is(edited.bookmarks.get(BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+  const cleared = applyEvent(edited, event('edit_bookmark', { bookmark_id: BOOKMARK_ID, changes: { notes: null } }, '2026-10-24T12:00:00.000Z'))
+  t.is(Object.prototype.hasOwnProperty.call(cleared.bookmarks.get(BOOKMARK_ID), 'notes'), false)
+  t.is(added.bookmarks.get(BOOKMARK_ID)?.title, 'Ejemplo')
+})
+
+test('move_bookmark ignores missing genesis, missing/deleted bookmarks and invalid destination groups', (t) => {
+  const noGenesis = emptyState()
+  t.is(applyEvent(noGenesis, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null })), noGenesis)
+  const state = stateWithGenesis()
+  t.is(applyEvent(state, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null })), state)
+  const added = applyEvent(state, addBookmark())
+  t.is(applyEvent(added, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID })), added)
+  const withGroup = applyEvent(added, event('create_group', { group_id: GROUP_ID, name: 'Lectura', position: 0 }))
+  const deletedGroup = applyEvent(withGroup, event('delete_group', { group_id: GROUP_ID }, UPDATED_AT))
+  t.is(applyEvent(deletedGroup, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID })), deletedGroup)
+  const deletedBookmark = applyEvent(added, event('remove_bookmark', { bookmark_id: BOOKMARK_ID }, UPDATED_AT))
+  t.is(applyEvent(deletedBookmark, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null })), deletedBookmark)
+})
+
+test('move_bookmark moves to Inbox or an active group, preserves position and updates updatedAt', (t) => {
+  let state = groupedBookmarks()
+  state = applyEvent(state, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID, position: 1 }))
+  const movedInbox = applyEvent(state, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null }, UPDATED_AT))
+  t.is(movedInbox.bookmarks.get(BOOKMARK_ID)?.groupId, null)
+  t.is(movedInbox.bookmarks.get(BOOKMARK_ID)?.position, state.bookmarks.get(BOOKMARK_ID)?.position)
+  t.is(movedInbox.bookmarks.get(BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+  const back = applyEvent(movedInbox, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID }, '2026-10-24T12:00:00.000Z'))
+  t.is(back.bookmarks.get(BOOKMARK_ID)?.groupId, GROUP_ID)
+  t.is(back.bookmarks.get(BOOKMARK_ID)?.updatedAt, '2026-10-24T12:00:00.000Z')
+})
+
+test('move_bookmark to the current group is placement-idempotent but updates updatedAt', (t) => {
   const state = applyEvent(stateWithGenesis(), addBookmark())
-  for (const eventType of ['edit_bookmark', 'move_bookmark', 'reorder_bookmark']) {
-    const next = applyEvent(state, event(eventType, { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID, position: 0 }))
-    t.is(next, state)
-  }
+  const moved = applyEvent(state, event('move_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null }, UPDATED_AT))
+  t.is(moved.bookmarks.get(BOOKMARK_ID)?.position, null)
+  t.is(moved.bookmarks.get(BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+})
+
+test('reorder_bookmark ignores missing genesis, missing/deleted bookmarks and mismatched groups', (t) => {
+  const noGenesis = emptyState()
+  t.is(applyEvent(noGenesis, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null, position: 0 })), noGenesis)
+  const state = stateWithGenesis()
+  t.is(applyEvent(state, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null, position: 0 })), state)
+  const added = applyEvent(state, addBookmark())
+  t.is(applyEvent(added, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID, position: 0 })), added)
+  const deleted = applyEvent(added, event('remove_bookmark', { bookmark_id: BOOKMARK_ID }, UPDATED_AT))
+  t.is(applyEvent(deleted, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: null, position: 0 })), deleted)
+})
+
+test('reorder_bookmark materializes null positions by createdAt and bookmarkId tie-break, then adjusts positions', (t) => {
+  let state = applyEvent(stateWithGenesis(), event('create_group', { group_id: GROUP_ID, name: 'Lectura', position: 0 }))
+  state = applyEvent(state, addBookmark(SECOND_BOOKMARK_ID, { group_id: GROUP_ID }, '2026-10-24T10:10:00.000Z'))
+  state = applyEvent(state, addBookmark(BOOKMARK_ID, { group_id: GROUP_ID }, '2026-10-24T10:10:00.000Z'))
+  state = applyEvent(state, addBookmark(THIRD_BOOKMARK_ID, { group_id: GROUP_ID }, '2026-10-24T10:11:00.000Z'))
+  const reordered = applyEvent(state, event('reorder_bookmark', { bookmark_id: SECOND_BOOKMARK_ID, group_id: GROUP_ID, position: 0 }, UPDATED_AT))
+  t.is(reordered.bookmarks.get(SECOND_BOOKMARK_ID)?.position, 0)
+  t.is(reordered.bookmarks.get(BOOKMARK_ID)?.position, 1)
+  t.is(reordered.bookmarks.get(THIRD_BOOKMARK_ID)?.position, 2)
+  t.is(reordered.bookmarks.get(SECOND_BOOKMARK_ID)?.updatedAt, UPDATED_AT)
+  t.is(state.bookmarks.get(SECOND_BOOKMARK_ID)?.position, null)
+})
+
+test('reorder_bookmark clamps oversized positions to the end and handles successive reorders', (t) => {
+  let state = groupedBookmarks()
+  state = applyEvent(state, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID, position: 99 }, UPDATED_AT))
+  t.is(state.bookmarks.get(SECOND_BOOKMARK_ID)?.position, 0)
+  t.is(state.bookmarks.get(THIRD_BOOKMARK_ID)?.position, 1)
+  t.is(state.bookmarks.get(BOOKMARK_ID)?.position, 2)
+  state = applyEvent(state, event('reorder_bookmark', { bookmark_id: BOOKMARK_ID, group_id: GROUP_ID, position: 0 }, '2026-10-24T12:00:00.000Z'))
+  t.is(state.bookmarks.get(BOOKMARK_ID)?.position, 0)
+  t.is(state.bookmarks.get(SECOND_BOOKMARK_ID)?.position, 1)
+  t.is(state.bookmarks.get(THIRD_BOOKMARK_ID)?.position, 2)
+  t.is(state.bookmarks.get(BOOKMARK_ID)?.updatedAt, '2026-10-24T12:00:00.000Z')
+})
+
+test('reorder_bookmark excludes deleted bookmarks and preserves their position', (t) => {
+  let state = groupedBookmarks()
+  state = applyEvent(state, event('reorder_bookmark', { bookmark_id: SECOND_BOOKMARK_ID, group_id: GROUP_ID, position: 1 }))
+  state = applyEvent(state, event('remove_bookmark', { bookmark_id: SECOND_BOOKMARK_ID }, UPDATED_AT))
+  const deletedPosition = state.bookmarks.get(SECOND_BOOKMARK_ID)?.position
+  const reordered = applyEvent(state, event('reorder_bookmark', { bookmark_id: THIRD_BOOKMARK_ID, group_id: GROUP_ID, position: 0 }, '2026-10-24T12:00:00.000Z'))
+  t.is(reordered.bookmarks.get(THIRD_BOOKMARK_ID)?.position, 0)
+  t.is(reordered.bookmarks.get(BOOKMARK_ID)?.position, 1)
+  t.is(reordered.bookmarks.get(SECOND_BOOKMARK_ID)?.position, deletedPosition)
+  t.is(reordered.bookmarks.get(SECOND_BOOKMARK_ID)?.deleted, true)
+})
+
+test('reorder_bookmark is idempotent when the same event is applied twice', (t) => {
+  const state = groupedBookmarks()
+  const reorder = event('reorder_bookmark', { bookmark_id: THIRD_BOOKMARK_ID, group_id: GROUP_ID, position: 0 }, UPDATED_AT, 'reorder-idempotent')
+  const once = applyEvent(state, reorder)
+  const twice = applyEvent(once, reorder)
+  t.alike([...twice.bookmarks.entries()], [...once.bookmarks.entries()])
 })
