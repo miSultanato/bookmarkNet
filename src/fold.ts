@@ -163,6 +163,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
 
       const bookmark = { ...existing, updatedAt: event.created_at }
       const changes = payload.changes
+      if (changes === undefined || changes === null) return state
       if (Object.prototype.hasOwnProperty.call(changes, 'title')) {
         if (changes.title === null) Reflect.deleteProperty(bookmark, 'title')
         else bookmark.title = changes.title
