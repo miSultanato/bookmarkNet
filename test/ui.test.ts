@@ -69,6 +69,9 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.is(apiModule.statusCode, 200, 'API helper module is served')
     t.ok(apiModule.body.includes('fetch('), 'API helper uses fetch')
     t.ok(apiModule.body.includes('/api/v1/identity'), 'API helper calls the identity endpoint')
+    t.ok(apiModule.body.includes('getInboxBookmarks'), 'API helper exposes the Inbox request')
+    t.ok(apiModule.body.includes('createCollection'), 'API helper exposes collection creation')
+    t.ok(apiModule.body.includes('moveBookmark'), 'API helper exposes bookmark moves')
 
     const onboarding = await request(api.port, '/assets/onboarding.js')
     t.is(onboarding.statusCode, 200, 'onboarding module is served')
@@ -77,6 +80,8 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     const bookmarks = await request(api.port, '/assets/bookmarks.js')
     t.is(bookmarks.statusCode, 200, 'bookmarks module is served')
     t.ok(bookmarks.body.includes('Mis bookmarks'), 'bookmarks module contains the placeholder title')
+    t.ok(bookmarks.body.includes('getInboxBookmarks'), 'bookmarks module loads Inbox bookmarks')
+    t.ok(bookmarks.body.includes('createCollection'), 'bookmarks module can create collections')
 
     const missing = await request(api.port, '/assets/nope.css')
     t.is(missing.statusCode, 404, 'missing static asset returns 404')
