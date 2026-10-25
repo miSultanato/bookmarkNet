@@ -71,9 +71,9 @@ collection_keypair = derive(
 **Algoritmo de derivación:** ver
 [docs/05-arquitectura-p2p.md](05-arquitectura-p2p.md). La derivación usa
 HKDF-SHA256 con separación de dominios
-(`"bookmarknet:collection:"`).
+(`"bookmarknet:collection:" + collection_uuid`).
 
-**El `user_master_key` es la semilla del `user_keypair`.** La clave privada Ed25519 del usuario y el `user_master_key` son el mismo valor (32 bytes). No hay dos claves. Las claves de colección se derivan de esta semilla con HKDF-SHA256 y separación de dominios (`"bookmarknet:collection:"`).
+**El `user_master_key` es la semilla del `user_keypair`.** La clave privada Ed25519 del usuario y el `user_master_key` son el mismo valor (32 bytes). No hay dos claves. Las claves de colección se derivan de esta semilla con HKDF-SHA256 y separación de dominios (`"bookmarknet:collection:" + collection_uuid`).
 
 Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
