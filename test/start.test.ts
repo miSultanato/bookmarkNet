@@ -2,6 +2,7 @@ import fs from 'bare-fs'
 import test from 'brittle'
 import { deviceMetadata } from '../src/device-events.ts'
 import { userKeypairFromMasterKey } from '../src/identity.ts'
+import { createIdentity, identityToApi } from '../src/identity/store.ts'
 import { userIdFromPublicKey } from '../src/ids.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
@@ -41,7 +42,7 @@ test('startNode folds persisted device events after restart', async (t) => {
     const config = { ...defaultConfig(), dataDir: DATA_DIR }
     node = await startNode(config)
     const event = deviceMetadata({ authorId: authorId(), displayName: 'Marta' })
-    await appendEvent(node.core, event as never)
+    await appendEvent(node.core, event)
     await node.close()
     node = null
 
@@ -53,6 +54,38 @@ test('startNode folds persisted device events after restart', async (t) => {
   } finally {
     if (node !== null) await node.close()
     await fs.rm(DATA_DIR, { recursive: true, force: true })
+  }
+})
+
+test('startNode loads an existing identity', async (t) => {
+  const dataDir = DATA_DIR + '-identity'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), dataDir }
+    const created = await createIdentity(dataDir)
+    const expected = identityToApi(created)
+    node = await startNode(config)
+    t.is(node.identity !== null, true, 'identity is available on the node')
+    t.is(node.identity?.user_id, expected.user_id, 'node identity matches the created identity')
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('startNode returns null identity when none is stored', async (t) => {
+  const dataDir = DATA_DIR + '-no-identity'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    node = await startNode({ ...defaultConfig(), dataDir })
+    t.is(node.identity, null, 'node has no identity when identity.bmn is absent')
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
 
