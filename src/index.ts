@@ -1,3 +1,6 @@
 export const version = '0.0.1'
 export * from './node/config.ts'
 export * from './node/start.ts'
+export * from './identity/store.ts'
+export * from './api/server.ts'
+export * from './api/identity.ts'
