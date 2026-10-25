@@ -1,4 +1,5 @@
 import fs from 'bare-fs'
+import env from 'bare-env'
 import os from 'bare-os'
 import test from 'brittle'
 import { defaultConfig, loadConfig } from '../src/node/config.ts'
@@ -21,15 +22,15 @@ async function resetTemp(): Promise<void> {
 
 function saveEnv(): Record<string, string | undefined> {
   const saved: Record<string, string | undefined> = {}
-  for (const key of ENV_KEYS) saved[key] = process.env[key]
+  for (const key of ENV_KEYS) saved[key] = env[key]
   return saved
 }
 
 function restoreEnv(saved: Record<string, string | undefined>): void {
   for (const key of ENV_KEYS) {
     const value = saved[key]
-    if (value === undefined) delete process.env[key]
-    else process.env[key] = value
+    if (value === undefined) delete env[key]
+    else env[key] = value
   }
 }
 
@@ -37,7 +38,7 @@ test('loadConfig returns documented defaults when config.json is absent', async 
   const saved = saveEnv()
   await resetTemp()
   try {
-    for (const key of ENV_KEYS) delete process.env[key]
+    for (const key of ENV_KEYS) delete env[key]
     const config = loadConfig(CONFIG_PATH)
     const defaults = defaultConfig()
     t.is(config.port, 7575)
@@ -57,7 +58,7 @@ test('loadConfig reads values from an explicit JSON config file', async (t) => {
   const saved = saveEnv()
   await resetTemp()
   try {
-    for (const key of ENV_KEYS) delete process.env[key]
+    for (const key of ENV_KEYS) delete env[key]
     await fs.writeFile(CONFIG_PATH, JSON.stringify({
       port: 8123,
       data_dir: TMP_DIR + '/data',
@@ -88,9 +89,9 @@ test('environment variables override JSON values and parse allowed hosts', async
       data_dir: TMP_DIR + '/from-json',
       allowed_hosts: ['json.test']
     }))
-    process.env.BOOKMARKNET_PORT = '9001'
-    process.env.BOOKMARKNET_DATA_DIR = TMP_DIR + '/from-env'
-    process.env.BOOKMARKNET_ALLOWED_HOSTS = ' localhost, 127.0.0.1 , example.test '
+    env.BOOKMARKNET_PORT = '9001'
+    env.BOOKMARKNET_DATA_DIR = TMP_DIR + '/from-env'
+    env.BOOKMARKNET_ALLOWED_HOSTS = ' localhost, 127.0.0.1 , example.test '
     const config = loadConfig(CONFIG_PATH)
     t.is(config.port, 9001)
     t.is(config.dataDir, TMP_DIR + '/from-env')
@@ -105,8 +106,8 @@ test('loadConfig expands a leading tilde to the home directory', async (t) => {
   const saved = saveEnv()
   await resetTemp()
   try {
-    for (const key of ENV_KEYS) delete process.env[key]
-    process.env.BOOKMARKNET_DATA_DIR = '~/.bookmarknet-test/'
+    for (const key of ENV_KEYS) delete env[key]
+    env.BOOKMARKNET_DATA_DIR = '~/.bookmarknet-test/'
     const config = loadConfig()
     t.is(config.dataDir, os.homedir().replace(/\/+$/, '') + '/.bookmarknet-test/')
   } finally {
@@ -119,8 +120,8 @@ test('invalid BOOKMARKNET_PORT throws RangeError', async (t) => {
   const saved = saveEnv()
   await resetTemp()
   try {
-    process.env.BOOKMARKNET_DATA_DIR = TMP_DIR
-    process.env.BOOKMARKNET_PORT = 'not-a-port'
+    env.BOOKMARKNET_DATA_DIR = TMP_DIR
+    env.BOOKMARKNET_PORT = 'not-a-port'
     t.exception(() => loadConfig(), RangeError)
   } finally {
     restoreEnv(saved)

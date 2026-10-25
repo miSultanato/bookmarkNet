@@ -1,4 +1,5 @@
 import fs from 'bare-fs'
+import env from 'bare-env'
 import os from 'bare-os'
 
 export interface Config {
@@ -89,7 +90,6 @@ function hostsValue(value: unknown, fallback: string[]): string[] {
  */
 export function loadConfig(configPath?: string): Config {
   const defaults = defaultConfig()
-  const env = process.env
   const envDataDir = env.BOOKMARKNET_DATA_DIR
   const initialDataDir = envDataDir ? expandHome(envDataDir) : defaults.dataDir
   const explicitJson = configPath === undefined ? null : readJson(configPath)
