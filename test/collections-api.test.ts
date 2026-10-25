@@ -120,3 +120,40 @@ test('collection writes require an identity', async (t) => {
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
+
+test('collection created through the API persists after restarting the node', async (t) => {
+  const dataDir = './tmp-test-collections-api-persist'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+
+    const identity = await request(api.port, 'POST', '/api/v1/identity/create', {})
+    t.is(identity.statusCode, 201, 'identity is created')
+    const response = await request(api.port, 'POST', '/api/v1/collections', {
+      name: 'Persistencia', description: 'Tras reiniciar', visibility: 'unlisted'
+    })
+    t.is(response.statusCode, 201, 'collection is created through API')
+    const id = collectionBody(response).collection_id
+
+    await api.close()
+    api = null
+    await node.close()
+    node = null
+
+    node = await startNode(config)
+    const persisted = node.state.collections.get(id as string)
+    t.ok(persisted, 'collection exists after reopening node')
+    t.is(persisted?.name, 'Persistencia', 'collection name was restored')
+    t.is(persisted?.description, 'Tras reiniciar', 'collection description was restored')
+    t.is(persisted?.visibility, 'unlisted', 'collection visibility was restored')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
