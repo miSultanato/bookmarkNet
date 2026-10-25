@@ -1,4 +1,4 @@
-import type { CollectionEvent } from './events.ts'
+import { CollectionEvent } from './events.ts'
 
 export interface CollectionMeta {
   collectionId: string
