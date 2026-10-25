@@ -233,6 +233,17 @@ test('groups API moves bookmarks and validates group and collection', async (t) 
     t.is(mismatch.statusCode, 400, 'cross-collection move returns 400')
     t.is(mismatch.body.error.code, 'COLLECTION_MISMATCH', 'cross-collection move has explicit error')
 
+    const globalInboxBookmark = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/global-inbox-move',
+      title: 'Inbox global'
+    })
+    t.is(globalInboxBookmark.statusCode, 201, 'global Inbox bookmark fixture is created')
+    const globalInboxMove = await request(api.port, 'POST', '/api/v1/groups/' + groupId + '/move', {
+      bookmark_id: globalInboxBookmark.body.bookmark.bookmark_id
+    })
+    t.is(globalInboxMove.statusCode, 400, 'moving global Inbox bookmark to a collection group returns 400')
+    t.is(globalInboxMove.body.error.code, 'COLLECTION_MISMATCH', 'global Inbox move has explicit collection mismatch error')
+
   } finally {
     if (api !== null) await api.close()
     if (node !== null) await node.close()
