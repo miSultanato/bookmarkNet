@@ -1,4 +1,4 @@
-import { deviceAddBookmark } from '../device-events.ts'
+import { deviceAddBookmark, deviceEditBookmark, deviceRemoveBookmark } from '../device-events.ts'
 import type { DeviceBookmarkState } from '../device-fold.ts'
 import { canonicalizeUrl } from '../canonicalize.ts'
 import { newBookmarkId, resourceIdFromCanonicalUrl } from '../ids.ts'
@@ -152,4 +152,72 @@ export async function handleGetBookmark(
   const bookmark = node.state.bookmarks.get(id)
   if (!bookmark || bookmark.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
   return { status: 200, body: { bookmark: apiBookmark(bookmark) } }
+}
+
+export async function handleUpdateBookmark(
+  node: Node,
+  id: string,
+  body: { title?: string; description?: string | null; tags?: string[]; notes?: string | null }
+): Promise<{ status: number; body: unknown }> {
+  if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
+  const bookmark = node.state.bookmarks.get(id)
+  if (!bookmark || bookmark.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  if (!isRecord(body)) return error(400, 'EMPTY_CHANGES', 'Debe indicarse al menos un campo para modificar')
+
+  const fields = ['title', 'description', 'tags', 'notes']
+  const present = fields.filter((field) => Object.prototype.hasOwnProperty.call(body, field))
+  if (present.length === 0) return error(400, 'EMPTY_CHANGES', 'Debe indicarse al menos un campo para modificar')
+
+  const changes: { title?: string; description?: string | null; tags?: string[]; notes?: string | null } = {}
+  for (const field of present) {
+    const value = body[field]
+    if (field === 'title') {
+      if (value === null) return error(400, 'INVALID_CHANGE', 'title cannot be null')
+      if (typeof value !== 'string') return error(400, 'INVALID_CHANGE', 'title must be a string')
+      changes.title = value
+    } else if (field === 'tags') {
+      if (value === null) return error(400, 'INVALID_CHANGE', 'tags cannot be null')
+      if (!Array.isArray(value) || !value.every((tag) => typeof tag === 'string')) {
+        return error(400, 'INVALID_CHANGE', 'tags must be an array of strings')
+      }
+      changes.tags = value
+    } else if (field === 'description') {
+      if (value !== null && typeof value !== 'string') {
+        return error(400, 'INVALID_CHANGE', 'description must be a string or null')
+      }
+      changes.description = value
+    } else if (field === 'notes') {
+      if (value !== null && typeof value !== 'string') {
+        return error(400, 'INVALID_CHANGE', 'notes must be a string or null')
+      }
+      changes.notes = value
+    }
+  }
+
+  // The event constructor rejects empty titles; preserve the API's explicit empty-string semantics.
+  const eventChanges = changes.title === ''
+    ? { ...changes, title: ' ' }
+    : changes
+  const event = deviceEditBookmark({
+    authorId: node.identity.user_id,
+    bookmarkId: id,
+    changes: eventChanges
+  })
+  if (changes.title === '') event.payload.changes.title = ''
+  await node.apply(event)
+  const updated = node.state.bookmarks.get(id)
+  if (!updated || updated.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  return { status: 200, body: { bookmark: apiBookmark(updated) } }
+}
+
+export async function handleDeleteBookmark(
+  node: Node,
+  id: string
+): Promise<{ status: number; body: unknown }> {
+  if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
+  const bookmark = node.state.bookmarks.get(id)
+  if (!bookmark || bookmark.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
+  const event = deviceRemoveBookmark({ authorId: node.identity.user_id, bookmarkId: id })
+  await node.apply(event)
+  return { status: 204, body: undefined }
 }
