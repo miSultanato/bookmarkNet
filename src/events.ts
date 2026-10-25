@@ -1,4 +1,7 @@
-import { isBookmarkId, isCollectionId, isEventId, isGroupId, isResourceId, isUserId } from './ids.ts'
+import sodium from 'sodium-native'
+import { isBookmarkId, isCollectionId, isGroupId, isResourceId, isUserId, toHex, utf8Bytes } from './ids.ts'
+import { serializePublicKey, serializeSignature, sign, userIdFromPublicKey } from './identity.ts'
+import { serializeCollectionPublicKey } from './keys.ts'
 import { ulid } from './ulid.ts'
 
 export interface CollectionGenesisPayload {
@@ -281,4 +284,107 @@ export function collectionUnpublished(params: CollectionUnpublishedParams): Coll
   const payload: CollectionUnpublishedPayload = { migrated_to: params.migratedTo ?? null }
   if (params.message !== undefined) payload.message = params.message
   return baseEvent(params.authorId, 'collection_unpublished', payload)
+}
+
+
+export interface GenesisSigningParams {
+  collectionId: string
+  collectionPublicKey: Uint8Array
+  authorId: string
+  authorPublicKey: Uint8Array
+  name: string
+  visibility: 'public' | 'unlisted'
+  forkedFrom?: string | null
+  migratedFrom?: string | null
+}
+
+export interface CollectionGenesisParams extends GenesisSigningParams {
+  secretKey: Uint8Array
+  description?: string
+}
+
+function validateGenesisSigningParams(params: GenesisSigningParams): void {
+  requireRecord(params, 'params')
+  if (!isCollectionId(params.collectionId)) throw new RangeError('collectionId must be 64 lowercase hexadecimal characters')
+  if (!(params.collectionPublicKey instanceof Uint8Array) || params.collectionPublicKey.length !== 32) {
+    throw new RangeError('collectionPublicKey must contain exactly 32 bytes')
+  }
+  requireAuthorId(params.authorId)
+  if (!(params.authorPublicKey instanceof Uint8Array) || params.authorPublicKey.length !== 32) {
+    throw new RangeError('authorPublicKey must contain exactly 32 bytes')
+  }
+  requireNonEmptyString(params.name, 'name')
+  if (params.visibility !== 'public' && params.visibility !== 'unlisted') {
+    throw new RangeError('visibility must be public or unlisted')
+  }
+  if (params.forkedFrom !== undefined && params.forkedFrom !== null && !isCollectionId(params.forkedFrom)) {
+    throw new RangeError('forkedFrom must be a valid collection ID, null, or undefined')
+  }
+  if (params.migratedFrom !== undefined && params.migratedFrom !== null && !isCollectionId(params.migratedFrom)) {
+    throw new RangeError('migratedFrom must be a valid collection ID, null, or undefined')
+  }
+  if (params.forkedFrom != null && params.migratedFrom != null) {
+    throw new RangeError('forkedFrom and migratedFrom are mutually exclusive')
+  }
+  if (params.collectionId !== toHex(params.collectionPublicKey)) {
+    throw new RangeError('collectionId must equal the collection public key in lowercase hexadecimal')
+  }
+  if (params.authorId !== userIdFromPublicKey(params.authorPublicKey)) {
+    throw new RangeError('authorId does not match authorPublicKey')
+  }
+}
+
+/**
+ * Hashes the exact genesis signing preimage specified in docs/15.
+ * Fields are concatenated without separators; null and undefined provenance
+ * fields both serialize as the empty string. Description is deliberately excluded.
+ */
+export function genesisSigningHash(params: GenesisSigningParams): Uint8Array {
+  validateGenesisSigningParams(params)
+  const message = [
+    params.collectionId,
+    toHex(params.collectionPublicKey),
+    params.authorId,
+    toHex(params.authorPublicKey),
+    params.name,
+    params.visibility,
+    params.forkedFrom ?? '',
+    params.migratedFrom ?? ''
+  ].join('')
+  const hash = new Uint8Array(32)
+  sodium.crypto_hash_sha256(hash, utf8Bytes(message))
+  return hash
+}
+
+export function collectionGenesis(params: CollectionGenesisParams): CollectionGenesisEvent {
+  validateGenesisSigningParams(params)
+  if (!(params.secretKey instanceof Uint8Array) || params.secretKey.length !== 64) {
+    throw new RangeError('secretKey must contain exactly 64 bytes')
+  }
+  requireOptionalString(params.description, 'description')
+
+  const forkedFrom = params.forkedFrom ?? null
+  const migratedFrom = params.migratedFrom ?? null
+  const hash = genesisSigningHash(params)
+  const signature = serializeSignature(sign(hash, params.secretKey))
+  const payload: CollectionGenesisPayload = {
+    collection_id: params.collectionId,
+    collection_public_key: serializeCollectionPublicKey(params.collectionPublicKey),
+    author_public_key: serializePublicKey(params.authorPublicKey),
+    name: params.name,
+    visibility: params.visibility,
+    forked_from: forkedFrom,
+    migrated_from: migratedFrom,
+    signature_by_owner: signature
+  }
+  if (params.description !== undefined) payload.description = params.description
+
+  return {
+    schema_version: 1,
+    event_id: ulid(),
+    event_type: 'collection_genesis',
+    author_id: params.authorId,
+    created_at: new Date().toISOString(),
+    payload
+  }
 }
