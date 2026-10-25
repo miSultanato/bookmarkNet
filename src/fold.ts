@@ -164,7 +164,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       const bookmark: BookmarkState = { ...existing, updatedAt: event.created_at }
       const changes = payload.changes
       if (Object.prototype.hasOwnProperty.call(changes, 'title')) {
-        if (changes.title === null) delete (bookmark as { title?: string }).title
+        if (changes.title === null) Reflect.deleteProperty(bookmark, 'title')
         else bookmark.title = changes.title
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'description')) {
@@ -172,7 +172,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
         else bookmark.description = changes.description
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'tags')) {
-        if (changes.tags === null) delete (bookmark as { tags?: string[] }).tags
+        if (changes.tags === null) Reflect.deleteProperty(bookmark, 'tags')
         else bookmark.tags = [...changes.tags]
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'notes')) {
