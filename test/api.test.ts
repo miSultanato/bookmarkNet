@@ -3,6 +3,7 @@ import http from 'bare-http1'
 import test from 'brittle'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
+import { startNode } from '../src/node/start.ts'
 
 const DATA_DIR = './tmp-test-api'
 
@@ -42,11 +43,14 @@ function request(port: number, path: string, method = 'GET', headers: Record<str
 test('local API health, identity routes and request security checks', async (t) => {
   await fs.rm(DATA_DIR, { recursive: true, force: true })
   const config = { ...defaultConfig(), dataDir: DATA_DIR, port: 0, bind: '127.0.0.1' }
-  const api = await createServer(config, DATA_DIR)
-  const host = `127.0.0.1:${api.port}`
-  const origin = `http://${host}`
+  const node = await startNode(config)
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
 
   try {
+    api = await createServer(config, node)
+    const host = `127.0.0.1:${api.port}`
+    const origin = `http://${host}`
+
     const health = await request(api.port, '/health')
     t.is(health.status, 200, 'health returns 200')
     t.alike(health.body, { status: 'ok' }, 'health response is ok')
@@ -61,6 +65,8 @@ test('local API health, identity routes and request security checks', async (t) 
     })
     t.is(created.status, 201, 'identity creation returns 201')
     t.is(typeof created.body.user_id, 'string', 'creation returns user_id')
+    t.ok(node.identity !== null, 'node identity is updated after API creation')
+    t.is(node.identity?.user_id, created.body.user_id, 'node identity matches API response')
     t.is(created.body.public_key.startsWith('pk_user_'), true, 'creation returns serialized public key')
     t.alike(created.body.profile, {}, 'creation returns profile')
 
@@ -94,7 +100,8 @@ test('local API health, identity routes and request security checks', async (t) 
     const badHost = await request(api.port, '/health', 'GET', { Host: 'evil.example' })
     t.is(badHost.status, 421, 'unapproved host returns 421')
   } finally {
-    await api.close()
+    if (api !== null) await api.close()
+    await node.close()
     await fs.rm(DATA_DIR, { recursive: true, force: true })
   }
 })
