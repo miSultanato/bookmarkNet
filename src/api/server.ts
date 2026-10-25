@@ -7,6 +7,7 @@ import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
 import { handleGetProfile, handleUpdateProfile } from './profile.ts'
 import { handleGetConfig } from './config.ts'
+import { handleImportHtml } from './import.ts'
 import { handleCreateGroup, handleDeleteGroup, handleListGroups, handleMoveBookmarkToGroup } from './groups.ts'
 import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleMoveBookmark, handleReorderBookmark, handleUpdateBookmark } from './bookmarks.ts'
 import {
@@ -463,6 +464,18 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
           return
         }
         const result = await handleUpdateProfile(node, body)
+        sendJson(res, result.status, result.body)
+        return
+      }
+      if (method === 'POST' && route.path === '/api/v1/import/html') {
+        let body: unknown
+        try {
+          body = await readJsonBody(req)
+        } catch {
+          sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+          return
+        }
+        const result = await handleImportHtml(node, body as { html: string })
         sendJson(res, result.status, result.body)
         return
       }
