@@ -13,7 +13,7 @@ interface Response {
   body: any
 }
 
-function request(port: number, method: string, path: string, body?: unknown): Promise<Response> {
+function request(port: number, method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<Response> {
   return new Promise((resolve, reject) => {
     const payload = body === undefined ? '' : JSON.stringify(body)
     const headers: Record<string, string> = { Host: '127.0.0.1:' + port }
@@ -21,6 +21,7 @@ function request(port: number, method: string, path: string, body?: unknown): Pr
       headers['Content-Type'] = 'application/json'
       headers['Content-Length'] = String(utf8Bytes(payload).length)
     }
+    Object.assign(headers, extraHeaders)
     const req = http.request({ host: '127.0.0.1', port, method, path, headers }, (res: any) => {
       let responseBody = ''
       res.on('data', (chunk: unknown) => {
@@ -214,6 +215,140 @@ test('bookmark created through API persists after restarting the node', async (t
     t.is(persisted?.canonicalUrl, 'https://example.com/persist', 'canonical URL was restored')
     t.is(persisted?.collectionId, collectionId, 'collection association was restored')
     t.is(persisted?.deleted, false, 'bookmark is active after reopening')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+
+test('bookmark PATCH and DELETE endpoints validate changes and soft-delete', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-patch-delete'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'PATCH y DELETE')
+    const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/edit',
+      collection_id: collectionId,
+      title: 'Original',
+      description: 'Descripción inicial',
+      tags: ['uno', 'dos'],
+      notes: 'Notas iniciales'
+    })
+    t.is(created.statusCode, 201, 'bookmark fixture created')
+    const id = bookmarkBody(created).bookmark_id as string
+    const path = '/api/v1/bookmarks/' + id
+
+    const changed = await request(api.port, 'PATCH', path, { title: 'Nuevo título' })
+    t.is(changed.statusCode, 200, 'PATCH title returns 200')
+    t.is(bookmarkBody(changed).title, 'Nuevo título', 'title is updated')
+    t.is(bookmarkBody(changed).canonical_url, 'https://example.com/edit', 'canonical URL remains unchanged')
+    t.is(bookmarkBody(changed).collection_id, collectionId, 'collection remains unchanged')
+    t.alike(bookmarkBody(changed).tags, ['uno', 'dos'], 'tags remain unchanged')
+    t.is(bookmarkBody(changed).description, 'Descripción inicial', 'description remains unchanged')
+
+    const noDescription = await request(api.port, 'PATCH', path, { description: null })
+    t.is(noDescription.statusCode, 200, 'description null returns 200')
+    t.is(Object.prototype.hasOwnProperty.call(bookmarkBody(noDescription), 'description'), false, 'description null removes field')
+    const noNotes = await request(api.port, 'PATCH', path, { notes: null })
+    t.is(noNotes.statusCode, 200, 'notes null returns 200')
+    t.is(Object.prototype.hasOwnProperty.call(bookmarkBody(noNotes), 'notes'), false, 'notes null removes field')
+
+    const emptyTags = await request(api.port, 'PATCH', path, { tags: [] })
+    t.is(emptyTags.statusCode, 200, 'empty tags array is accepted')
+    t.alike(bookmarkBody(emptyTags).tags, [], 'tags can be cleared with an empty array')
+    const emptyTitle = await request(api.port, 'PATCH', path, { title: '' })
+    t.is(emptyTitle.statusCode, 200, 'empty title is accepted')
+    t.is(bookmarkBody(emptyTitle).title, '', 'empty title is preserved')
+
+    const nullTitle = await request(api.port, 'PATCH', path, { title: null })
+    t.is(nullTitle.statusCode, 400, 'null title is rejected')
+    t.is(nullTitle.body.error.code, 'INVALID_CHANGE', 'null title returns INVALID_CHANGE')
+    t.is(nullTitle.body.error.message, 'title cannot be null', 'null title error explains the rule')
+    const nullTags = await request(api.port, 'PATCH', path, { tags: null })
+    t.is(nullTags.statusCode, 400, 'null tags are rejected')
+    t.is(nullTags.body.error.code, 'INVALID_CHANGE', 'null tags returns INVALID_CHANGE')
+    t.is(nullTags.body.error.message, 'tags cannot be null', 'null tags error explains the rule')
+    const emptyChanges = await request(api.port, 'PATCH', path, {})
+    t.is(emptyChanges.statusCode, 400, 'empty patch is rejected')
+    t.is(emptyChanges.body.error.code, 'EMPTY_CHANGES', 'empty patch returns EMPTY_CHANGES')
+
+    const missing = await request(api.port, 'PATCH', '/api/v1/bookmarks/01ARZ3NDEKTSV4RRFFQ69G5FAV', { title: 'Missing' })
+    t.is(missing.statusCode, 404, 'PATCH unknown bookmark returns 404')
+    const badOrigin = await request(api.port, 'PATCH', path, { title: 'No debe aplicarse' }, { Origin: 'http://evil.test' })
+    t.is(badOrigin.statusCode, 403, 'PATCH rejects Origin that does not match Host')
+    t.is(bookmarkBody(await request(api.port, 'GET', path)).title, '', 'rejected Origin does not mutate bookmark')
+
+    const removed = await request(api.port, 'DELETE', path)
+    t.is(removed.statusCode, 204, 'DELETE returns 204 without Content-Type or body')
+    t.is(removed.body, undefined, 'DELETE response has no body')
+    t.is((await request(api.port, 'GET', path)).statusCode, 404, 'deleted bookmark is hidden from GET')
+    t.is((await request(api.port, 'DELETE', path)).statusCode, 404, 'second DELETE returns 404')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark PATCH and DELETE require an identity', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-mutations-no-identity'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const id = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+    const patched = await request(api.port, 'PATCH', '/api/v1/bookmarks/' + id, { title: 'Sin identidad' })
+    t.is(patched.statusCode, 401, 'PATCH without identity returns 401')
+    t.is(patched.body.error.code, 'NO_IDENTITY', 'PATCH missing identity error is explicit')
+    const deleted = await request(api.port, 'DELETE', '/api/v1/bookmarks/' + id)
+    t.is(deleted.statusCode, 401, 'DELETE without identity returns 401')
+    t.is(deleted.body.error.code, 'NO_IDENTITY', 'DELETE missing identity error is explicit')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark PATCH changes persist after restarting the node', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-patch-persist'
+  const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Persistencia PATCH')
+    const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/persist-patch',
+      collection_id: collectionId,
+      title: 'Antes'
+    })
+    t.is(created.statusCode, 201, 'bookmark created through API')
+    const id = bookmarkBody(created).bookmark_id as string
+    const patched = await request(api.port, 'PATCH', '/api/v1/bookmarks/' + id, { title: 'Título persistido' })
+    t.is(patched.statusCode, 200, 'PATCH succeeds before restart')
+
+    await api.close()
+    api = null
+    await node.close()
+    node = null
+    node = await startNode(config)
+    t.is(node.state.bookmarks.get(id)?.title, 'Título persistido', 'updated title is restored from the device log')
   } finally {
     if (api !== null) await api.close()
     if (node !== null) await node.close()
