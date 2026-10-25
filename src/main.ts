@@ -9,7 +9,7 @@ const node = await startNode(config)
 let api: Awaited<ReturnType<typeof createServer>>
 
 try {
-  api = await createServer(config, config.dataDir)
+  api = await createServer(config, node)
 } catch (error) {
   await node.close()
   throw error
