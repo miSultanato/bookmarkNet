@@ -15,11 +15,11 @@ try {
   throw error
 }
 
-const collectionName = node.state.collection === null
+const collectionSummary = node.state.collections.size === 0
   ? 'sin colecciones'
-  : node.state.collection.name
+  : String(node.state.collections.size) + (node.state.collections.size === 1 ? ' colección' : ' colecciones')
 
-console.log(`BookmarkNet v${version} escuchando en el puerto ${api.port}: ${collectionName}`)
+console.log(`BookmarkNet v${version} escuchando en el puerto ${api.port}: ${collectionSummary}`)
 
 await new Promise<void>((resolve) => {
   let closing = false
