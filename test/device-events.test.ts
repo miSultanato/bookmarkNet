@@ -98,9 +98,29 @@ test('deviceRemoveBookmark constructs event', (t) => {
 })
 
 test('deviceMoveBookmark constructs event', (t) => {
-  const event = deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: null })
+  const event = deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: null })
   assertCommon(t, event, 'device_move_bookmark')
+  t.is(event.payload.collectionId, COLLECTION_ID)
   t.is(event.payload.groupId, null)
+})
+
+test('deviceMoveBookmark requires collectionId and supports global Inbox', (t) => {
+  let missingError: unknown
+  try {
+    deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: undefined as any, groupId: null })
+  } catch (error) {
+    missingError = error
+  }
+  t.ok(missingError instanceof RangeError)
+  t.is((missingError as Error).message, 'collectionId is required (use null for global Inbox)')
+
+  const inbox = deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: null, groupId: null })
+  t.is(inbox.payload.collectionId, null)
+  t.is(inbox.payload.groupId, null)
+
+  expectRangeError(t, () => deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: null, groupId: GROUP_ID
+  }))
 })
 
 test('deviceReorderBookmark constructs event', (t) => {
@@ -129,7 +149,7 @@ test('all device event constructors reject invalid authorId', (t) => {
   expectRangeError(t, () => deviceAddBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, resourceId: RESOURCE_ID, canonicalUrl: 'x', title: 'x', tags: [] }))
   expectRangeError(t, () => deviceEditBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID, changes: { notes: null } }))
   expectRangeError(t, () => deviceRemoveBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID }))
-  expectRangeError(t, () => deviceMoveBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID, groupId: null }))
+  expectRangeError(t, () => deviceMoveBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: null }))
   expectRangeError(t, () => deviceReorderBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID, groupId: null, position: 0 }))
   expectRangeError(t, () => deviceCreateGroup({ authorId: 'bad', groupId: GROUP_ID, collectionId: COLLECTION_ID, name: 'x', position: 0 }))
   expectRangeError(t, () => deviceDeleteGroup({ authorId: 'bad', groupId: GROUP_ID, collectionId: COLLECTION_ID }))
