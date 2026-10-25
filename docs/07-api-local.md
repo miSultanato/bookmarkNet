@@ -21,15 +21,22 @@ GET  /identity/devices
 ## Bookmarks
 
 ```http
-GET    /bookmarks                   # ?collection_id=&q=&tag=
+GET    /bookmarks                   # ?collection_id=&q=&tag=&inbox=true
 POST   /bookmarks                   # {url, title?, description?, tags?, collection_id?}
 GET    /bookmarks/:id
 PATCH  /bookmarks/:id               # {title?, description?, tags?, notes?}
 DELETE /bookmarks/:id
 POST   /bookmarks/:id/reorder       # {group_id, position}
+POST   /bookmarks/:id/move          # {collection_id?, group_id?}
 ```
 
-Este endpoint genera un evento `reorder_bookmark`.
+`POST /bookmarks` acepta `collection_id` opcional. Si no se pasa o es `null`, el bookmark va al Inbox global (`collectionId: null`). En ese caso, `group_id` debe ser `null`: el Inbox global no tiene grupos.
+
+`GET /bookmarks?inbox=true` devuelve solo los bookmarks con `collectionId: null` (Inbox global).
+
+`POST /bookmarks/:id/move` mueve el bookmark a otra colección, a otro grupo o al Inbox global. Si `collection_id` es `null`, `group_id` debe ser `null`. Devuelve `200` con el bookmark actualizado.
+
+`POST /bookmarks/:id/reorder` genera un evento `reorder_bookmark`.
 
 ## Grupos
 
@@ -42,9 +49,9 @@ POST   /groups/:id/move             # {bookmark_id} → 200 con el bookmark actu
 
 - `POST /groups` requiere `{ name, collection_id }`. El grupo pertenece a esa colección.
 - `GET /groups` acepta `?collection_id=` (opcional). Si no se pasa, devuelve todos los grupos no eliminados.
-- `POST /groups/:id/move` mueve el bookmark indicado al grupo `:id` y devuelve `200` con el bookmark actualizado (`group_id` nuevo, `position: null`).
+- `POST /groups/:id/move` mueve al grupo `:id` únicamente bookmarks que ya pertenecen a la misma colección que ese grupo; devuelve `200` con el bookmark actualizado (`group_id` nuevo, `position: null`). Para mover un bookmark del Inbox global a un grupo, usa `POST /bookmarks/:id/move` con `{ collection_id, group_id }`.
 
-**Nota:** en MVP los grupos no se renombran. Para cambiar el nombre, eliminar el grupo (sus bookmarks vuelven a Inbox) y crear uno nuevo. El schema de eventos (doc 15) no define un evento `update_group`.
+**Nota:** en MVP los grupos no se renombran. Para cambiar el nombre, eliminar el grupo (sus bookmarks vuelven a la raíz de su colección, con `group_id: null`; no al Inbox global) y crear uno nuevo. El schema de eventos (doc 15) no define un evento `update_group`.
 
 ## Colecciones
 
@@ -139,6 +146,7 @@ Búsqueda literal, sin IA, sin NLP. Substring, case-insensitive.
 | `DELETE /bookmarks/:id` | `remove_bookmark` |
 | `POST /groups/:id/move` | `move_bookmark` |
 | `POST /bookmarks/:id/reorder` | `reorder_bookmark` |
+| `POST /bookmarks/:id/move` | `device_move_bookmark` |
 | `PATCH /collections/:id` | `update_metadata` |
 | `POST /groups` | `create_group` |
 | `DELETE /groups/:id` | `delete_group` |

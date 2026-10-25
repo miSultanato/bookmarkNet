@@ -35,19 +35,19 @@ Pantalla principal tras el onboarding.
 
 ### 3. Mis bookmarks
 
-Vista principal de los datos del usuario.
+Fase MVP0: "Mis bookmarks" tiene dos pestañas:
 
-- **Tabs:** Inbox | Grupos | Colecciones.
-- **Inbox:** bookmarks sin organizar. Acción rápida para mover a un grupo o colección.
-- **Grupos:** lista de grupos con sus bookmarks. La pestaña "Grupos" forma parte de MVP0.
-- **Colecciones:** lista de colecciones propias, con estado (privada, pública, archivada).
+- **Inbox:** bookmarks con `collectionId: null` (Inbox global). Cada uno muestra título, URL y tags. Acción "Mover a colección" (se implementa cuando exista la pantalla de Bookmark).
+- **Colecciones:** lista de colecciones propias, con contador de bookmarks por colección. Incluye un formulario inline para crear una colección nueva.
+
+Los grupos no son una pestaña global. Los grupos son por colección y se ven dentro de la pantalla "Colección". En una colección, los bookmarks con `groupId: null` se muestran en un grupo visual "Sin grupo" (o "Raíz"). No se llama Inbox.
 
 ### 4. Colección
 
 Vista de una colección concreta.
 
 - **Cabecera:** nombre, descripción, visibilidad, estado de sincronización.
-- **Lista de bookmarks:** agrupados por grupos (si los tiene) o en orden.
+- **Lista de bookmarks:** agrupados por grupos (si los tiene) o en orden. Los bookmarks con `groupId: null` van en un grupo visual "Sin grupo" (raíz de la colección). No es el Inbox global.
 - **Acciones:** seguir (si es ajena), duplicar, publicar (si es propia y privada), despublicar (si es propia y pública), editar metadatos.
 - **Si es ajena:** botón "Seguir" y botón "Duplicar".
 - **Si es propia:** botón "Publicar" o "Despublicar".
@@ -61,6 +61,7 @@ Vista de un bookmark concreto.
 - **URL, título, descripción, tags, notas.**
 - **Colecciones que lo contienen** (si el usuario tiene varias colecciones con el mismo resource).
 - **Acciones:** editar, eliminar, mover a grupo o colección.
+- **Si el bookmark está en el Inbox global (`collectionId: null`):** se muestra la acción "Mover a colección".
 - **Si el usuario sigue colecciones ajenas:** "Aparece en N colecciones de tu red".
 
 ### 6. Ajustes
