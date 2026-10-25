@@ -155,7 +155,36 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
       return { ...state, collection }
     }
 
-    case 'edit_bookmark':
+    case 'edit_bookmark': {
+      if (state.collection === null) return state
+      const payload = event.payload
+      const existing = state.bookmarks.get(payload.bookmark_id)
+      if (existing === undefined || existing.deleted) return state
+
+      const bookmark: BookmarkState = { ...existing, updatedAt: event.created_at }
+      const changes = payload.changes
+      if (Object.prototype.hasOwnProperty.call(changes, 'title')) {
+        if (changes.title === null) delete (bookmark as { title?: string }).title
+        else bookmark.title = changes.title
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'description')) {
+        if (changes.description === null) delete bookmark.description
+        else bookmark.description = changes.description
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'tags')) {
+        if (changes.tags === null) delete (bookmark as { tags?: string[] }).tags
+        else bookmark.tags = [...changes.tags]
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'notes')) {
+        if (changes.notes === null) delete bookmark.notes
+        else bookmark.notes = changes.notes
+      }
+
+      const bookmarks = new Map(state.bookmarks)
+      bookmarks.set(bookmark.bookmarkId, bookmark)
+      return { ...state, bookmarks }
+    }
+
     case 'move_bookmark':
     case 'reorder_bookmark':
       return state
