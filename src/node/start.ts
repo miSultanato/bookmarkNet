@@ -1,6 +1,6 @@
 import type Hypercore from 'hypercore'
 import type { Config } from './config.ts'
-import { closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
+import { appendEvent, closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
 import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
@@ -13,7 +13,7 @@ export interface Node {
   core: Hypercore
   state: DeviceState
   identity: NodeIdentity | null
-  apply(event: DeviceEvent): void
+  apply(event: DeviceEvent): Promise<void>
   close(): Promise<void>
 }
 
@@ -31,7 +31,8 @@ export async function startNode(config: Config): Promise<Node> {
       return state
     },
     identity,
-    apply(event: DeviceEvent) {
+    async apply(event: DeviceEvent): Promise<void> {
+      await appendEvent(core, event)
       state = applyDeviceEvent(state, event)
     },
     close: async () => closeDeviceCore(core)
