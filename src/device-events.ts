@@ -262,9 +262,10 @@ export function deviceMoveBookmark(params: DeviceMoveBookmarkParams): DeviceMove
   requireRecord(params, 'params')
   requireAuthorId(params.authorId)
   requireBookmarkId(params.bookmarkId)
-  // Compatibility with the existing local groups API, which still emits the
-  // pre-unification shape. New callers must always provide collectionId.
-  if (params.collectionId !== undefined && params.collectionId !== null) requireCollectionId(params.collectionId)
+  if (params.collectionId === undefined) {
+    throw new RangeError('collectionId is required (use null for global Inbox)')
+  }
+  if (params.collectionId !== null) requireCollectionId(params.collectionId)
   if (params.groupId !== null) {
     if (typeof params.groupId !== 'string' || params.groupId.length === 0 || !isGroupId(params.groupId)) {
       throw new RangeError('groupId must be a non-empty valid group ID or null')
