@@ -177,7 +177,7 @@ test('device_move_bookmark validates active groups and resets position', (t) => 
   t.is(inbox.bookmarks.get(BOOKMARK_ID)?.position, null)
   const grouped = applyDeviceEvent(inbox, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID }))
   t.is(grouped.bookmarks.get(BOOKMARK_ID)?.groupId, GROUP_ID)
-  t.is(applyDeviceEvent(inbox, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: 'g_nonexistent' })), inbox)
+  t.is(applyDeviceEvent(inbox, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: 'g_abcdef123456' })), inbox)
   const deletedGroup = applyDeviceEvent(grouped, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }))
   t.is(applyDeviceEvent(deletedGroup, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID })), deletedGroup)
 })
