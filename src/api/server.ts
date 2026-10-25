@@ -208,13 +208,14 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
       return
     }
     if (method === 'GET' && route.path === '/api/v1/identity') {
-      const result = await handleGetIdentity(node.config.dataDir)
+      const result = await handleGetIdentity(config.dataDir)
       sendJson(res, result.status, result.body)
       return
     }
     if (method === 'POST' && route.path === '/api/v1/identity/create') {
-      const result = await handleCreateIdentity(node.config.dataDir)
-      if (result.status === 201 && result.body !== null && typeof result.body === 'object' &&
+      const result = await handleCreateIdentity(config.dataDir)
+      if (typeof node === 'object' && node !== null && result.status === 201 &&
+        result.body !== null && typeof result.body === 'object' &&
         typeof (result.body as { user_id?: unknown }).user_id === 'string') {
         node.identity = result.body as NonNullable<Node['identity']>
       }
