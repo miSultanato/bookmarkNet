@@ -128,7 +128,7 @@ test('device_add_bookmark ignores invalid parents and duplicates; absent group m
   t.is(added.bookmarks.get(BOOKMARK_ID)?.groupId, null)
   t.is(applyDeviceEvent(added, bookmark(BOOKMARK_ID, null, T2)), added)
   t.is(applyDeviceEvent(state, bookmark(BOOKMARK_ID, GROUP_ID)), state)
-  const withGroup = applyDeviceEvent(state, group())
+  const withGroup = applyDeviceEvent(initial(), group())
   t.is(applyDeviceEvent(withGroup, bookmark(BOOKMARK_ID, GROUP_ID)), withGroup)
   const deletedGroup = applyDeviceEvent(withGroup, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }))
   t.is(applyDeviceEvent(deletedGroup, bookmark(BOOKMARK_ID, GROUP_ID)), deletedGroup)
@@ -138,9 +138,9 @@ test('device_edit_bookmark handles nulls, empty values, missing and deleted book
   const empty = emptyDeviceState()
   t.is(applyDeviceEvent(empty, deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: 'x' } })), empty)
   const added = applyDeviceEvent(initial(), bookmark())
-  const edited = applyDeviceEvent(added, eventOn(deviceEditBookmark({
-    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: null, tags: null }
-  }), T2))
+  const nullChanges = deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: null } })
+  ;(nullChanges.payload.changes as any).tags = null
+  const edited = applyDeviceEvent(added, eventOn(nullChanges, T2))
   t.is(edited.bookmarks.get(BOOKMARK_ID)?.title, 'Título')
   t.alike(edited.bookmarks.get(BOOKMARK_ID)?.tags, ['uno', 'dos'])
   t.is(edited.bookmarks.get(BOOKMARK_ID)?.updatedAt, T2)
