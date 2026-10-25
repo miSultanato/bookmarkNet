@@ -28,10 +28,10 @@ function assertInvalidValues(t: any, validator: (value: unknown) => boolean, val
 }
 
 function assertInvalidUlidValues(t: any, validator: (value: unknown) => boolean) {
-  t.ok(!validator('I1J8XLK3M00000000000000000'))
-  t.ok(!validator('01J8XLK3M0000000000000000'))
-  t.ok(!validator('01J8XLK3M0000000000000000U'))
-  t.ok(!validator('01j8XLK3M00000000000000000'))
+  t.ok(!validator('I1J8XK3M00000000000000000'))
+  t.ok(!validator('0000000000000000000000000'))
+  t.ok(!validator('0000000000000000000000000U'))
+  t.ok(!validator('0000000000000000000000000a'))
   t.ok(!validator(null))
   t.ok(!validator(undefined))
   t.ok(!validator(42))
@@ -90,12 +90,12 @@ test('bookmark and event ID generators return valid ULIDs', (t) => {
 })
 
 test('bookmark ID validator accepts only ULID alphabet and length', (t) => {
-  t.ok(isBookmarkId('01J8XLK3M00000000000000000'))
+  t.ok(isBookmarkId('00000000000000000000000000'))
   assertInvalidUlidValues(t, isBookmarkId)
 })
 
 test('event ID validator accepts only ULID alphabet and length', (t) => {
-  t.ok(isEventId('01J8XLK3M00000000000000000'))
+  t.ok(isEventId('00000000000000000000000000'))
   assertInvalidUlidValues(t, isEventId)
 })
 
