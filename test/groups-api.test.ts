@@ -192,3 +192,104 @@ test('group created through API persists after restarting the node', async (t) =
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
+
+
+test('groups API moves bookmarks and validates group and collection', async (t) => {
+  const dataDir = './tmp-test-groups-api-move'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Mover bookmarks')
+    const otherCollection = await request(api.port, 'POST', '/api/v1/collections', { name: 'Otra colección' })
+    const otherCollectionId = otherCollection.body.collection.collection_id as string
+    const group = await request(api.port, 'POST', '/api/v1/groups', { name: 'Lectura', collection_id: collectionId })
+    const otherGroup = await request(api.port, 'POST', '/api/v1/groups', { name: 'Otro grupo', collection_id: otherCollectionId })
+    const groupId = group.body.group.group_id as string
+    const otherGroupId = otherGroup.body.group.group_id as string
+    const bookmarkResponse = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/move',
+      collection_id: collectionId,
+      title: 'Moverme'
+    })
+    t.is(bookmarkResponse.statusCode, 201, 'bookmark fixture is created')
+    const bookmarkId = bookmarkResponse.body.bookmark.bookmark_id as string
+
+    const moved = await request(api.port, 'POST', '/api/v1/groups/' + groupId + '/move', { bookmark_id: bookmarkId })
+    t.is(moved.statusCode, 200, 'moving bookmark returns 200')
+    t.is(moved.body.bookmark.group_id, groupId, 'bookmark is assigned to target group')
+    t.is(moved.body.bookmark.position, null, 'move resets position to null')
+    const missingGroup = await request(api.port, 'POST', '/api/v1/groups/g_000000000000/move', { bookmark_id: bookmarkId })
+    t.is(missingGroup.statusCode, 404, 'unknown group returns 404')
+    t.is(missingGroup.body.error.code, 'GROUP_NOT_FOUND', 'unknown group has explicit error')
+    const missingBookmark = await request(api.port, 'POST', '/api/v1/groups/' + groupId + '/move', { bookmark_id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' })
+    t.is(missingBookmark.statusCode, 404, 'unknown bookmark returns 404')
+    t.is(missingBookmark.body.error.code, 'BOOKMARK_NOT_FOUND', 'unknown bookmark has explicit error')
+    const mismatch = await request(api.port, 'POST', '/api/v1/groups/' + otherGroupId + '/move', { bookmark_id: bookmarkId })
+    t.is(mismatch.statusCode, 400, 'cross-collection move returns 400')
+    t.is(mismatch.body.error.code, 'COLLECTION_MISMATCH', 'cross-collection move has explicit error')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('moving bookmarks requires an identity', async (t) => {
+  const dataDir = './tmp-test-groups-api-move-no-identity'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const response = await request(api.port, 'POST', '/api/v1/groups/g_000000000000/move', { bookmark_id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' })
+    t.is(response.statusCode, 401, 'move without identity returns 401')
+    t.is(response.body.error.code, 'NO_IDENTITY', 'missing identity error is explicit')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('moving a bookmark persists after restarting the node', async (t) => {
+  const dataDir = './tmp-test-groups-api-move-persist'
+  const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Persistencia de move')
+    const group = await request(api.port, 'POST', '/api/v1/groups', { name: 'Persistente', collection_id: collectionId })
+    const groupId = group.body.group.group_id as string
+    const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/move-persist',
+      collection_id: collectionId,
+      title: 'Mover y persistir'
+    })
+    const bookmarkId = created.body.bookmark.bookmark_id as string
+    const moved = await request(api.port, 'POST', '/api/v1/groups/' + groupId + '/move', { bookmark_id: bookmarkId })
+    t.is(moved.statusCode, 200, 'move succeeds before restart')
+
+    await api.close()
+    api = null
+    await node.close()
+    node = null
+    node = await startNode(config)
+    t.is(node.state.bookmarks.get(bookmarkId)?.groupId, groupId, 'new groupId is restored after restart')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})

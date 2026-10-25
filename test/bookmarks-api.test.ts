@@ -2,8 +2,7 @@ import fs from 'bare-fs'
 import http from 'bare-http1'
 import test from 'brittle'
 import { canonicalizeUrl } from '../src/canonicalize.ts'
-import { deviceCreateGroup } from '../src/device-events.ts'
-import { newGroupId, resourceIdFromCanonicalUrl, utf8Bytes } from '../src/ids.ts'
+import { resourceIdFromCanonicalUrl, utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
@@ -66,15 +65,12 @@ test('bookmarks API creates, lists, filters and fetches local bookmarks', async 
     const collectionId = await createIdentityAndCollection(api.port, 'Colección principal')
     const otherCollectionId = (await request(api.port, 'POST', '/api/v1/collections', { name: 'Otra colección' })).body.collection.collection_id as string
 
-    // Workaround until the groups API is implemented: create a group directly in the local device log.
-    const groupId = newGroupId()
-    await node.apply(deviceCreateGroup({
-      authorId: node.identity!.user_id,
-      groupId,
-      collectionId: otherCollectionId,
+    const otherGroupResponse = await request(api.port, 'POST', '/api/v1/groups', {
       name: 'Grupo de otra colección',
-      position: 0
-    }))
+      collection_id: otherCollectionId
+    })
+    t.is(otherGroupResponse.statusCode, 201, 'group in another collection is created through API')
+    const groupId = otherGroupResponse.body.group.group_id as string
     const wrongGroup = await request(api.port, 'POST', '/api/v1/bookmarks', {
       url: 'https://example.com/path', collection_id: collectionId, group_id: groupId
     })
@@ -114,14 +110,12 @@ test('bookmarks API creates, lists, filters and fetches local bookmarks', async 
     t.is(bookmark.position, null, 'position is null until reordered')
     t.is(Object.prototype.hasOwnProperty.call(bookmark, 'deleted'), false, 'deleted is not exposed')
 
-    const sameCollectionGroupId = newGroupId()
-    await node.apply(deviceCreateGroup({
-      authorId: node.identity!.user_id,
-      groupId: sameCollectionGroupId,
-      collectionId,
+    const sameCollectionGroupResponse = await request(api.port, 'POST', '/api/v1/groups', {
       name: 'Grupo de la colección principal',
-      position: 0
-    }))
+      collection_id: collectionId
+    })
+    t.is(sameCollectionGroupResponse.statusCode, 201, 'group in the same collection is created through API')
+    const sameCollectionGroupId = sameCollectionGroupResponse.body.group.group_id as string
     const grouped = await request(api.port, 'POST', '/api/v1/bookmarks', {
       url: 'https://different.test/grouped',
       collection_id: collectionId,
@@ -349,6 +343,133 @@ test('bookmark PATCH changes persist after restarting the node', async (t) => {
     node = null
     node = await startNode(config)
     t.is(node.state.bookmarks.get(id)?.title, 'Título persistido', 'updated title is restored from the device log')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+
+test('bookmark reorder endpoint validates group and position and materializes order', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-reorder'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Reorder')
+    const group1 = await request(api.port, 'POST', '/api/v1/groups', { name: 'Primero', collection_id: collectionId })
+    const group2 = await request(api.port, 'POST', '/api/v1/groups', { name: 'Segundo', collection_id: collectionId })
+    const groupId = group1.body.group.group_id as string
+    const otherGroupId = group2.body.group.group_id as string
+
+    const makeBookmark = async (suffix: string, group_id: string) => {
+      const response = await request(api.port, 'POST', '/api/v1/bookmarks', {
+        url: 'https://example.com/reorder-' + suffix,
+        collection_id: collectionId,
+        title: suffix,
+        group_id
+      })
+      t.is(response.statusCode, 201, 'bookmark ' + suffix + ' is created in group')
+      return bookmarkBody(response).bookmark_id as string
+    }
+    const firstId = await makeBookmark('first', groupId)
+    const secondId = await makeBookmark('second', groupId)
+    const thirdId = await makeBookmark('third', groupId)
+    const elsewhereId = await makeBookmark('elsewhere', otherGroupId)
+
+    const reordered = await request(api.port, 'POST', '/api/v1/bookmarks/' + thirdId + '/reorder', {
+      group_id: groupId, position: 0
+    })
+    t.is(reordered.statusCode, 200, 'reorder returns 200')
+    t.is(bookmarkBody(reordered).position, 0, 'bookmark position is updated')
+    t.is(node.state.bookmarks.get(thirdId)?.position, 0, 'fold materializes requested position')
+    const tooLarge = await request(api.port, 'POST', '/api/v1/bookmarks/' + firstId + '/reorder', {
+      group_id: groupId, position: 999
+    })
+    t.is(tooLarge.statusCode, 200, 'position beyond group size is accepted')
+    t.is(bookmarkBody(tooLarge).position, 2, 'position beyond group size moves bookmark to end')
+    const wrongGroup = await request(api.port, 'POST', '/api/v1/bookmarks/' + firstId + '/reorder', {
+      group_id: otherGroupId, position: 0
+    })
+    t.is(wrongGroup.statusCode, 400, 'reorder in another group is rejected')
+    t.is(wrongGroup.body.error.code, 'INVALID_GROUP', 'wrong group returns INVALID_GROUP')
+    t.is(wrongGroup.body.error.message, 'bookmark is not in the given group', 'wrong group explains the constraint')
+    const negative = await request(api.port, 'POST', '/api/v1/bookmarks/' + secondId + '/reorder', {
+      group_id: groupId, position: -1
+    })
+    t.is(negative.statusCode, 400, 'negative position is rejected')
+    t.is(negative.body.error.code, 'INVALID_POSITION', 'negative position returns INVALID_POSITION')
+    const missingGroup = await request(api.port, 'POST', '/api/v1/bookmarks/' + secondId + '/reorder', {
+      group_id: 'g_000000000000', position: 0
+    })
+    t.is(missingGroup.statusCode, 400, 'unknown group is rejected')
+    t.is(missingGroup.body.error.code, 'GROUP_NOT_FOUND', 'unknown group returns GROUP_NOT_FOUND')
+    t.ok(elsewhereId.length > 0, 'second group fixture remains available')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark reorder requires an identity', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-reorder-no-identity'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const response = await request(api.port, 'POST', '/api/v1/bookmarks/01ARZ3NDEKTSV4RRFFQ69G5FAV/reorder', {
+      group_id: null, position: 0
+    })
+    t.is(response.statusCode, 401, 'reorder without identity returns 401')
+    t.is(response.body.error.code, 'NO_IDENTITY', 'missing identity error is explicit')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark reorder persists after restarting the node', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-reorder-persist'
+  const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Persistencia reorder')
+    const group = await request(api.port, 'POST', '/api/v1/groups', { name: 'Orden', collection_id: collectionId })
+    const groupId = group.body.group.group_id as string
+    const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/reorder-persist',
+      collection_id: collectionId,
+      title: 'Persistir orden',
+      group_id: groupId
+    })
+    const bookmarkId = bookmarkBody(created).bookmark_id as string
+    const reordered = await request(api.port, 'POST', '/api/v1/bookmarks/' + bookmarkId + '/reorder', {
+      group_id: groupId, position: 0
+    })
+    t.is(reordered.statusCode, 200, 'reorder succeeds before restart')
+
+    await api.close()
+    api = null
+    await node.close()
+    node = null
+    node = await startNode(config)
+    t.is(node.state.bookmarks.get(bookmarkId)?.position, 0, 'position is restored after restart')
   } finally {
     if (api !== null) await api.close()
     if (node !== null) await node.close()
