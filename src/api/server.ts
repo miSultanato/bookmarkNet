@@ -5,6 +5,8 @@ import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
+import { handleGetProfile, handleUpdateProfile } from './profile.ts'
+import { handleGetConfig } from './config.ts'
 import { handleCreateGroup, handleDeleteGroup, handleListGroups, handleMoveBookmarkToGroup } from './groups.ts'
 import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleMoveBookmark, handleReorderBookmark, handleUpdateBookmark } from './bookmarks.ts'
 import {
@@ -447,6 +449,28 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
     }
 
     try {
+      if (method === 'GET' && route.path === '/api/v1/profile') {
+        const result = handleGetProfile(node)
+        sendJson(res, result.status, result.body)
+        return
+      }
+      if (method === 'PATCH' && route.path === '/api/v1/profile') {
+        let body: unknown
+        try {
+          body = await readJsonBody(req)
+        } catch {
+          sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+          return
+        }
+        const result = await handleUpdateProfile(node, body)
+        sendJson(res, result.status, result.body)
+        return
+      }
+      if (method === 'GET' && route.path === '/api/v1/config') {
+        const result = handleGetConfig(node)
+        sendJson(res, result.status, result.body)
+        return
+      }
       if (await dispatchBookmarkRequest(node, method, route, req, res)) return
       if (await dispatchGroupRequest(node, method, route, req, res)) return
       if (await dispatchCollectionRequest(node, method, route, req, res)) return
