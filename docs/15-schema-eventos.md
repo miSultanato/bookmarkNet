@@ -453,3 +453,17 @@ La verificación hace lo mismo: recalcula `sha256(message)` y verifica la firma 
 - **`migrated_from`:** por defecto `null`. Se serializa como `""` en la firma (`(migratedFrom ?? "")`).
 
 `null` y `""` producen el mismo resultado en la firma para `forked_from` y `migrated_from`, lo cual es correcto y determinista.
+
+### Separador de concatenación en la firma
+
+Los campos se concatenan en el orden indicado, con un separador explícito `\x00` (null byte) entre cada campo. No se usa `||` literal. La concatenación es:
+
+```text
+message = collection_id + "\x00" +
+          collection_public_key + "\x00" +
+          author_id + "\x00" +
+          author_public_key + "\x00" +
+          name + "\x00" +
+          visibility + "\x00" +
+          (forked_from ?? "") + "\x00" +
+          (migrated_from ?? "")
