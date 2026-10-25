@@ -204,7 +204,7 @@ test('bookmark constructors validate required IDs and values', (t) => {
   expectRangeError(t, () => addBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, resourceId: RESOURCE_ID, canonicalUrl: 'x', title: 'x', tags: [], groupId: 'bad' }))
   expectRangeError(t, () => editBookmark({ authorId: AUTHOR_ID, bookmarkId: 'bad', changes: { title: 'x' } }))
   expectRangeError(t, () => editBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: {} }))
-  expectRangeError(t, () => editBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { tags: ['x', 1] as any }))
+  expectRangeError(t, () => editBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { tags: ['x', 1] as any } }))
   expectRangeError(t, () => removeBookmark({ authorId: AUTHOR_ID, bookmarkId: 'bad' }))
   expectRangeError(t, () => moveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: 'bad' }))
   expectRangeError(t, () => reorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: 'bad', position: 0 }))
@@ -279,7 +279,6 @@ test('forked_from and migrated_from participate in the genesis hash', (t) => {
   const forkedParams = genesisParams({ forkedFrom: OTHER_COLLECTION_ID, migratedFrom: null })
   const original = collectionGenesis(originalParams)
   const forked = collectionGenesis(forkedParams)
-  t.ok(!toHex(genesisSigningHash(originalParams)).includes('never'))
   t.ok(toHex(genesisSigningHash(originalParams)) !== toHex(genesisSigningHash(forkedParams)))
   t.ok(original.payload.signature_by_owner !== forked.payload.signature_by_owner)
   t.ok(verify(
