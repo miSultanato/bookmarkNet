@@ -1,10 +1,14 @@
 import {
   getCollection,
   getCollectionBookmarks,
+  getGroups,
   updateCollection,
   deleteCollection,
   createBookmark,
-  deleteBookmark
+  deleteBookmark,
+  createGroup,
+  deleteGroup,
+  moveBookmark
 } from './api.js'
 
 function element(tag, className, text) {
@@ -25,9 +29,11 @@ function isNotFound(error) {
 export function render(container, state, collectionId, { onReload, onDeleted } = {}) {
   let collection = null
   let bookmarks = []
+  let groups = []
   let loading = true
   let collectionError = null
   let bookmarksError = null
+  let groupsError = null
   let editing = false
   let actionError = null
   let requestId = 0
@@ -37,10 +43,12 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     loading = true
     collectionError = null
     bookmarksError = null
+    groupsError = null
     renderView()
-    const [collectionResult, bookmarksResult] = await Promise.allSettled([
+    const [collectionResult, bookmarksResult, groupsResult] = await Promise.allSettled([
       getCollection(collectionId),
-      getCollectionBookmarks(collectionId)
+      getCollectionBookmarks(collectionId),
+      getGroups(collectionId)
     ])
     if (currentRequest !== requestId) return
     if (collectionResult.status === 'fulfilled') {
@@ -52,6 +60,12 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       bookmarks = bookmarksResult.value.bookmarks ?? []
     } else {
       bookmarksError = bookmarksResult.reason
+    }
+    if (groupsResult.status === 'fulfilled') {
+      groups = (groupsResult.value.groups ?? []).filter((group) => !group.deleted)
+        .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || (a.created_at || '').localeCompare(b.created_at || ''))
+    } else {
+      groupsError = groupsResult.reason
     }
     loading = false
     renderView()
@@ -101,11 +115,11 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       actionError = null
       renderView()
     })
-    const deleteButton = element('button', 'danger-button', 'Eliminar colección')
-    deleteButton.type = 'button'
-    deleteButton.addEventListener('click', async () => {
+    const deleteCollectionButton = element('button', 'danger-button', 'Eliminar colección')
+    deleteCollectionButton.type = 'button'
+    deleteCollectionButton.addEventListener('click', async () => {
       if (!window.confirm('¿Eliminar esta colección? Esta acción no se puede deshacer.')) return
-      deleteButton.disabled = true
+      deleteCollectionButton.disabled = true
       actionError = null
       try {
         await deleteCollection(collectionId)
@@ -116,7 +130,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         renderView()
       }
     })
-    headerActions.append(editButton, deleteButton)
+    headerActions.append(editButton, deleteCollectionButton)
     header.append(titleArea, headerActions)
     section.append(header)
 
@@ -205,11 +219,22 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     tagsInput.name = 'tags'
     tagsInput.placeholder = 'Tags separadas por comas (opcional)'
     tagsInput.setAttribute('aria-label', 'Tags')
+    const addGroupSelect = element('select')
+    addGroupSelect.name = 'group_id'
+    addGroupSelect.setAttribute('aria-label', 'Grupo')
+    const noGroupOption = element('option', '', 'Sin grupo')
+    noGroupOption.value = ''
+    addGroupSelect.append(noGroupOption)
+    for (const group of groups) {
+      const option = element('option', '', group.name)
+      option.value = group.group_id
+      addGroupSelect.append(option)
+    }
     const addButton = element('button', '', 'Añadir')
     addButton.type = 'submit'
     const formError = element('p', 'error')
     formError.hidden = true
-    form.append(urlInput, titleInput, tagsInput, addButton, formError)
+    form.append(urlInput, titleInput, tagsInput, addGroupSelect, addButton, formError)
     form.addEventListener('submit', async (event) => {
       event.preventDefault()
       const url = urlInput.value.trim()
@@ -220,6 +245,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         return
       }
       const tags = tagsInput.value.split(',').map((tag) => tag.trim()).filter(Boolean)
+      const groupId = addGroupSelect.value
       addButton.disabled = true
       formError.hidden = true
       try {
@@ -227,7 +253,8 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
           url,
           ...(titleInput.value.trim() ? { title: titleInput.value.trim() } : {}),
           tags,
-          collection_id: collectionId
+          collection_id: collectionId,
+          ...(groupId ? { group_id: groupId } : {})
         })
         form.reset()
         await onReload?.()
@@ -240,58 +267,165 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     addSection.append(form)
     section.append(addSection)
 
-    if (bookmarksError) {
-      const error = element('p', 'error', 'Error al cargar los bookmarks: ' + errorMessage(bookmarksError))
+    const createGroupSection = element('section', 'group-create-section')
+    createGroupSection.append(element('h2', '', 'Crear grupo'))
+    const groupForm = element('form', 'inline-form group-create-form')
+    const groupNameInput = element('input')
+    groupNameInput.type = 'text'
+    groupNameInput.name = 'group-name'
+    groupNameInput.placeholder = 'Nombre del grupo'
+    groupNameInput.setAttribute('aria-label', 'Nombre del grupo')
+    groupNameInput.required = true
+    const createGroupButton = element('button', '', 'Crear grupo')
+    createGroupButton.type = 'submit'
+    const groupFormError = element('p', 'error')
+    groupFormError.hidden = true
+    groupForm.append(groupNameInput, createGroupButton, groupFormError)
+    groupForm.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const name = groupNameInput.value.trim()
+      if (!name) {
+        groupFormError.hidden = false
+        groupFormError.textContent = 'El nombre del grupo no puede estar vacío.'
+        groupNameInput.focus()
+        return
+      }
+      createGroupButton.disabled = true
+      groupFormError.hidden = true
+      try {
+        await createGroup({ name, collection_id: collectionId })
+        groupForm.reset()
+        await onReload?.()
+      } catch (error) {
+        groupFormError.hidden = false
+        groupFormError.textContent = errorMessage(error)
+        createGroupButton.disabled = false
+      }
+    })
+    createGroupSection.append(groupForm)
+    section.append(createGroupSection)
+
+    if (bookmarksError || groupsError) {
+      if (bookmarksError) section.append(element('p', 'error', 'Error al cargar los bookmarks: ' + errorMessage(bookmarksError)))
+      if (groupsError) section.append(element('p', 'error', 'Error al cargar los grupos: ' + errorMessage(groupsError)))
       const retry = element('button', '', 'Reintentar')
       retry.type = 'button'
       retry.addEventListener('click', load)
-      section.append(error, retry)
+      section.append(retry)
       return
     }
 
-    if (bookmarks.length === 0) {
-      section.append(element('p', 'collection-empty', 'Esta colección está vacía. Añade un bookmark arriba.'))
-      return
+    function renderBookmarkList(bookmarksForSection, groupId) {
+      const list = element('div', 'bookmark-list')
+      const ordered = [...bookmarksForSection].sort((a, b) =>
+        (a.position ?? Infinity) - (b.position ?? Infinity) ||
+        (a.created_at || '').localeCompare(b.created_at || '')
+      )
+      if (ordered.length === 0) {
+        list.append(element('p', 'group-empty', groupId === null ? 'No hay bookmarks sin grupo.' : 'Este grupo está vacío.'))
+        return list
+      }
+
+      for (const bookmark of ordered) {
+        const item = element('article', 'bookmark-item')
+        const url = bookmark.canonical_url || bookmark.url || ''
+        const title = bookmark.title || url || 'Bookmark'
+        item.append(element('h3', 'bookmark-title', title))
+        if (url) {
+          const link = element('a', 'bookmark-url', url)
+          link.href = url
+          link.target = '_blank'
+          link.rel = 'noopener noreferrer'
+          link.title = url
+          item.append(link)
+        }
+        if (Array.isArray(bookmark.tags) && bookmark.tags.length) {
+          const tags = element('div', 'tags')
+          for (const tag of bookmark.tags) tags.append(element('span', 'tag', tag))
+          item.append(tags)
+        }
+
+        const actions = element('div', 'actions')
+        const moveSelect = element('select')
+        moveSelect.className = 'bookmark-group-select'
+        moveSelect.setAttribute('aria-label', 'Mover a grupo')
+        const rootOption = element('option', '', 'Sin grupo')
+        rootOption.value = ''
+        moveSelect.append(rootOption)
+        for (const group of groups) {
+          const option = element('option', '', group.name)
+          option.value = group.group_id
+          moveSelect.append(option)
+        }
+        moveSelect.value = bookmark.group_id ?? ''
+        const moveButton = element('button', '', 'Mover')
+        moveButton.type = 'button'
+        moveButton.addEventListener('click', async () => {
+          moveButton.disabled = true
+          try {
+            await moveBookmark(bookmark.bookmark_id, {
+              group_id: moveSelect.value === '' ? null : moveSelect.value
+            })
+            await onReload?.()
+          } catch (error) {
+            actionError = errorMessage(error)
+            renderView()
+          }
+        })
+
+        const removeButton = element('button', 'danger-button', 'Eliminar')
+        removeButton.type = 'button'
+        removeButton.addEventListener('click', async () => {
+          if (!window.confirm('¿Eliminar este bookmark?')) return
+          removeButton.disabled = true
+          try {
+            await deleteBookmark(bookmark.bookmark_id)
+            await onReload?.()
+          } catch (error) {
+            actionError = errorMessage(error)
+            renderView()
+          }
+        })
+        actions.append(moveSelect, moveButton, removeButton)
+        item.append(actions)
+        list.append(item)
+      }
+      return list
     }
 
-    const list = element('div', 'bookmark-list')
-    for (const bookmark of bookmarks) {
-      const item = element('article', 'bookmark-item')
-      const url = bookmark.canonical_url || bookmark.url || ''
-      const title = bookmark.title || url || 'Bookmark'
-      item.append(element('h2', 'bookmark-title', title))
-      if (url) {
-        const link = element('a', 'bookmark-url', url)
-        link.href = url
-        link.target = '_blank'
-        link.rel = 'noopener noreferrer'
-        link.title = url
-        item.append(link)
-      }
-      if (Array.isArray(bookmark.tags) && bookmark.tags.length) {
-        const tags = element('div', 'tags')
-        for (const tag of bookmark.tags) tags.append(element('span', 'tag', tag))
-        item.append(tags)
-      }
-      const actions = element('div', 'actions')
-      const removeButton = element('button', 'danger-button', 'Eliminar')
-      removeButton.type = 'button'
-      removeButton.addEventListener('click', async () => {
-        if (!window.confirm('¿Eliminar este bookmark?')) return
-        removeButton.disabled = true
+    const ungroupedSection = element('section', 'group-section')
+    const ungroupedHeader = element('header', 'group-header')
+    ungroupedHeader.append(element('h2', '', 'Sin grupo'))
+    ungroupedSection.append(ungroupedHeader, renderBookmarkList(
+      bookmarks.filter((bookmark) => bookmark.group_id == null),
+      null
+    ))
+    section.append(ungroupedSection)
+
+    for (const group of groups) {
+      const groupSection = element('section', 'group-section')
+      const groupHeader = element('header', 'group-header')
+      groupHeader.append(element('h2', '', group.name))
+      const deleteGroupButton = element('button', 'danger-button', 'Eliminar grupo')
+      deleteGroupButton.type = 'button'
+      deleteGroupButton.addEventListener('click', async () => {
+        if (!window.confirm('¿Eliminar este grupo? Sus bookmarks volverán a «Sin grupo».')) return
+        deleteGroupButton.disabled = true
         try {
-          await deleteBookmark(bookmark.bookmark_id)
+          await deleteGroup(group.group_id)
           await onReload?.()
         } catch (error) {
           actionError = errorMessage(error)
           renderView()
         }
       })
-      actions.append(removeButton)
-      item.append(actions)
-      list.append(item)
+      groupHeader.append(deleteGroupButton)
+      groupSection.append(groupHeader, renderBookmarkList(
+        bookmarks.filter((bookmark) => bookmark.group_id === group.group_id),
+        group.group_id
+      ))
+      section.append(groupSection)
     }
-    section.append(list)
   }
 
   void state
