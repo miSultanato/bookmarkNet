@@ -144,10 +144,161 @@ test('bookmarks API creates, lists, filters and fetches local bookmarks', async 
     const byQuery = await request(api.port, 'GET', '/api/v1/bookmarks?q=example')
     t.is(byQuery.body.bookmarks.length, 1, 'case-insensitive text query returns matching bookmark')
 
+    const globalInbox = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/global-inbox-implicit',
+      title: 'Inbox global implícito'
+    })
+    t.is(globalInbox.statusCode, 201, 'bookmark without collection_id is created in global Inbox')
+    t.is(bookmarkBody(globalInbox).collection_id, null, 'implicit global Inbox has collection_id null')
+    t.is(bookmarkBody(globalInbox).group_id, null, 'implicit global Inbox has group_id null')
+
+    const explicitGlobalInbox = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/global-inbox-explicit',
+      collection_id: null,
+      title: 'Inbox global explícito'
+    })
+    t.is(explicitGlobalInbox.statusCode, 201, 'bookmark with collection_id null is created')
+    t.is(bookmarkBody(explicitGlobalInbox).collection_id, null, 'explicit global Inbox has collection_id null')
+
+    const invalidGlobalGroup = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/global-inbox-group',
+      collection_id: null,
+      group_id: sameCollectionGroupId
+    })
+    t.is(invalidGlobalGroup.statusCode, 400, 'global Inbox cannot contain a group')
+    t.is(invalidGlobalGroup.body.error.code, 'INVALID_GROUP_FOR_INBOX', 'global Inbox group error is explicit')
+
+    const inboxList = await request(api.port, 'GET', '/api/v1/bookmarks?inbox=true')
+    t.is(inboxList.statusCode, 200, 'global Inbox filter returns 200')
+    t.is(inboxList.body.bookmarks.length, 2, 'global Inbox filter returns only global Inbox bookmarks')
+    t.ok(inboxList.body.bookmarks.every((item: Record<string, any>) => item.collection_id === null), 'Inbox filter excludes collection bookmarks')
+    const invalidInboxQuery = await request(api.port, 'GET', '/api/v1/bookmarks?inbox=true&collection_id=' + collectionId)
+    t.is(invalidInboxQuery.statusCode, 400, 'Inbox and collection filters cannot be combined')
+    t.is(invalidInboxQuery.body.error.code, 'INVALID_QUERY', 'mutually exclusive filters return INVALID_QUERY')
+
     const fetched = await request(api.port, 'GET', '/api/v1/bookmarks/' + bookmark.bookmark_id)
     t.is(fetched.statusCode, 200, 'get by ID returns 200')
     t.is(bookmarkBody(fetched).bookmark_id, bookmark.bookmark_id, 'get by ID returns requested bookmark')
     t.is((await request(api.port, 'GET', '/api/v1/bookmarks/01ARZ3NDEKTSV4RRFFQ69G5FAV')).statusCode, 404, 'unknown bookmark returns 404')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark move endpoint handles Inbox, collections and groups', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-move'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Destino')
+    const otherCollectionResponse = await request(api.port, 'POST', '/api/v1/collections', { name: 'Otra colección' })
+    const otherCollectionId = otherCollectionResponse.body.collection.collection_id as string
+    const groupResponse = await request(api.port, 'POST', '/api/v1/groups', { name: 'Grupo destino', collection_id: collectionId })
+    const groupId = groupResponse.body.group.group_id as string
+
+    const global = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/move-global', title: 'Desde Inbox'
+    })
+    t.is(global.statusCode, 201, 'global Inbox bookmark is created')
+    const globalId = bookmarkBody(global).bookmark_id as string
+    const intoCollection = await request(api.port, 'POST', '/api/v1/bookmarks/' + globalId + '/move', {
+      collection_id: collectionId, group_id: null
+    })
+    t.is(intoCollection.statusCode, 200, 'moving from global Inbox to a collection returns 200')
+    t.is(bookmarkBody(intoCollection).collection_id, collectionId, 'target collection is applied')
+    t.is(bookmarkBody(intoCollection).group_id, null, 'bookmark remains in collection Inbox')
+    t.is(bookmarkBody(intoCollection).position, null, 'collection move resets position')
+
+    const toGroup = await request(api.port, 'POST', '/api/v1/bookmarks/' + globalId + '/move', { group_id: groupId })
+    t.is(toGroup.statusCode, 200, 'moving to a group returns 200')
+    t.is(bookmarkBody(toGroup).collection_id, collectionId, 'group move keeps collection unchanged')
+    t.is(bookmarkBody(toGroup).group_id, groupId, 'group move applies target group')
+    t.is(bookmarkBody(toGroup).position, null, 'group move resets position')
+
+    const toGlobalInbox = await request(api.port, 'POST', '/api/v1/bookmarks/' + globalId + '/move', { collection_id: null })
+    t.is(toGlobalInbox.statusCode, 200, 'moving to global Inbox returns 200')
+    t.is(bookmarkBody(toGlobalInbox).collection_id, null, 'global Inbox move clears collection')
+    t.is(bookmarkBody(toGlobalInbox).group_id, null, 'global Inbox move clears group')
+
+    const emptyMove = await request(api.port, 'POST', '/api/v1/bookmarks/' + globalId + '/move', {})
+    t.is(emptyMove.statusCode, 400, 'empty move is rejected')
+    t.is(emptyMove.body.error.code, 'EMPTY_MOVE', 'empty move returns EMPTY_MOVE')
+
+    const invalidInboxGroup = await request(api.port, 'POST', '/api/v1/bookmarks/' + globalId + '/move', {
+      collection_id: null, group_id: groupId
+    })
+    t.is(invalidInboxGroup.statusCode, 400, 'global Inbox cannot target a group')
+    t.is(invalidInboxGroup.body.error.code, 'INVALID_GROUP_FOR_INBOX', 'invalid Inbox group returns explicit error')
+
+    const mismatch = await request(api.port, 'POST', '/api/v1/bookmarks/' + globalId + '/move', {
+      collection_id: otherCollectionId, group_id: groupId
+    })
+    t.is(mismatch.statusCode, 400, 'group from another collection is rejected')
+    t.is(mismatch.body.error.code, 'GROUP_NOT_FOUND', 'cross-collection group returns GROUP_NOT_FOUND')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark move requires an identity', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-move-no-identity'
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const response = await request(api.port, 'POST', '/api/v1/bookmarks/01ARZ3NDEKTSV4RRFFQ69G5FAV/move', { collection_id: null })
+    t.is(response.statusCode, 401, 'move without identity returns 401')
+    t.is(response.body.error.code, 'NO_IDENTITY', 'missing identity error is explicit')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('bookmark move persists after restarting the node', async (t) => {
+  const dataDir = './tmp-test-bookmarks-api-move-persist'
+  const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const collectionId = await createIdentityAndCollection(api.port, 'Persistencia move')
+    const otherCollection = await request(api.port, 'POST', '/api/v1/collections', { name: 'Colección destino' })
+    const targetCollectionId = otherCollection.body.collection.collection_id as string
+    const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
+      url: 'https://example.com/move-persist', collection_id: collectionId, title: 'Persistir move'
+    })
+    const bookmarkId = bookmarkBody(created).bookmark_id as string
+    const moved = await request(api.port, 'POST', '/api/v1/bookmarks/' + bookmarkId + '/move', {
+      collection_id: targetCollectionId
+    })
+    t.is(moved.statusCode, 200, 'move succeeds before restart')
+
+    await api.close()
+    api = null
+    await node.close()
+    node = null
+    node = await startNode(config)
+    const persisted = node.state.bookmarks.get(bookmarkId)
+    t.is(persisted?.collectionId, targetCollectionId, 'target collection is restored after restart')
+    t.is(persisted?.groupId, null, 'group is restored as null after restart')
   } finally {
     if (api !== null) await api.close()
     if (node !== null) await node.close()
