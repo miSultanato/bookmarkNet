@@ -1,4 +1,5 @@
 import test from 'brittle'
+import sodium from 'sodium-native'
 import {
   addBookmark,
   collectionGenesis,
@@ -27,6 +28,7 @@ import {
   isResourceId,
   isUserId,
   toHex,
+  utf8Bytes,
   userIdFromPublicKey
 } from '../src/ids.ts'
 import { deriveCollectionKeypair } from '../src/keys.ts'
@@ -236,6 +238,27 @@ test('collectionGenesis signs the SHA-256 hash of its specified fields', (t) => 
   const hash = genesisSigningHash(params)
   const signature = deserializeSignature(event.payload.signature_by_owner)
   t.ok(verify(signature, hash, userPair.publicKey))
+})
+
+test('genesisSigningHash uses null bytes between signing fields', (t) => {
+  const params = genesisParams({ name: 'a' })
+  const fields = [
+    params.collectionId,
+    toHex(params.collectionPublicKey),
+    params.authorId,
+    toHex(params.authorPublicKey),
+    params.name,
+    params.visibility,
+    params.forkedFrom ?? '',
+    params.migratedFrom ?? ''
+  ]
+  const expectedHash = new Uint8Array(32)
+  sodium.crypto_hash_sha256(expectedHash, utf8Bytes(fields.join('\x00')))
+  const legacyHash = new Uint8Array(32)
+  sodium.crypto_hash_sha256(legacyHash, utf8Bytes(fields.join('')))
+
+  t.alike(genesisSigningHash(params), expectedHash)
+  t.ok(toHex(expectedHash) !== toHex(legacyHash))
 })
 
 test('genesis signature fails verification when a signed field changes', (t) => {
