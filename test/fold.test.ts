@@ -1,5 +1,4 @@
 import test from 'brittle'
-import type { CollectionEvent } from '../src/events.ts'
 import { applyEvent, emptyState, foldEvents } from '../src/fold.ts'
 
 const AUTHOR_ID = 'u_test-author'
@@ -10,12 +9,7 @@ const SECOND_BOOKMARK_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAW'
 const GROUP_ID = 'g_0123456789ab'
 let nextEventId = 0
 
-function event(
-  event_type: string,
-  payload: Record<string, unknown>,
-  created_at = CREATED_AT,
-  event_id = `event-${++nextEventId}`
-): CollectionEvent {
+function event(event_type, payload, created_at = CREATED_AT, event_id = `event-${++nextEventId}`) {
   return {
     schema_version: 1,
     event_id,
@@ -23,10 +17,10 @@ function event(
     author_id: AUTHOR_ID,
     created_at,
     payload
-  } as CollectionEvent
+  }
 }
 
-function genesis(name = 'Mi colección', eventId?: string): CollectionEvent {
+function genesis(name = 'Mi colección', eventId) {
   return event('collection_genesis', {
     collection_id: 'a'.repeat(64),
     collection_public_key: 'pk_col_test',
@@ -40,7 +34,7 @@ function genesis(name = 'Mi colección', eventId?: string): CollectionEvent {
   }, CREATED_AT, eventId)
 }
 
-function addBookmark(bookmarkId = BOOKMARK_ID, payloadOverrides: Record<string, unknown> = {}, createdAt = CREATED_AT): CollectionEvent {
+function addBookmark(bookmarkId = BOOKMARK_ID, payloadOverrides = {}, createdAt = CREATED_AT) {
   return event('add_bookmark', {
     bookmark_id: bookmarkId,
     resource_id: 'r_' + 'b'.repeat(64),
