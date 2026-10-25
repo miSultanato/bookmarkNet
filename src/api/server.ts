@@ -1,5 +1,6 @@
 import http from 'bare-http1'
 import type { HTTPServer } from 'bare-http1'
+import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
 
@@ -35,7 +36,7 @@ function sendJson(res: any, status: number, body: unknown): void {
   const payload = JSON.stringify(body)
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.setHeader('Content-Length', String(new TextEncoder().encode(payload).length))
+  res.setHeader('Content-Length', String(utf8Bytes(payload).length))
   res.end(payload)
 }
 
