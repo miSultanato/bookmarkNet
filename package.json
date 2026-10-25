@@ -1,0 +1,14 @@
+{
+  "name": "bookmarknet",
+  "version": "0.0.0",
+  "description": "Red P2P de bookmarks. El activo principal es el enlace, no el usuario.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "brittle-bare test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "brittle": "^4.5.0",
+    "typescript": "^7.0.2"
+  }
+}
