@@ -59,7 +59,6 @@ test('loadConfig reads values from an explicit JSON config file', async (t) => {
   const saved = saveEnv()
   await resetTemp()
   try {
-    for (const key of ENV_KEYS) delete env[key]
     await fs.writeFile(CONFIG_PATH, JSON.stringify({
       port: 8123,
       data_dir: TMP_DIR + '/data',
@@ -85,7 +84,6 @@ test('loadConfig expands a leading tilde to the home directory', async (t) => {
   const saved = saveEnv()
   await resetTemp()
   try {
-    for (const key of ENV_KEYS) delete env[key]
     env.BOOKMARKNET_DATA_DIR = '~/.bookmarknet-test/'
     const config = loadConfig()
     t.is(config.dataDir, os.homedir().replace(/\/+$/, '') + '/.bookmarknet-test/')
