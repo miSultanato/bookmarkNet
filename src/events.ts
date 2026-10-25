@@ -46,7 +46,7 @@ export interface UpdateMetadataPayload {
 }
 export interface CreateGroupPayload { group_id: string; name: string; position: number }
 export interface DeleteGroupPayload { group_id: string }
-export interface CollectionUnpublishedPayload { message?: string; migrated_to: string | null }
+export interface CollectionUnpublishedPayload { message?: string; migrated_to?: string | null }
 
 export type CollectionEventType =
   | 'collection_genesis'
