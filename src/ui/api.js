@@ -62,6 +62,24 @@ export async function getCollectionBookmarks(collectionId) {
   return request('/api/v1/bookmarks?collection_id=' + encodeURIComponent(collectionId))
 }
 
+export async function getGroups(collectionId) {
+  return request('/api/v1/groups?collection_id=' + encodeURIComponent(collectionId))
+}
+
+export async function createGroup({ name, collection_id } = {}) {
+  return request('/api/v1/groups', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, collection_id })
+  })
+}
+
+export async function deleteGroup(id) {
+  return request('/api/v1/groups/' + encodeURIComponent(id), {
+    method: 'DELETE'
+  })
+}
+
 export async function getInboxBookmarks() {
   return request('/api/v1/bookmarks?inbox=true')
 }
@@ -96,10 +114,13 @@ export async function createCollection({ name, description, visibility } = {}) {
   })
 }
 
-export async function moveBookmark(bookmarkId, { collection_id }) {
+export async function moveBookmark(bookmarkId, { collection_id, group_id } = {}) {
+  const body = {}
+  if (collection_id !== undefined) body.collection_id = collection_id
+  if (group_id !== undefined) body.group_id = group_id
   return request('/api/v1/bookmarks/' + encodeURIComponent(bookmarkId) + '/move', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ collection_id })
+    body: JSON.stringify(body)
   })
 }
