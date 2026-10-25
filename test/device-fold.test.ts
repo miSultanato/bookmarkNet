@@ -36,7 +36,7 @@ function collection(createdAt = T1, id = COLLECTION_ID) {
 function group(createdAt = T1, groupId = GROUP_ID, collectionId = COLLECTION_ID) {
   return at(deviceCreateGroup({ authorId: AUTHOR_ID, groupId, collectionId, name: 'Lectura', position: 2 }), createdAt)
 }
-function bookmark(id = BOOKMARK_ID, groupId: string | null = null, createdAt = T1, collectionId = COLLECTION_ID) {
+function bookmark(id = BOOKMARK_ID, groupId: string | null = null, createdAt = T1, collectionId: string | null = COLLECTION_ID) {
   return at(deviceAddBookmark({
     authorId: AUTHOR_ID, bookmarkId: id, collectionId, resourceId: RESOURCE_ID,
     canonicalUrl: 'https://example.com/', title: 'Título', description: 'Descripción bookmark',
@@ -117,7 +117,7 @@ test('device_delete_collection ignores missing/repeated events and cascades perm
   t.is(duplicateCollection.bookmarks.get(BOOKMARK_ID)?.deleted, true)
 })
 
-test('device_add_bookmark ignores invalid parents and duplicates; absent group means Inbox', (t) => {
+test('device_add_bookmark ignores invalid parents and duplicates; null collection means global Inbox', (t) => {
   const empty = emptyDeviceState()
   t.is(applyDeviceEvent(empty, bookmark()), empty)
   const state = initial()
@@ -128,6 +128,12 @@ test('device_add_bookmark ignores invalid parents and duplicates; absent group m
   t.is(added.bookmarks.get(BOOKMARK_ID)?.groupId, null)
   t.is(applyDeviceEvent(added, bookmark(BOOKMARK_ID, null, T2)), added)
   t.is(applyDeviceEvent(state, bookmark(BOOKMARK_ID, GROUP_ID)), state)
+  const globalInbox = applyDeviceEvent(emptyDeviceState(), bookmark(BOOKMARK_ID, null, T1, null))
+  t.is(globalInbox.bookmarks.get(BOOKMARK_ID)?.collectionId, null)
+  t.is(globalInbox.bookmarks.get(BOOKMARK_ID)?.groupId, null)
+  const malformed = bookmark(BOOKMARK_2, null, T1, null)
+  ;(malformed.payload as any).groupId = GROUP_ID
+  t.is(applyDeviceEvent(emptyDeviceState(), malformed).bookmarks.size, 0)
   const withGroup = applyDeviceEvent(initial(), group())
   const groupedBookmark = applyDeviceEvent(withGroup, bookmark(BOOKMARK_ID, GROUP_ID))
   t.is(groupedBookmark.bookmarks.get(BOOKMARK_ID)?.groupId, GROUP_ID)
@@ -167,19 +173,63 @@ test('device_remove_bookmark soft-deletes once', (t) => {
   t.is(applyDeviceEvent(removed, deviceRemoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID })), removed)
 })
 
-test('device_move_bookmark validates active groups and resets position', (t) => {
+test('device_move_bookmark handles global Inbox, collections, groups, and invalid destinations', (t) => {
   const empty = emptyDeviceState()
-  t.is(applyDeviceEvent(empty, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: null })), empty)
+  const noBookmark = deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: null })
+  t.is(applyDeviceEvent(empty, noBookmark), empty)
+
+  const COLLECTION_2 = '01ARZ3NDEKTSV4RRFFQ69G5FAZ'
   let state = applyDeviceEvent(initial(true), bookmark(BOOKMARK_ID, GROUP_ID))
   state = applyDeviceEvent(state, deviceReorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID, position: 0 }))
-  const inbox = applyDeviceEvent(state, eventOn(deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: null }), T2))
-  t.is(inbox.bookmarks.get(BOOKMARK_ID)?.groupId, null)
-  t.is(inbox.bookmarks.get(BOOKMARK_ID)?.position, null)
-  const grouped = applyDeviceEvent(inbox, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID }))
+  state = applyDeviceEvent(state, collection(T1, COLLECTION_2))
+  const crossCollection = applyDeviceEvent(state, eventOn(deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_2, groupId: null
+  }), T2))
+  t.is(crossCollection.bookmarks.get(BOOKMARK_ID)?.collectionId, COLLECTION_2)
+  t.is(crossCollection.bookmarks.get(BOOKMARK_ID)?.groupId, null)
+  t.is(crossCollection.bookmarks.get(BOOKMARK_ID)?.position, null)
+  t.is(crossCollection.bookmarks.get(BOOKMARK_ID)?.updatedAt, T2)
+
+  const backToCollection = applyDeviceEvent(crossCollection, deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: null
+  }))
+  const grouped = applyDeviceEvent(backToCollection, eventOn(deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: GROUP_ID
+  }), T3))
   t.is(grouped.bookmarks.get(BOOKMARK_ID)?.groupId, GROUP_ID)
-  t.is(applyDeviceEvent(inbox, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: 'g_abcdef123456' })), inbox)
+  t.is(grouped.bookmarks.get(BOOKMARK_ID)?.position, null)
+
+  const inbox = applyDeviceEvent(grouped, deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: null, groupId: null
+  }))
+  t.is(inbox.bookmarks.get(BOOKMARK_ID)?.collectionId, null)
+  t.is(inbox.bookmarks.get(BOOKMARK_ID)?.groupId, null)
+
+  const malformed = deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: null, groupId: null })
+  ;(malformed.payload as any).groupId = GROUP_ID
+  t.is(applyDeviceEvent(inbox, malformed), inbox)
+
+  const missingCollection = deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAY', groupId: null
+  })
+  t.is(applyDeviceEvent(inbox, missingCollection), inbox)
+
+  const deletedCollection = applyDeviceEvent(state, deviceDeleteCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_2 }))
+  t.is(applyDeviceEvent(deletedCollection, deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_2, groupId: null
+  })), deletedCollection)
+
+  const otherGroup = 'g_abcdef123456'
+  const withOtherCollectionGroup = applyDeviceEvent(state, group(T1, otherGroup, COLLECTION_2))
+  const wrongCollectionGroup = deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: otherGroup
+  })
+  t.is(applyDeviceEvent(withOtherCollectionGroup, wrongCollectionGroup), withOtherCollectionGroup)
+
   const deletedGroup = applyDeviceEvent(grouped, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }))
-  t.is(applyDeviceEvent(deletedGroup, deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID })), deletedGroup)
+  t.is(applyDeviceEvent(deletedGroup, deviceMoveBookmark({
+    authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: GROUP_ID
+  })), deletedGroup)
 })
 
 test('device_reorder_bookmark materializes by createdAt and bookmarkId, clamps and ignores deleted items', (t) => {
@@ -223,7 +273,7 @@ test('device_create_group requires active collection and ignores duplicates', (t
   t.is(applyDeviceEvent(created, group(T2)), created)
 })
 
-test('device_delete_group marks group deleted and moves active bookmarks to Inbox', (t) => {
+test('device_delete_group leaves active bookmarks in their collection root', (t) => {
   const empty = emptyDeviceState()
   t.is(applyDeviceEvent(empty, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID })), empty)
   let state = applyDeviceEvent(initial(true), bookmark(BOOKMARK_ID, GROUP_ID))
@@ -232,6 +282,7 @@ test('device_delete_group marks group deleted and moves active bookmarks to Inbo
   const deleted = applyDeviceEvent(state, eventOn(deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }), T2))
   t.is(deleted.groups.get(GROUP_ID)?.deleted, true)
   t.is(deleted.groups.get(GROUP_ID)?.updatedAt, T2)
+  t.is(deleted.bookmarks.get(BOOKMARK_ID)?.collectionId, COLLECTION_ID)
   t.is(deleted.bookmarks.get(BOOKMARK_ID)?.groupId, null)
   t.is(deleted.bookmarks.get(BOOKMARK_ID)?.position, null)
   t.is(deleted.bookmarks.get(BOOKMARK_ID)?.updatedAt, T2)
@@ -246,7 +297,7 @@ test('foldDeviceEvents folds empty and complete logs in order', (t) => {
     collection(T1),
     group(T1),
     bookmark(BOOKMARK_ID, GROUP_ID, T1),
-    deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID }),
+    deviceMoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, groupId: GROUP_ID }),
     deviceReorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID, position: 0 }),
     deviceRemoveBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID }),
     deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }),
