@@ -97,3 +97,156 @@ a {
 .placeholder h1 {
   color: var(--fg);
 }
+
+
+/* Mis bookmarks */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #cbd5e1;
+  margin: 1.25rem 0;
+}
+
+.tabs button {
+  border: 1px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0.7rem 1rem;
+  background: transparent;
+  color: var(--muted);
+}
+
+.tabs button.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bookmark-list,
+.collection-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.bookmark-item,
+.collection-item {
+  display: block;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.bookmark-item {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.bookmark-title {
+  color: var(--fg);
+  font-size: 1.05rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.bookmark-url {
+  overflow-wrap: anywhere;
+}
+
+.bookmark-move,
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.bookmark-move select,
+.inline-form input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--fg);
+  font: inherit;
+}
+
+.bookmark-move button,
+.inline-form button,
+.tab-content > button {
+  border: 1px solid var(--accent);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--accent);
+  color: #fff;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.collection-item {
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.collection-item:hover,
+.collection-item:focus-visible {
+  border-color: var(--accent);
+}
+
+.collection-item h2 {
+  margin: 0;
+  color: var(--fg);
+  font-size: 1.1rem;
+}
+
+.collection-description,
+.collection-count {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.collection-count {
+  font-size: 0.9rem;
+}
+
+.inline-form {
+  margin-top: 1.25rem;
+}
+
+.empty {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.tab-content {
+  display: grid;
+  gap: 1rem;
+}
