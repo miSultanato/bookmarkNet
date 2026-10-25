@@ -72,6 +72,17 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(apiModule.body.includes('getInboxBookmarks'), 'API helper exposes the Inbox request')
     t.ok(apiModule.body.includes('createCollection'), 'API helper exposes collection creation')
     t.ok(apiModule.body.includes('moveBookmark'), 'API helper exposes bookmark moves')
+    t.ok(apiModule.body.includes('getCollection'), 'API helper exposes collection retrieval')
+    t.ok(apiModule.body.includes('updateCollection'), 'API helper exposes collection updates')
+    t.ok(apiModule.body.includes('deleteCollection'), 'API helper exposes collection deletion')
+    t.ok(apiModule.body.includes('getCollectionBookmarks'), 'API helper exposes collection bookmark listing')
+    t.ok(apiModule.body.includes('createBookmark'), 'API helper exposes bookmark creation')
+    t.ok(apiModule.body.includes('deleteBookmark'), 'API helper exposes bookmark deletion')
+
+    const collection = await request(api.port, '/assets/collection.js')
+    t.is(collection.statusCode, 200, 'collection module is served')
+    t.ok(collection.contentType?.startsWith('text/javascript; charset=utf-8'), 'collection module has JavaScript content type')
+    t.ok(collection.body.includes('getCollection'), 'collection module loads a collection')
 
     const onboarding = await request(api.port, '/assets/onboarding.js')
     t.is(onboarding.statusCode, 200, 'onboarding module is served')
