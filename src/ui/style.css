@@ -250,3 +250,158 @@ select:disabled {
   display: grid;
   gap: 1rem;
 }
+
+
+/* Colección */
+.collection-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.collection-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #dbe2ea;
+}
+
+.collection-title-area {
+  min-width: 0;
+  flex: 1;
+}
+
+.collection-header h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  line-height: 1.25;
+}
+
+.collection-header .collection-description {
+  margin: 0.65rem 0;
+  line-height: 1.6;
+}
+
+.collection-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.badge-local {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #075985;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.collection-actions {
+  flex-shrink: 0;
+}
+
+.collection-actions button,
+.bookmark-item .actions button,
+.bookmark-form button,
+.collection-edit-form button {
+  border: 1px solid var(--accent);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--accent);
+  color: #fff;
+}
+
+.collection-actions button:disabled {
+  opacity: 0.55;
+}
+
+.collection-actions .danger-button,
+.bookmark-item .actions .danger-button {
+  border-color: #b91c1c;
+  background: #b91c1c;
+}
+
+.secondary-button {
+  border-color: #cbd5e1 !important;
+  background: #fff !important;
+  color: var(--fg) !important;
+}
+
+.bookmark-form-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.bookmark-form,
+.collection-edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.bookmark-form input,
+.collection-edit-form input,
+.collection-edit-form textarea,
+.collection-edit-form select {
+  min-width: 0;
+  flex: 1 1 12rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--fg);
+  font: inherit;
+}
+
+.collection-edit-form textarea {
+  min-height: 2.75rem;
+  resize: vertical;
+}
+
+.collection-edit-form label {
+  display: flex;
+  flex: 1 1 10rem;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+}
+
+.collection-edit-form label select {
+  width: 100%;
+}
+
+.bookmark-form button {
+  flex: 0 0 auto;
+}
+
+.bookmark-item .actions {
+  justify-content: flex-end;
+}
+
+.collection-empty {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  color: var(--muted);
+  line-height: 1.6;
+}
