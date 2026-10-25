@@ -194,16 +194,11 @@ export async function handleUpdateBookmark(
     }
   }
 
-  // The event constructor rejects empty titles; preserve the API's explicit empty-string semantics.
-  const eventChanges = changes.title === ''
-    ? { ...changes, title: ' ' }
-    : changes
   const event = deviceEditBookmark({
     authorId: node.identity.user_id,
     bookmarkId: id,
-    changes: eventChanges
+    changes
   })
-  if (changes.title === '') event.payload.changes.title = ''
   await node.apply(event)
   const updated = node.state.bookmarks.get(id)
   if (!updated || updated.deleted) return error(404, 'NOT_FOUND', 'Bookmark no encontrado')
