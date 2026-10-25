@@ -193,8 +193,18 @@ function applyRemoveBookmark(state: DeviceState, event: DeviceRemoveBookmarkEven
 
 function applyMoveBookmark(state: DeviceState, event: DeviceMoveBookmarkEvent): DeviceState {
   const current = state.bookmarks.get(event.payload.bookmarkId)
-  const { collectionId, groupId } = event.payload
+  const payload = event.payload as DeviceMoveBookmarkEvent['payload'] & { collectionId?: string | null }
+  const { groupId } = payload
   if (!current || current.deleted) return state
+
+  // Older local API callers omit collectionId. Keep their same-collection move
+  // behavior until that API endpoint adopts the unified payload.
+  let collectionId = payload.collectionId
+  if (collectionId === undefined) {
+    collectionId = groupId === null ? current.collectionId : state.groups.get(groupId)?.collectionId
+    if (collectionId === undefined) return state
+  }
+
   if (collectionId === null) {
     if (groupId !== null) return state
   } else if (!collectionIsActive(state, collectionId)) {
