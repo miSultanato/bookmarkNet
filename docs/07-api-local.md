@@ -151,3 +151,16 @@ Ninguna otra operación de la API genera eventos. Las operaciones de lectura (GE
 **Seguridad:** la API local valida el header `Host` contra `allowed_hosts` (por defecto `localhost`, `127.0.0.1`, `[::1]`). Para acceso desde la LAN (ej. NAS), añadir la IP del NAS a `allowed_hosts`. Ver docs/22-configuracion.md.
 
 **Content-Type:** las peticiones `POST`, `PUT` y `PATCH` deben incluir `Content-Type: application/json`. Las peticiones `DELETE` no requieren `Content-Type` (no tienen body), pero sí validan `Origin`.
+
+## Escritura de eventos
+
+Cada endpoint que muta estado (bookmarks, grupos, colecciones) sigue este flujo:
+
+1. Validar la petición.
+2. Construir el evento con el constructor de `src/events.ts`.
+3. `await node.apply(event)` — escribe en el `device_core` y actualiza el estado en memoria.
+4. Devolver la respuesta.
+
+`node.apply(event)` es el único punto de escritura. Encapsula `appendEvent(core, event)` y `applyEvent(state, event)`. Es async: primero escribe en el `device_core` y, solo si eso va bien, actualiza `state`. Si `appendEvent` falla, el estado no se actualiza. El estado de `Node` es inmutable desde fuera; solo `apply` lo cambia.
+
+Este flujo es el mismo para todos los endpoints de mutación. Las operaciones de lectura (GET) no escriben en el log.
