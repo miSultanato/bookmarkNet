@@ -52,6 +52,7 @@ Estas decisiones complementan los 8 pasos anteriores y se aplican en v1. No son 
 - **Validar el esquema.** Solo se aceptan `http:` y `https:`. Cualquier otro esquema (`mailto:`, `ftp:`, `file:`, etc.) o una URL sin esquema (`example.com/path`) se rechaza con `RangeError`. La app puede intentar normalizar URLs sin esquema en la UI (añadiendo `https://`), pero la función `canonicalizeUrl` no lo hace.
 - **Puertos no estándar (`:8080`):** se mantienen. Un puerto no estándar identifica un recurso distinto.
 - **Encoding en el path (`%20` vs `+`):** se mantiene tal cual. La normalización de encoding se pospone a v2.
+- **Segmentos `.` y `..` en el path:** se normalizan según WHATWG URL (el parser los resuelve). `https://example.com/a/./b` y `https://example.com/a/../b` producen la misma `canonical_url` que sus equivalentes sin segmentos relativos.
 - **`ref` y `source`:** en v1 se mantienen siempre. El doc no define qué valores son "de tracking conocidos", así que no se eliminan para no fragmentar `resource_id` por una lista inventada. La lista explícita, si se decide, irá en v2.
 
 ## Implementación
