@@ -1,14 +1,12 @@
+import sodium from 'sodium-native'
+
 const CROCKFORD_BASE32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 const MAX_TIMESTAMP = 0xffffffffffff
 const RANDOMNESS_BYTES = 10
 
 function randomBytes(): Uint8Array {
-  // Bare does not expose Web Crypto globally. Keep the module dependency-free;
-  // Math.random is not cryptographically secure and must not protect secrets.
   const bytes = new Uint8Array(RANDOMNESS_BYTES)
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = Math.floor(Math.random() * 256)
-  }
+  sodium.randombytes_buf(bytes)
   return bytes
 }
 
