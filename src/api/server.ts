@@ -1,4 +1,5 @@
 import http from 'bare-http1'
+import fs from 'bare-fs'
 import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
@@ -77,6 +78,60 @@ function isAllowedHost(host: string | undefined, allowedHosts: string[]): boolea
 function isLoopback(address: string | undefined): boolean {
   return address === '127.0.0.1' || address === '::1' ||
     address === '::ffff:127.0.0.1' || address === '[::1]'
+}
+
+const STATIC_CONTENT_TYPES: Record<string, string> = {
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon'
+}
+
+function sendStaticFile(filePath: string, contentType: string, res: any): void {
+  fs.readFile(filePath, (error: any, data: any) => {
+    if (error) {
+      const status = error.code === 'ENOENT' ? 404 : 500
+      sendEmpty(res, status)
+      return
+    }
+    res.statusCode = 200
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Length', String(data.length))
+    res.end(data)
+  })
+}
+
+function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): boolean {
+  if (method !== 'GET') return false
+  if (route.path === '/') {
+    sendStaticFile('src/ui/index.html', 'text/html; charset=utf-8', res)
+    return true
+  }
+  if (!route.path.startsWith('/assets/')) return false
+
+  const rawAssetPath = route.path.slice('/assets/'.length)
+  let assetPath: string
+  try {
+    assetPath = decodeURIComponent(rawAssetPath)
+  } catch {
+    sendEmpty(res, 400)
+    return true
+  }
+
+  if (assetPath.length === 0 || assetPath.includes('..') ||
+      assetPath.includes('/') || assetPath.includes('\\') ||
+      !/^[A-Za-z0-9._-]+$/.test(assetPath)) {
+    sendEmpty(res, 400)
+    return true
+  }
+
+  const dot = assetPath.lastIndexOf('.')
+  const extension = dot === -1 ? '' : assetPath.slice(dot).toLowerCase()
+  const contentType = STATIC_CONTENT_TYPES[extension] ?? 'application/octet-stream'
+  sendStaticFile('src/ui/' + assetPath, contentType, res)
+  return true
 }
 
 function sendJson(res: any, status: number, body: unknown): void {
@@ -327,6 +382,8 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
     const host = req.headers.host
     const method = (req.method ?? 'GET').toUpperCase()
     const route = matchRoute(req.url)
+
+    if (dispatchStaticRequest(method, route, res)) return
 
     if (!isAllowedHost(host, config.allowedHosts)) {
       sendJson(res, 421, errorBody('MISDIRECTED_REQUEST', 'Host no permitido'))
