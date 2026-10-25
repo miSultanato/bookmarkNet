@@ -29,8 +29,10 @@ function saveEnv(): Record<string, string | undefined> {
 function restoreEnv(saved: Record<string, string | undefined>): void {
   for (const key of ENV_KEYS) {
     const value = saved[key]
-    if (value === undefined) delete env[key]
-    else env[key] = value
+    // bare-env does not permit deleting keys from its environment proxy.
+    // Restore variables that originally existed; tests that introduce new
+    // variables are ordered last so their values cannot affect earlier tests.
+    if (value !== undefined) env[key] = value
   }
 }
 
@@ -38,7 +40,6 @@ test('loadConfig returns documented defaults when config.json is absent', async 
   const saved = saveEnv()
   await resetTemp()
   try {
-    for (const key of ENV_KEYS) delete env[key]
     const config = loadConfig(CONFIG_PATH)
     const defaults = defaultConfig()
     t.is(config.port, 7575)
@@ -80,28 +81,6 @@ test('loadConfig reads values from an explicit JSON config file', async (t) => {
   }
 })
 
-test('environment variables override JSON values and parse allowed hosts', async (t) => {
-  const saved = saveEnv()
-  await resetTemp()
-  try {
-    await fs.writeFile(CONFIG_PATH, JSON.stringify({
-      port: 8123,
-      data_dir: TMP_DIR + '/from-json',
-      allowed_hosts: ['json.test']
-    }))
-    env.BOOKMARKNET_PORT = '9001'
-    env.BOOKMARKNET_DATA_DIR = TMP_DIR + '/from-env'
-    env.BOOKMARKNET_ALLOWED_HOSTS = ' localhost, 127.0.0.1 , example.test '
-    const config = loadConfig(CONFIG_PATH)
-    t.is(config.port, 9001)
-    t.is(config.dataDir, TMP_DIR + '/from-env')
-    t.alike(config.allowedHosts, ['localhost', '127.0.0.1', 'example.test'])
-  } finally {
-    restoreEnv(saved)
-    await fs.rm(TMP_DIR, { recursive: true, force: true })
-  }
-})
-
 test('loadConfig expands a leading tilde to the home directory', async (t) => {
   const saved = saveEnv()
   await resetTemp()
@@ -123,6 +102,28 @@ test('invalid BOOKMARKNET_PORT throws RangeError', async (t) => {
     env.BOOKMARKNET_DATA_DIR = TMP_DIR
     env.BOOKMARKNET_PORT = 'not-a-port'
     t.exception(() => loadConfig(), RangeError)
+  } finally {
+    restoreEnv(saved)
+    await fs.rm(TMP_DIR, { recursive: true, force: true })
+  }
+})
+
+test('environment variables override JSON values and parse allowed hosts', async (t) => {
+  const saved = saveEnv()
+  await resetTemp()
+  try {
+    await fs.writeFile(CONFIG_PATH, JSON.stringify({
+      port: 8123,
+      data_dir: TMP_DIR + '/from-json',
+      allowed_hosts: ['json.test']
+    }))
+    env.BOOKMARKNET_PORT = '9001'
+    env.BOOKMARKNET_DATA_DIR = TMP_DIR + '/from-env'
+    env.BOOKMARKNET_ALLOWED_HOSTS = ' localhost, 127.0.0.1 , example.test '
+    const config = loadConfig(CONFIG_PATH)
+    t.is(config.port, 9001)
+    t.is(config.dataDir, TMP_DIR + '/from-env')
+    t.alike(config.allowedHosts, ['localhost', '127.0.0.1', 'example.test'])
   } finally {
     restoreEnv(saved)
     await fs.rm(TMP_DIR, { recursive: true, force: true })
