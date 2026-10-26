@@ -25,6 +25,7 @@ export interface DeviceCollectionState {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
   deleted: boolean
   createdAt: string
   updatedAt?: string
@@ -90,6 +91,7 @@ function applyCreateCollection(state: DeviceState, event: DeviceCreateCollection
     collectionId: p.collectionId,
     name: p.name,
     visibility: p.visibility,
+    language: p.language ?? 'es',
     deleted: false,
     createdAt: event.created_at
   }
@@ -106,6 +108,7 @@ function applyUpdateCollection(state: DeviceState, event: DeviceUpdateCollection
   const next: DeviceCollectionState = { ...current, updatedAt: event.created_at }
   if (hasOwn(changes, 'name') && changes.name !== undefined) next.name = changes.name
   if (hasOwn(changes, 'visibility') && changes.visibility !== undefined) next.visibility = changes.visibility
+  if (hasOwn(changes, 'language') && changes.language !== undefined) next.language = changes.language
   if (hasOwn(changes, 'description')) {
     if (changes.description === null) delete next.description
     else if (changes.description !== undefined) next.description = changes.description
