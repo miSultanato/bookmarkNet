@@ -56,10 +56,10 @@ POST   /groups/:id/move             # {bookmark_id} → 200 con el bookmark actu
 ## Colecciones
 
 ```http
-GET    /collections                 # ?visibility=&owner=
-POST   /collections                 # {name, description?}
-GET    /collections/:id
-PATCH  /collections/:id
+GET    /collections                 # ?visibility=&owner= (respuesta incluye language)
+POST   /collections                 # {name, description?, visibility?, language?}
+GET    /collections/:id             # respuesta incluye language
+PATCH  /collections/:id             # {name?, description?, visibility?, language?}
 DELETE /collections/:id
 POST   /collections/:id/publish
 POST   /collections/:id/duplicate   # {name?, description?} → nueva colección con `forked_from: <collection_id>` en el génesis
@@ -67,6 +67,10 @@ POST   /collections/:id/follow      # {enlace_bmn}
 POST   /collections/:id/unfollow
 GET    /collections/:id/status      # {peers, last_sync, state}
 ```
+
+`language` es opcional en `POST /collections`; por defecto es `'es'`. Valores permitidos: `es` (español), `en` (inglés) y `eu` (euskera). Las respuestas de `GET /collections` y `GET /collections/:id` incluyen `language`.
+
+El campo `language` indica el idioma principal de la colección. Se usa para la búsqueda multilingüe (ver [docs/25-busqueda-i18n.md](25-busqueda-i18n.md)) y para mostrar un badge de idioma en la UI.
 
 **Nota:** `POST /collections` crea un borrador local en
 el `device_core`. NO genera `collection_genesis` todavía.

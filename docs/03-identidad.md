@@ -126,7 +126,10 @@ interface DeviceCreateCollectionPayload {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
 }
+
+Idioma principal de la colección. Valores: `es` (español), `en` (inglés), `eu` (euskera). Por defecto, `es`.
 
 interface DeviceUpdateCollectionPayload {
   collectionId: string
@@ -134,6 +137,7 @@ interface DeviceUpdateCollectionPayload {
     name?: string
     description?: string | null   // null = borrar
     visibility?: 'public' | 'unlisted'
+    language?: 'es' | 'en' | 'eu'
   }
 }
 
@@ -230,6 +234,7 @@ interface DeviceCollectionState {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
   deleted: boolean
   createdAt: string
   updatedAt?: string
@@ -265,8 +270,8 @@ interface DeviceGroupState {
 #### Reglas de fold
 
 - **`device_metadata`:** reemplaza `state.profile` con el payload. Campos ausentes se eliminan.
-- **`device_create_collection`:** crea la colección si no existe. Si existe, ignora.
-- **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`).
+- **`device_create_collection`:** crea la colección si no existe. Si existe, ignora. Asigna `language` desde el payload; si falta en un evento mal formado, usa `'es'`. El constructor garantiza el valor por defecto `'es'`.
+- **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`). Asigna `language` si está presente; si no, conserva el valor actual.
 - **`device_delete_collection`:** si no existe, ignora. Marca `deleted: true`. Sus bookmarks y grupos también se marcan como eliminados (soft delete en cascada, definitivo: no se "resucitan" si la colección se vuelve a crear con el mismo `collectionId`; se crea una colección nueva).
 - **`device_add_bookmark`:** si `collectionId` es `null`, se acepta sin validar colección (Inbox global), pero `groupId` debe ser `null`; si no lo es, se ignora. Si `collectionId` no es `null` y la colección no existe o está eliminada, se ignora. Si el `bookmarkId` ya existe, se ignora. Si `groupId` no es `null` y no existe o no pertenece a `collectionId`, se ignora. Crea el bookmark con `position: null` (orden por `createdAt`).
 - **`device_edit_bookmark`:** si el bookmark no existe o está eliminado, ignora. Aplica `changes`. `title` y `tags` no se pueden borrar con `null` (ignora el cambio). `description` y `notes` sí.
