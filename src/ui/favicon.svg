@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title id="title">Lotura</title>
+  <rect width="32" height="32" fill="#FFFFFF"/>
   <defs>
     <linearGradient id="lotura-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#3BC0F0"/>
@@ -6,10 +8,10 @@
     </linearGradient>
   </defs>
   <g fill="url(#lotura-gradient)">
-    <rect x="1" y="1" width="10" height="10" rx="3"/>
-    <rect x="1" y="11.5" width="10" height="10" rx="3"/>
-    <rect x="1" y="22" width="10" height="9" rx="3"/>
-    <rect x="11.5" y="22" width="9" height="9" rx="3"/>
-    <rect x="22" y="22" width="9" height="9" rx="3"/>
+    <rect x="1" y="1" width="10" height="10" rx="2.2"/>
+    <rect x="1" y="11" width="10" height="10" rx="2.2"/>
+    <rect x="1" y="21" width="10" height="10" rx="2.2"/>
+    <rect x="11" y="21" width="10" height="10" rx="2.2"/>
+    <rect x="21" y="21" width="10" height="10" rx="2.2"/>
   </g>
 </svg>
