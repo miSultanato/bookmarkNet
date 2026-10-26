@@ -14,6 +14,7 @@
     "build": "bare-build --standalone src/main.ts"
   },
   "devDependencies": {
+    "bare-build": "^1.6.0",
     "brittle": "^4.5.0",
     "holepunch-types": "^0.2.3",
     "typescript": "^7.0.2"
