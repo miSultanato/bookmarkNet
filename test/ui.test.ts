@@ -62,7 +62,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.is(style.statusCode, 200, 'stylesheet is served')
     t.ok(style.contentType?.startsWith('text/css; charset=utf-8'), 'stylesheet has CSS content type')
     t.ok(style.body.includes(':root'), 'stylesheet contains CSS variables')
-    t.ok(style.body.includes('background: #f5f6f8'), 'stylesheet uses the MVP0 background')
+    t.ok(style.body.includes('--bg: #f5f6f8'), 'stylesheet uses the MVP0 background')
     t.ok(style.body.includes('width: 240px'), 'stylesheet uses the 240px sidebar')
 
     const app = await request(api.port, '/assets/app.js')
