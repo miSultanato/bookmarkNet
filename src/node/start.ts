@@ -1,6 +1,7 @@
 import type Hypercore from 'hypercore'
 import type { HTTPServer } from 'bare-http1'
 import type { Config } from './config.ts'
+import { acquirePidLock } from './pid-lock.ts'
 import { appendEvent, closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
 import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
@@ -19,24 +20,42 @@ export interface Node {
 }
 
 export async function startNode(config: Config): Promise<Node> {
-  const core = await openDeviceCore(config.dataDir)
-  const events = await readAllEvents(core)
-  let state = foldDeviceEvents(events)
-  const stored = await loadIdentity(config.dataDir)
-  const identity = stored ? identityToApi(stored) : null
+  const releasePidLock = await acquirePidLock(config.dataDir)
 
-  return {
-    config,
-    core,
-    get state() {
-      return state
-    },
-    identity,
-    async apply(event: DeviceEvent): Promise<void> {
-      await appendEvent(core, event)
-      state = applyDeviceEvent(state, event)
-    },
-    close: async () => closeDeviceCore(core)
+  try {
+    const core = await openDeviceCore(config.dataDir)
+    try {
+      const events = await readAllEvents(core)
+      let state = foldDeviceEvents(events)
+      const stored = await loadIdentity(config.dataDir)
+      const identity = stored ? identityToApi(stored) : null
+
+      return {
+        config,
+        core,
+        get state() {
+          return state
+        },
+        identity,
+        async apply(event: DeviceEvent): Promise<void> {
+          await appendEvent(core, event)
+          state = applyDeviceEvent(state, event)
+        },
+        close: async () => {
+          try {
+            await closeDeviceCore(core)
+          } finally {
+            await releasePidLock()
+          }
+        }
+      }
+    } catch (error) {
+      await closeDeviceCore(core)
+      throw error
+    }
+  } catch (error) {
+    await releasePidLock()
+    throw error
   }
 }
 

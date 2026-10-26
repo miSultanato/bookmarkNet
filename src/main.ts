@@ -6,7 +6,16 @@ import { listenWithPortFallback, startNode } from './node/start.ts'
 import { version } from './index.ts'
 
 const config = loadConfig()
-const node = await startNode(config)
+let node: Awaited<ReturnType<typeof startNode>>
+
+try {
+  node = await startNode(config)
+} catch (error) {
+  console.error((error as Error).message)
+  process.exit(1)
+  throw error
+}
+
 let api: Awaited<ReturnType<typeof createServer>>
 
 try {
