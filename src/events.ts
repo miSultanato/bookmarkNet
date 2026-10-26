@@ -11,6 +11,7 @@ export interface CollectionGenesisPayload {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
   forked_from: string | null
   migrated_from: string | null
   signature_by_owner: string
@@ -294,11 +295,13 @@ export interface GenesisSigningParams {
   authorPublicKey: Uint8Array
   name: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
   forkedFrom?: string | null
   migratedFrom?: string | null
 }
 
-export interface CollectionGenesisParams extends GenesisSigningParams {
+export interface CollectionGenesisParams extends Omit<GenesisSigningParams, 'language'> {
+  language?: 'es' | 'en' | 'eu'
   secretKey: Uint8Array
   description?: string
 }
@@ -316,6 +319,9 @@ function validateGenesisSigningParams(params: GenesisSigningParams): void {
   requireNonEmptyString(params.name, 'name')
   if (params.visibility !== 'public' && params.visibility !== 'unlisted') {
     throw new RangeError('visibility must be public or unlisted')
+  }
+  if (params.language !== 'es' && params.language !== 'en' && params.language !== 'eu') {
+    throw new RangeError('language must be one of: es, en, eu')
   }
   if (params.forkedFrom !== undefined && params.forkedFrom !== null && !isCollectionId(params.forkedFrom)) {
     throw new RangeError('forkedFrom must be a valid collection ID, null, or undefined')
@@ -348,6 +354,7 @@ export function genesisSigningHash(params: GenesisSigningParams): Uint8Array {
     toHex(params.authorPublicKey),
     params.name,
     params.visibility,
+    params.language,
     params.forkedFrom ?? '',
     params.migratedFrom ?? ''
   ].join('\x00')
@@ -357,7 +364,9 @@ export function genesisSigningHash(params: GenesisSigningParams): Uint8Array {
 }
 
 export function collectionGenesis(params: CollectionGenesisParams): CollectionGenesisEvent {
-  validateGenesisSigningParams(params)
+  const language = params.language ?? 'es'
+  const signingParams: GenesisSigningParams = { ...params, language }
+  validateGenesisSigningParams(signingParams)
   if (!(params.secretKey instanceof Uint8Array) || params.secretKey.length !== 64) {
     throw new RangeError('secretKey must contain exactly 64 bytes')
   }
@@ -365,7 +374,7 @@ export function collectionGenesis(params: CollectionGenesisParams): CollectionGe
 
   const forkedFrom = params.forkedFrom ?? null
   const migratedFrom = params.migratedFrom ?? null
-  const hash = genesisSigningHash(params)
+  const hash = genesisSigningHash(signingParams)
   const signature = serializeSignature(sign(hash, params.secretKey))
   const payload: CollectionGenesisPayload = {
     collection_id: params.collectionId,
@@ -373,6 +382,7 @@ export function collectionGenesis(params: CollectionGenesisParams): CollectionGe
     author_public_key: serializePublicKey(params.authorPublicKey),
     name: params.name,
     visibility: params.visibility,
+    language,
     forked_from: forkedFrom,
     migrated_from: migratedFrom,
     signature_by_owner: signature
