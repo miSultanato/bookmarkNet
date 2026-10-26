@@ -81,7 +81,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(style.body.includes('.brand { display: flex; align-items: center; gap: 10px;'), 'stylesheet aligns the sidebar logo and wordmark')
 
     const app = await request(api.port, '/assets/app.js')
-    t.is(app.statusCode, 200, 'application module is served')
+    t.is(app.statusCode, 200, 'application module in src/ui root is served through the static fallback')
     t.ok(app.contentType?.startsWith('text/javascript; charset=utf-8'), 'application module has JavaScript content type')
     t.ok(app.body.includes("from './api.js'"), 'application module imports the API helper')
     t.ok(app.body.includes('hashchange'), 'application module listens for hash changes')
@@ -165,6 +165,9 @@ test('local UI static assets are served safely alongside the API', async (t) => 
 
     const oldBookmarks = await request(api.port, '/assets/bookmarks.js')
     t.is(oldBookmarks.statusCode, 404, 'legacy bookmarks module is no longer served')
+
+    const missingSvg = await request(api.port, '/assets/no-existe.svg')
+    t.is(missingSvg.statusCode, 404, 'missing SVG asset returns 404 after both lookup locations fail')
 
     const missing = await request(api.port, '/assets/nope.css')
     t.is(missing.statusCode, 404, 'missing static asset returns 404')
