@@ -126,10 +126,8 @@ interface DeviceCreateCollectionPayload {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
-  language: 'es' | 'en' | 'eu'
+  language: 'es' | 'en' | 'eu' // Idioma principal de la colección. Valores: es (español), en (inglés), eu (euskera). Por defecto, es.
 }
-
-Idioma principal de la colección. Valores: `es` (español), `en` (inglés), `eu` (euskera). Por defecto, `es`.
 
 interface DeviceUpdateCollectionPayload {
   collectionId: string
