@@ -10,16 +10,6 @@ import type { DeviceEvent } from '../device-events.ts'
 export async function openDeviceCore(dataDir: string): Promise<Hypercore> {
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 })
   const storagePath = dataDir.replace(/\/+$/, '') + '/device-core'
-  const lockPath = storagePath + '/db/LOCK'
-
-  // RocksDB can leave a stale LOCK file after a crash or an unclean shutdown.
-  // Remove only this device-core lock before opening Hypercore; if unlink fails,
-  // propagate the error rather than proceeding as if the lock were cleared.
-  try {
-    await fs.unlink(lockPath)
-  } catch (error) {
-    if ((error as { code?: string }).code !== 'ENOENT') throw error
-  }
 
   const core = new Hypercore(storagePath, { valueEncoding: 'json' })
   await core.ready()
