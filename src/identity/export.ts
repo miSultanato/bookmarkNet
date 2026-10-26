@@ -160,10 +160,15 @@ export async function importIdentity(
   sodium.crypto_pwhash(key, utf8Bytes(password), salt, exported.opslimit, exported.memlimit, exported.alg)
 
   const plaintext = new Uint8Array(ciphertext.length - sodium.crypto_aead_xchacha20poly1305_ietf_ABYTES)
-  const decrypted = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
-    plaintext, null, ciphertext, null, nonce, key
-  )
-  if (decrypted !== true) {
+  let decrypted: number
+  try {
+    decrypted = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
+      plaintext, null, ciphertext, null, nonce, key
+    )
+  } catch {
+    throw new RangeError('No se pudo descifrar identity_blob: contraseña incorrecta o datos corruptos')
+  }
+  if (typeof decrypted === 'number' && decrypted < 0) {
     throw new RangeError('No se pudo descifrar identity_blob: contraseña incorrecta o datos corruptos')
   }
 
