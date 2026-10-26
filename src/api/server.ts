@@ -185,7 +185,7 @@ function readJsonBody(req: any): Promise<unknown> {
       totalSize += size
       if (totalSize > MAX_BODY_SIZE) {
         settled = true
-        req.destroy()
+        req.pause()
         reject(new RangeError(PAYLOAD_TOO_LARGE_MESSAGE))
         return
       }
@@ -206,8 +206,9 @@ function readJsonBody(req: any): Promise<unknown> {
   })
 }
 
-function sendBodyReadError(res: any, err: unknown): void {
+function sendBodyReadError(res: any, err: unknown, req: any): void {
   if (err instanceof RangeError && err.message === PAYLOAD_TOO_LARGE_MESSAGE) {
+    res.once('finish', () => req.destroy())
     sendJson(res, 413, errorBody('PAYLOAD_TOO_LARGE', PAYLOAD_TOO_LARGE_MESSAGE))
     return
   }
@@ -233,7 +234,7 @@ async function dispatchGroupRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleCreateGroup(node, body as { name: string; collection_id: string })
@@ -246,7 +247,7 @@ async function dispatchGroupRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleMoveBookmarkToGroup(node, route.params.id, body as { bookmark_id: string })
@@ -291,7 +292,7 @@ async function dispatchCollectionRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleCreateCollection(node, body as { name: string; description?: string; visibility?: 'public' | 'unlisted' })
@@ -316,7 +317,7 @@ async function dispatchCollectionRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleUpdateCollection(node, id, body as { name?: string; description?: string | null; visibility?: 'public' | 'unlisted' })
@@ -358,7 +359,7 @@ async function dispatchBookmarkRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleCreateBookmark(node, body as {
@@ -379,7 +380,7 @@ async function dispatchBookmarkRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleMoveBookmark(node, route.params.id, body as { collection_id?: string | null; group_id?: string | null })
@@ -392,7 +393,7 @@ async function dispatchBookmarkRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleReorderBookmark(node, route.params.id, body as { group_id: string | null; position: number })
@@ -416,7 +417,7 @@ async function dispatchBookmarkRequest(
     try {
       body = await readJsonBody(req)
     } catch (err) {
-      sendBodyReadError(res, err)
+      sendBodyReadError(res, err, req)
       return true
     }
     const result = await handleUpdateBookmark(node, id, body as {
@@ -487,7 +488,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
       try {
         body = await readJsonBody(req)
       } catch (err) {
-        sendBodyReadError(res, err)
+        sendBodyReadError(res, err, req)
         return
       }
       const result = route.path === '/api/v1/identity/export'
@@ -520,7 +521,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
         try {
           body = await readJsonBody(req)
         } catch (err) {
-          sendBodyReadError(res, err)
+          sendBodyReadError(res, err, req)
           return
       }
         const result = await handleUpdateProfile(node, body)
@@ -532,7 +533,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
         try {
           body = await readJsonBody(req)
         } catch (err) {
-          sendBodyReadError(res, err)
+          sendBodyReadError(res, err, req)
           return
       }
         const result = await handleImportHtml(node, body as { html: string })
