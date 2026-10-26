@@ -80,6 +80,29 @@ test('HTML import requires an identity and validates html', async (t) => {
   }
 })
 
+test('HTML import rejects request bodies larger than 5 MB', async (t) => {
+  const dataDir = './tmp-test-import-api-large-body'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+  try {
+    const config = { ...defaultConfig(), dataDir, port: 0, bind: '127.0.0.1' }
+    node = await startNode(config)
+    api = await createServer(config, node)
+    const identity = await request(api.port, '/api/v1/identity/create', {})
+    t.is(identity.status, 201, 'identity is created before oversized import')
+
+    const oversized = await request(api.port, IMPORT_PATH, { html: 'x'.repeat(5 * 1024 * 1024 + 1) })
+    t.is(oversized.status, 413, 'oversized request returns 413')
+    t.is(oversized.body.error.code, 'PAYLOAD_TOO_LARGE', 'oversized request has a stable error code')
+    t.is(oversized.body.error.message, 'El body supera el límite de 5 MB', 'oversized request explains the limit')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
 test('HTML import maps bookmarks, collections and nested folders and persists state', async (t) => {
   const dataDir = './tmp-test-import-api'
   let node: Awaited<ReturnType<typeof startNode>> | null = null
