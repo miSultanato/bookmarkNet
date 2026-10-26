@@ -50,8 +50,19 @@ await new Promise<void>((resolve) => {
     if (closing) return
     closing = true
     try {
-      await api.close()
-      await node.close()
+      const timeout = new Promise<void>((resolveTimeout) => {
+        setTimeout(() => {
+          console.warn('El cierre tardó demasiado; forzando la salida.')
+          resolveTimeout()
+        }, 3000)
+      })
+      await Promise.race([
+        (async () => {
+          await api.close()
+          await node.close()
+        })(),
+        timeout
+      ])
       process.exit(0)
     } catch (error) {
       console.error('Error al cerrar BookmarkNet:', error)
