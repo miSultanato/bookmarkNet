@@ -232,8 +232,8 @@ async function dispatchGroupRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleCreateGroup(node, body as { name: string; collection_id: string })
@@ -245,8 +245,8 @@ async function dispatchGroupRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleMoveBookmarkToGroup(node, route.params.id, body as { bookmark_id: string })
@@ -290,8 +290,8 @@ async function dispatchCollectionRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleCreateCollection(node, body as { name: string; description?: string; visibility?: 'public' | 'unlisted' })
@@ -315,8 +315,8 @@ async function dispatchCollectionRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleUpdateCollection(node, id, body as { name?: string; description?: string | null; visibility?: 'public' | 'unlisted' })
@@ -357,8 +357,8 @@ async function dispatchBookmarkRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleCreateBookmark(node, body as {
@@ -378,8 +378,8 @@ async function dispatchBookmarkRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleMoveBookmark(node, route.params.id, body as { collection_id?: string | null; group_id?: string | null })
@@ -391,8 +391,8 @@ async function dispatchBookmarkRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleReorderBookmark(node, route.params.id, body as { group_id: string | null; position: number })
@@ -415,8 +415,8 @@ async function dispatchBookmarkRequest(
     let body: unknown
     try {
       body = await readJsonBody(req)
-    } catch {
-      sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+    } catch (err) {
+      sendBodyReadError(res, err)
       return true
     }
     const result = await handleUpdateBookmark(node, id, body as {
