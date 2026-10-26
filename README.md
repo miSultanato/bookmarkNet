@@ -29,6 +29,90 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 MVP en diseño. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
+## Requisitos
+
+- **Para desarrollo:** Node.js 22 o posterior y Bare. Instala Bare con `npm install -g bare-runtime`.
+- **Para usar el binario standalone:** no necesitas instalar Node.js ni Bare; el binario incluirá el runtime cuando esté disponible. Por ahora, sigue los pasos de desarrollo.
+
+## Instalación
+
+Clona el repositorio e instala las dependencias:
+
+```bash
+git clone https://github.com/miSultanato/bookmarkNet.git
+cd bookmarkNet
+npm install
+npm install -g bare-runtime
+```
+
+## Arranque
+
+Desde la raíz del repositorio, ejecuta:
+
+```bash
+bare src/main.ts
+```
+
+El nodo sirve la interfaz web en [http://localhost:7575](http://localhost:7575). Abre esa dirección en el navegador. El puerto por defecto es `7575`; el auto-incremento si está ocupado está pendiente de implementación.
+
+Para ejecutar los tests:
+
+```bash
+npm test
+```
+
+## Uso básico
+
+1. Abre [http://localhost:7575](http://localhost:7575).
+2. Pulsa **Empezar** en la portada.
+3. En el onboarding, crea tu identidad. No necesitas email ni contraseña: las claves se generan y se guardan en tu dispositivo. Opcionalmente, marca **Importar bookmarks de mi navegador** y selecciona un archivo HTML exportado desde Chrome, Firefox o Edge.
+4. Crea una colección en **Mis colecciones**.
+5. Añade bookmarks desde la pantalla de una colección o desde el **Inbox**.
+6. Importa un archivo HTML en cualquier momento desde **Importar** (`#/import`).
+7. Configura tu perfil desde **Configuración**.
+
+## Dónde viven los datos
+
+El nodo guarda sus datos en el directorio local de BookmarkNet:
+
+- **Linux/macOS:** `~/.bookmarknet/`
+- **Windows:** `%APPDATA%\\bookmarknet\\`
+
+Dentro encontrarás, según el uso y la configuración:
+
+- `identity.bmn`: identidad y clave privada en claro, en un archivo con permisos `0600`; el directorio de datos se crea con permisos `0700`.
+- El core local de Hypercore (`device_core`), que contiene los eventos.
+- `config.json`, si se crea para personalizar la configuración.
+- `logs/`, con los logs del nodo.
+
+**Importante:** el archivo de identidad en disco no está cifrado. Protege tu cuenta de usuario y el acceso al directorio de datos. La exportación cifrada de identidad mediante `POST /api/v1/identity/export` todavía no está implementada.
+
+## Configuración
+
+El archivo opcional `config.json` está en `<dataDir>/config.json`; por defecto, en `~/.bookmarknet/config.json`. Si no existe, el nodo usa los valores por defecto.
+
+Las variables de entorno tienen prioridad sobre `config.json`:
+
+- `BOOKMARKNET_PORT`: puerto HTTP.
+- `BOOKMARKNET_DATA_DIR`: directorio de datos.
+- `BOOKMARKNET_LOG_LEVEL`: nivel de log.
+- `BOOKMARKNET_ALLOWED_HOSTS`: hosts permitidos, separados por comas.
+- `BOOKMARKNET_BIND`: dirección de bind del servidor.
+
+Valores por defecto:
+
+- Puerto: `7575`.
+- `logLevel`: `info`.
+- `openBrowserOnStart`: `true` en la configuración; la apertura automática del navegador está pendiente de implementación.
+- `allowedHosts`: `localhost`, `127.0.0.1` y `[::1]`.
+- `bind`: `127.0.0.1` (solo loopback).
+
+La pantalla **Configuración** muestra la configuración en modo de solo lectura y no expone `dataDir` por seguridad. Para cambiarla, edita `config.json` y reinicia el nodo.
+
+## Nota sobre el nombre
+
+**Lotura** es el nombre del producto que ves en la interfaz. **BookmarkNet** es el nombre técnico usado por el repositorio, `package.json`, el directorio de datos y los identificadores internos. El directorio de datos sigue llamándose `~/.bookmarknet/` en Linux/macOS (o `%APPDATA%\\bookmarknet\\` en Windows).
+
 ## Documentación
 
 | Documento | Contenido |
