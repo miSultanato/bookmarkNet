@@ -9,9 +9,11 @@
       <stop offset="100%" stop-color="#8B4FE8"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
-  <rect x="0" y="100" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
-  <rect x="0" y="200" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
-  <rect x="100" y="200" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
-  <rect x="200" y="200" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+  <g transform="translate(9 9)">
+    <rect x="0" y="0" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+    <rect x="0" y="96" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+    <rect x="0" y="192" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+    <rect x="96" y="192" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+    <rect x="192" y="192" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+  </g>
 </svg>
