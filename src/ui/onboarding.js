@@ -7,7 +7,7 @@ export function render(container, state, onDone) {
   section.className = 'onboarding'
 
   const heading = document.createElement('h1')
-  heading.textContent = 'Bienvenido a BookmarkNet'
+  heading.textContent = 'Bienvenido a Lotura'
   section.append(heading)
 
   const intro = document.createElement('p')
