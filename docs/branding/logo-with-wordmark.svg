@@ -1,22 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title">
-  <title id="title">Lotura — Guarda enlaces. Comparte colecciones.</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 480" width="600" height="480">
   <defs>
-    <linearGradient id="lotura-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="lotura-tl" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#3BC0F0"/>
-      <stop offset="25%" stop-color="#2E7BF6"/>
-      <stop offset="50%" stop-color="#3B5BDB"/>
-      <stop offset="75%" stop-color="#5B4FD6"/>
+      <stop offset="100%" stop-color="#2E7BF6"/>
+    </linearGradient>
+    <linearGradient id="lotura-ml" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2E7BF6"/>
+      <stop offset="100%" stop-color="#3B5BDB"/>
+    </linearGradient>
+    <linearGradient id="lotura-bl" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B5BDB"/>
+      <stop offset="100%" stop-color="#5B4FD6"/>
+    </linearGradient>
+    <linearGradient id="lotura-bm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B4FD6"/>
+      <stop offset="100%" stop-color="#7B4FE0"/>
+    </linearGradient>
+    <linearGradient id="lotura-br" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B4FE0"/>
       <stop offset="100%" stop-color="#8B4FE8"/>
     </linearGradient>
   </defs>
-  <g fill="url(#lotura-gradient)">
-    <rect x="265" y="25" width="80" height="80" rx="18"/>
-    <rect x="265" y="108" width="80" height="80" rx="18"/>
-    <rect x="265" y="191" width="80" height="80" rx="18"/>
-    <rect x="348" y="191" width="80" height="80" rx="18"/>
-    <rect x="431" y="191" width="80" height="80" rx="18"/>
+
+  <!-- Símbolo L modular -->
+  <g transform="translate(155, 40)">
+    <rect x="0"   y="0"   width="90" height="90" rx="20" fill="url(#lotura-tl)"/>
+    <rect x="0"   y="100" width="90" height="90" rx="20" fill="url(#lotura-ml)"/>
+    <rect x="0"   y="200" width="90" height="90" rx="20" fill="url(#lotura-bl)"/>
+    <rect x="100" y="200" width="90" height="90" rx="20" fill="url(#lotura-bm)"/>
+    <rect x="200" y="200" width="90" height="90" rx="20" fill="url(#lotura-br)"/>
   </g>
-  <text x="400" y="365" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="112" letter-spacing="-2" fill="#1A1D23">Lotura</text>
-  <text x="400" y="415" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="25" fill="#1A1D23">Guarda enlaces. Comparte colecciones.</text>
-  <text x="400" y="455" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="400" font-size="20" fill="#6B7280">Crea, comparte y descubre colecciones de enlaces.</text>
+
+  <!-- Wordmark "Lotura" (más separado del símbolo) -->
+  <text x="300" y="420"
+        font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="96"
+        font-weight="800"
+        letter-spacing="-3"
+        text-anchor="middle"
+        fill="#1A1D23">Lotura</text>
 </svg>
