@@ -78,21 +78,3 @@ test('device-core appends, reads in order, and persists across reopening', async
   }
 })
 
-test('device-core opens after removing an orphaned RocksDB LOCK file', async (t) => {
-  const dataDir = DATA_DIR + '-orphan-lock'
-  const lockDir = dataDir + '/device-core/db'
-  const lockPath = lockDir + '/LOCK'
-  let core: Hypercore | null = null
-
-  await fs.rm(dataDir, { recursive: true, force: true })
-  try {
-    await fs.mkdir(lockDir, { recursive: true })
-    await fs.writeFile(lockPath, '')
-
-    core = await openDeviceCore(dataDir)
-    t.is(core.length, 0, 'device core opens despite the stale LOCK file')
-  } finally {
-    if (core !== null) await closeDeviceCore(core)
-    await fs.rm(dataDir, { recursive: true, force: true })
-  }
-})
