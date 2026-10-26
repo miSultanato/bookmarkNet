@@ -4,7 +4,7 @@ import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
-import { handleCreateIdentity, handleGetIdentity } from './identity.ts'
+import { handleCreateIdentity, handleExportIdentity, handleGetIdentity, handleImportIdentity } from './identity.ts'
 import { handleGetProfile, handleUpdateProfile } from './profile.ts'
 import { handleGetConfig } from './config.ts'
 import { handleImportHtml } from './import.ts'
@@ -454,6 +454,24 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
     }
     if (method === 'GET' && route.path === '/api/v1/identity') {
       const result = await handleGetIdentity(config.dataDir)
+      sendJson(res, result.status, result.body)
+      return
+    }
+    if (method === 'POST' && (route.path === '/api/v1/identity/export' || route.path === '/api/v1/identity/import')) {
+      let body: unknown
+      try {
+        body = await readJsonBody(req)
+      } catch {
+        sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+        return
+      }
+      const result = route.path === '/api/v1/identity/export'
+        ? await handleExportIdentity(config.dataDir, body)
+        : await handleImportIdentity(config.dataDir, body)
+      if (route.path === '/api/v1/identity/import' && result.status === 201) {
+        const identity = (result.body as { identity: NonNullable<Node['identity']> }).identity
+        node.identity = identity
+      }
       sendJson(res, result.status, result.body)
       return
     }
