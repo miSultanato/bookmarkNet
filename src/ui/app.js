@@ -1,5 +1,6 @@
 import { getIdentity, getCollections, getBookmarks, getInboxBookmarks, getProfile, getConfig } from './api.js'
 import { render as renderOnboarding } from './onboarding.js'
+import { render as renderWelcome } from './welcome.js'
 import { render as renderInbox } from './inbox.js'
 import { render as renderCollections } from './collections.js'
 import { render as renderImport } from './import.js'
@@ -51,8 +52,10 @@ function updateNavigation(routePath) {
 }
 function renderHeader(routePath) {
   updateNavigation(routePath)
-  const onboarding = !state.identity || routePath === '#/onboarding'
+  const onboarding = routePath === '#/onboarding'
+  const welcome = routePath === '#/' && !state.identity
   document.body.classList.toggle('onboarding-layout', onboarding)
+  document.body.classList.toggle('welcome-layout', welcome)
   if (layout) layout.hidden = false
 }
 function renderHome() {
@@ -96,7 +99,7 @@ function renderCurrentRoute() {
     navigate(query.get('tab') === 'collections' ? '#/collections' : '#/inbox')
     return
   }
-  if (!state.identity && routePath !== '#/onboarding') { navigate('#/onboarding'); return }
+  if (!state.identity && routePath !== '#/onboarding' && routePath !== '#/') { navigate('#/'); return }
   if (state.identity && routePath === '#/onboarding') { navigate('#/'); return }
 
   const knownRoute = routePath === '#/' || routePath === '#/onboarding' ||
@@ -109,8 +112,12 @@ function renderCurrentRoute() {
   if (routePath === '#/onboarding') {
     renderOnboarding(content, state, () => { state.errors = []; navigate('#/') })
   } else if (routePath === '#/') {
-    renderHome()
-    loadDataIfNeeded()
+    if (state.identity) {
+      renderHome()
+      loadDataIfNeeded()
+    } else {
+      renderWelcome(content, state, { onStart: () => navigate('#/onboarding') })
+    }
   } else if (routePath === '#/inbox') {
     renderInbox(content, state, { onReload: reloadData })
     loadDataIfNeeded()
@@ -182,7 +189,7 @@ async function start() {
     const result = await getIdentity()
     state.identity = result.identity
     initialized = true
-    if (!window.location.hash) window.location.hash = state.identity ? '#/' : '#/onboarding'
+    if (!window.location.hash) window.location.hash = '#/'
     renderCurrentRoute()
   } catch (error) {
     content.replaceChildren()

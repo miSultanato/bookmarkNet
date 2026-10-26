@@ -124,3 +124,27 @@ a { color: var(--accent); }
 .import-form label { display: grid; gap: 8px; color: var(--muted); }
 .import-form input[type="file"] { width: 100%; }
 .import-form button { justify-self: start; }
+
+/* Marketing portada */
+.welcome-layout .layout { min-height: 100vh; height: auto; }
+.welcome-layout .sidebar { display: none; }
+.welcome-layout .main { flex: 1; width: 100%; padding: 0; overflow: auto; }
+.welcome { width: min(100% - 2rem, 1120px); margin: 0 auto; padding: clamp(36px, 8vh, 88px) 0 48px; text-align: center; }
+.welcome h1 { margin: 0 0 22px; color: #1A1D23; font-size: 68px; font-weight: 800; letter-spacing: -2px; line-height: 1.05; }
+.welcome .tagline { margin: 0 0 12px; font-size: 32px; font-weight: 600; line-height: 1.25; }
+.welcome .subtitle { margin: 0; color: #666; font-size: 20px; line-height: 1.5; }
+.welcome .actions { justify-content: center; margin: 28px 0 54px; }
+.welcome .actions button { min-width: 132px; padding: 12px 20px; font-weight: 600; }
+.welcome .actions button.primary { background: #111827; border-color: #111827; }
+.welcome .actions button.secondary:disabled { background: #f1f3f5; border-color: #ddd; color: #667085; }
+.welcome .columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; text-align: left; }
+.welcome .column { padding: 22px; background: white; border: 1px solid #e1e4e8; border-radius: 12px; }
+.welcome .column .badge { margin-bottom: 14px; }
+.welcome .column h2 { margin: 0 0 10px; font-size: 1.1rem; line-height: 1.4; }
+.welcome .column p { margin: 0; color: #666; line-height: 1.6; }
+@media (max-width: 760px) {
+  .welcome { padding-top: 48px; }
+  .welcome h1 { font-size: clamp(48px, 12vw, 68px); }
+  .welcome .tagline { font-size: clamp(24px, 5vw, 32px); }
+  .welcome .columns { grid-template-columns: 1fr; }
+}
