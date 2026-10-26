@@ -1,10 +1,14 @@
+Lotura (nombre técnico: BookmarkNet) es una red P2P de bookmarks...
+
 # Visión
+
+> **Nota:** Lotura es el nombre de producto. BookmarkNet es el nombre técnico (repo, paquete, directorio de datos).
 
 ## El problema
 
 Internet ya no tiene escasez de información. Tiene exceso.
 
-Google responde: ¿Qué páginas existen? BookmarkNet responde: ¿Qué recursos considera útiles la comunidad?
+Google responde: ¿Qué páginas existen? Lotura responde: ¿Qué recursos considera útiles la comunidad?
 
 ## La propuesta
 
@@ -16,7 +20,7 @@ El problema ya no es encontrar información, sino encontrar información valiosa
 
 ## El valor único
 
-| Escenario | Google | BookmarkNet |
+| Escenario | Google | Lotura |
 |---|---|---|
 | Encontrar una URL concreta | Inmediato | Requiere curaduría previa |
 | Descubrir qué recursos usa una comunidad | SEO contamina | Patrones de co-ocurrencia |
@@ -32,4 +36,4 @@ Las contribuciones a colecciones ajenas se articulan como propuestas in-app (fas
 
 Un Internet donde el valor no está en quién produce más contenido, sino en quién identifica, organiza y conecta el conocimiento existente.
 
-BookmarkNet es Git para los enlaces.
+Lotura es Git para los enlaces.
