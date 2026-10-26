@@ -39,7 +39,7 @@ walk(uiDir)
 const lines = [
   '// Generado automáticamente por scripts/generate-assets.js. No editar.',
   'export const assets = {',
-  ...entries.map(({ key, asset, source }) => `  '${key}': (() => { try { const resolved = import.meta.asset('${asset}'); return resolved && resolved !== '${asset}' ? resolved : '${source}' } catch { return '${source}' } })(),`),
+  ...entries.map(({ key, asset, source }) => `  '${key}': (() => { try { const resolved = import.meta.asset('${asset}'); return typeof resolved === 'string' && resolved && resolved !== '${asset}' && !resolved.startsWith('file:') && !resolved.startsWith('/') && !resolved.startsWith('src/ui/') ? resolved : '${source}' } catch { return '${source}' } })(),`),
   '}',
   ''
 ]
