@@ -25,9 +25,11 @@ function walk(directory, relativeDirectory = '') {
       continue
     }
     if (!stat.isFile() || !allowedExtensions.has(path.extname(name).toLowerCase())) continue
+    const normalizedPath = relativePath.split(path.sep).join('/')
     entries.push({
-      key: relativePath.split(path.sep).join('/'),
-      source: 'src/ui/' + relativePath.split(path.sep).join('/')
+      key: normalizedPath,
+      asset: './' + normalizedPath,
+      source: 'src/ui/' + normalizedPath
     })
   }
 }
@@ -37,7 +39,7 @@ walk(uiDir)
 const lines = [
   '// Generado automáticamente por scripts/generate-assets.js. No editar.',
   'export const assets = {',
-  ...entries.map(({ key, source }) => `  '${key}': (() => { try { return import.meta.asset('${source}') } catch { return '${source}' } })(),`),
+  ...entries.map(({ key, asset, source }) => `  '${key}': (() => { try { return import.meta.asset('${asset}') } catch { return '${source}' } })(),`),
   '}',
   ''
 ]
