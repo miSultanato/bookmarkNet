@@ -17,6 +17,7 @@ function walk(directory, relativeDirectory = '') {
 
   for (const name of names) {
     const absolutePath = path.join(directory, name)
+    if (absolutePath === outputPath) continue
     const relativePath = path.posix.join(relativeDirectory, name)
     const stat = fs.statSync(absolutePath)
     if (stat.isDirectory()) {
