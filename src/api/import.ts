@@ -53,13 +53,10 @@ export async function handleImportHtml(
     let canonicalUrl: string
     try {
       canonicalUrl = canonicalizeUrl(bookmark.url)
-    } catch (cause) {
-      if (cause instanceof RangeError) {
-        summary.skipped++
-        summary.errors.push({ url: bookmark.url, reason: 'invalid URL' })
-        return
-      }
-      throw cause
+    } catch {
+      summary.skipped++
+      summary.errors.push({ url: bookmark.url, reason: 'invalid URL' })
+      return
     }
 
     try {
