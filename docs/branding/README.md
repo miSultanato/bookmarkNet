@@ -53,9 +53,9 @@ Descripción: **Crea, comparte y descubre colecciones de enlaces.**
 - `favicon.svg`: versión simplificada para la pestaña del navegador.
 - `logo-with-wordmark.svg`: portada, documentación y README.
 
-La copia `src/ui/assets/logo.svg` es idéntica a `docs/branding/logo.svg`: el archivo de documentación es la fuente canónica y la copia de `src/ui/assets/` permite servir el recurso estático desde la UI sin modificar el servidor.
+`docs/branding/logo.svg` es la fuente canónica. Las copias `src/ui/assets/logo.svg` y `src/ui/logo.svg` contienen el mismo SVG: la primera conserva los recursos de marca organizados bajo `assets/`, y la segunda es la copia que sirve el servidor actual.
 
-La UI sirve también `src/ui/assets/favicon.svg` en `/assets/favicon.svg`; el HTML enlaza esa ruta porque el servidor publica los recursos estáticos bajo `/assets/`.
+El favicon se conserva en `src/ui/assets/favicon.svg` como recurso de marca y se copia idénticamente a `src/ui/favicon.svg` para servirlo. El HTML enlaza `/assets/favicon.svg` y `/assets/logo.svg`; el servidor actual resuelve `/assets/<archivo>` directamente contra `src/ui/<archivo>` (no contra `src/ui/assets/`). Por eso hacen falta las copias en la raíz de `src/ui/`, sin modificar `src/api/server.ts`.
 
 ## Uso correcto
 
