@@ -4,10 +4,9 @@ Guarda enlaces. Comparte colecciones.
 
 Crea, comparte y descubre colecciones de enlaces.
 
+El conocimiento no se crea. Se descubre, se organiza y se comparte.
+
 > **Nota:** Lotura es el nombre de producto. El nombre técnico del proyecto es BookmarkNet (repo, paquete, directorio de datos).
-
-
-> El conocimiento no se crea. Se descubre, se organiza y se comparte.
 
 > **Disclaimer:** este repositorio (documentación y código) se desarrolla con asistencia de un LLM local. Las decisiones de diseño, la revisión y la verificación son humanas.
 
