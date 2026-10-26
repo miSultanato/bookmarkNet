@@ -107,6 +107,23 @@ function sendStaticFile(filePath: string, contentType: string, res: any): void {
   })
 }
 
+function sendStaticAsset(assetPath: string, contentType: string, res: any): void {
+  fs.readFile('src/ui/assets/' + assetPath, (error: any, data: any) => {
+    if (!error) {
+      res.statusCode = 200
+      res.setHeader('Content-Type', contentType)
+      res.setHeader('Content-Length', String(data.length))
+      res.end(data)
+      return
+    }
+    if (error.code !== 'ENOENT') {
+      sendEmpty(res, 500)
+      return
+    }
+    sendStaticFile('src/ui/' + assetPath, contentType, res)
+  })
+}
+
 function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): boolean {
   if (method !== 'GET') return false
   if (route.path === '/') {
@@ -134,7 +151,7 @@ function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): b
   const dot = assetPath.lastIndexOf('.')
   const extension = dot === -1 ? '' : assetPath.slice(dot).toLowerCase()
   const contentType = STATIC_CONTENT_TYPES[extension] ?? 'application/octet-stream'
-  sendStaticFile('src/ui/' + assetPath, contentType, res)
+  sendStaticAsset(assetPath, contentType, res)
   return true
 }
 
