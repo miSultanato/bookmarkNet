@@ -1,6 +1,8 @@
 import { getIdentity, getCollections, getBookmarks, getInboxBookmarks, getProfile, getConfig } from './api.js'
 import { render as renderOnboarding } from './onboarding.js'
-import { render as renderBookmarks } from './bookmarks.js'
+import { render as renderInbox } from './inbox.js'
+import { render as renderCollections } from './collections.js'
+import { render as renderImport } from './import.js'
 import { render as renderCollection } from './collection.js'
 import { render as renderBookmark } from './bookmark.js'
 import { render as renderSettings } from './settings.js'
@@ -31,69 +33,103 @@ function navigate(path) {
   if (window.location.hash === path) renderCurrentRoute()
   else window.location.hash = path
 }
-function renderPlaceholder(title, message) {
-  content.replaceChildren()
-  const section = document.createElement('section')
-  section.className = 'placeholder'
-  const heading = document.createElement('h1')
-  heading.textContent = title
-  const description = document.createElement('p')
-  description.textContent = message
-  section.append(heading, description)
-  content.append(section)
-}
-function updateNavigation(routePath, query) {
+function updateNavigation(routePath) {
   if (!sidebar) return
+  const activeRoute = /^#\/collections\/[^/]+$/.test(routePath) || /^#\/bookmarks\/[^/]+$/.test(routePath)
+    ? 'collections'
+    : routePath === '#/inbox' ? 'inbox'
+      : routePath === '#/collections' ? 'collections'
+        : routePath === '#/import' ? 'import'
+          : routePath === '#/settings' ? 'settings'
+            : routePath === '#/' ? 'home' : null
   for (const link of sidebar.querySelectorAll('a[data-route]')) {
-    const route = link.dataset.route
-    const active = route === 'settings' ? routePath === '#/settings' && !window.location.hash.includes('#import')
-      : route === 'import' ? routePath === '#/settings' && window.location.hash.includes('#import')
-        : route === 'inbox' ? routePath === '#/bookmarks' && query.get('tab') === 'inbox'
-          : route === 'collections' ? routePath === '#/bookmarks' && query.get('tab') === 'collections'
-            : route === 'home' ? routePath === '#/bookmarks' && !query.has('tab') : false
+    const active = link.dataset.route === activeRoute
     link.classList.toggle('active', active)
     if (active) link.setAttribute('aria-current', 'page')
     else link.removeAttribute('aria-current')
   }
 }
-function renderHeader() {
-  const hash = window.location.hash || ''
-  const routePath = hash.split('?')[0].split('#import')[0]
-  const queryString = hash.includes('?') ? hash.split('?')[1].split('#')[0] : ''
-  updateNavigation(routePath, new URLSearchParams(queryString))
+function renderHeader(routePath) {
+  updateNavigation(routePath)
   const onboarding = !state.identity || routePath === '#/onboarding'
   document.body.classList.toggle('onboarding-layout', onboarding)
   if (layout) layout.hidden = false
 }
+function renderHome() {
+  content.replaceChildren()
+  const page = document.createElement('section')
+  page.className = 'home-page'
+  const heading = document.createElement('h1')
+  heading.textContent = 'Inicio'
+  page.append(heading)
+  const cards = document.createElement('div')
+  cards.className = 'cards'
+  const collectionCard = document.createElement('a')
+  collectionCard.className = 'card home-card'
+  collectionCard.href = '#/collections'
+  const collectionHeading = document.createElement('h2')
+  collectionHeading.textContent = 'Mis colecciones'
+  const collectionDescription = document.createElement('p')
+  collectionDescription.textContent = 'Consulta y organiza tus colecciones de enlaces.'
+  collectionCard.append(collectionHeading, collectionDescription)
+  const inboxCard = document.createElement('a')
+  inboxCard.className = 'card home-card'
+  inboxCard.href = '#/inbox'
+  const inboxHeading = document.createElement('h2')
+  inboxHeading.textContent = 'Inbox'
+  const inboxDescription = document.createElement('p')
+  inboxDescription.textContent = 'Encuentra los bookmarks que todavía no has organizado.'
+  inboxCard.append(inboxHeading, inboxDescription)
+  cards.append(collectionCard, inboxCard)
+  page.append(cards)
+  content.append(page)
+}
 function renderCurrentRoute() {
   if (!initialized) return
-  renderHeader()
-  const requestedRoute = window.location.hash || ''
+  const requestedRoute = window.location.hash || '#/'
+  if (requestedRoute === '#/settings#import') { navigate('#/import'); return }
   const routePath = requestedRoute.split('?')[0].split('#import')[0]
   const queryString = requestedRoute.includes('?') ? requestedRoute.split('?')[1].split('#')[0] : ''
   const query = new URLSearchParams(queryString)
-  if (!state.identity) {
-    if (routePath !== '#/onboarding') { navigate('#/onboarding'); return }
-    renderOnboarding(content, state, () => { state.errors = []; navigate('#/bookmarks') })
-  } else if (routePath === '' || routePath === '#/bookmarks') {
-    renderBookmarks(content, state, { onReload: reloadData, initialTab: query.get('tab') })
+
+  if (routePath === '#/bookmarks') {
+    navigate(query.get('tab') === 'collections' ? '#/collections' : '#/inbox')
+    return
+  }
+  if (!state.identity && routePath !== '#/onboarding') { navigate('#/onboarding'); return }
+  if (state.identity && routePath === '#/onboarding') { navigate('#/'); return }
+
+  const knownRoute = routePath === '#/' || routePath === '#/onboarding' ||
+    routePath === '#/inbox' || routePath === '#/collections' ||
+    routePath === '#/import' || routePath === '#/settings' ||
+    /^#\/collections\/[^/]+$/.test(routePath) || /^#\/bookmarks\/[^/]+$/.test(routePath)
+  if (!knownRoute) { navigate(state.identity ? '#/' : '#/onboarding'); return }
+
+  renderHeader(routePath)
+  if (routePath === '#/onboarding') {
+    renderOnboarding(content, state, () => { state.errors = []; navigate('#/') })
+  } else if (routePath === '#/') {
+    renderHome()
+    loadDataIfNeeded()
+  } else if (routePath === '#/inbox') {
+    renderInbox(content, state, { onReload: reloadData })
+    loadDataIfNeeded()
+  } else if (routePath === '#/collections') {
+    renderCollections(content, state, { onReload: reloadData })
     loadDataIfNeeded()
   } else if (/^#\/collections\/[^/]+$/.test(routePath)) {
     const collectionId = decodeURIComponent(routePath.slice('#/collections/'.length))
-    renderCollection(content, state, collectionId, { onReload: reloadData, onDeleted: () => navigate('#/bookmarks') })
+    renderCollection(content, state, collectionId, { onReload: reloadData, onDeleted: () => navigate('#/collections') })
     loadDataIfNeeded()
   } else if (/^#\/bookmarks\/[^/]+$/.test(routePath)) {
     const bookmarkId = decodeURIComponent(routePath.slice('#/bookmarks/'.length))
-    renderBookmark(content, state, bookmarkId, { onReload: reloadData, onDeleted: (collectionId) => navigate(collectionId === null ? '#/bookmarks' : '#/collections/' + encodeURIComponent(collectionId)) })
+    renderBookmark(content, state, bookmarkId, { onReload: reloadData, onDeleted: (collectionId) => navigate(collectionId === null ? '#/inbox' : '#/collections/' + encodeURIComponent(collectionId)) })
     loadDataIfNeeded()
+  } else if (routePath === '#/import') {
+    renderImport(content, state)
   } else if (routePath === '#/settings') {
     renderSettings(content, state, { onReload: reloadData })
     loadDataIfNeeded()
-    if (window.location.hash.includes('#import')) queueMicrotask(() => document.querySelector('#import')?.scrollIntoView())
-  } else if (routePath === '#/onboarding') {
-    navigate('#/bookmarks')
-  } else {
-    navigate('#/bookmarks')
   }
   renderErrors()
 }
@@ -146,7 +182,7 @@ async function start() {
     const result = await getIdentity()
     state.identity = result.identity
     initialized = true
-    if (!window.location.hash) window.location.hash = state.identity ? '#/bookmarks' : '#/onboarding'
+    if (!window.location.hash) window.location.hash = state.identity ? '#/' : '#/onboarding'
     renderCurrentRoute()
   } catch (error) {
     content.replaceChildren()
