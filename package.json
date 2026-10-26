@@ -5,7 +5,13 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "test": "brittle-bare test/**/*.test.ts"
+    "generate:assets": "node scripts/generate-assets.js",
+    "pretest": "npm run generate:assets",
+    "test": "brittle-bare test/**/*.test.ts",
+    "predev": "npm run generate:assets",
+    "dev": "bare src/main.ts",
+    "prebuild": "npm run generate:assets",
+    "build": "bare-build --standalone src/main.ts"
   },
   "devDependencies": {
     "brittle": "^4.5.0",
