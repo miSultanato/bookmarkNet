@@ -250,6 +250,7 @@ test('genesisSigningHash uses null bytes between signing fields', (t) => {
     toHex(params.authorPublicKey),
     params.name,
     params.visibility,
+    params.language,
     params.forkedFrom ?? '',
     params.migratedFrom ?? ''
   ]
