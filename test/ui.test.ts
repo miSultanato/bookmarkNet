@@ -153,6 +153,11 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     const onboarding = await request(api.port, '/assets/onboarding.js')
     t.is(onboarding.statusCode, 200, 'onboarding module is served')
     t.ok(onboarding.body.includes('createIdentity'), 'onboarding module creates an identity')
+    t.ok(onboarding.body.includes('importHtml') || onboarding.body.includes('FileReader'), 'onboarding supports HTML bookmark import')
+
+    const apiModule = await request(api.port, '/assets/api.js')
+    t.is(apiModule.statusCode, 200, 'API client module is served')
+    t.ok(apiModule.body.includes('importHtml'), 'API client exposes importHtml')
 
     const inbox = await request(api.port, '/assets/inbox.js')
     t.is(inbox.statusCode, 200, 'Inbox screen module is served')
@@ -172,8 +177,9 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     const importScreen = await request(api.port, '/assets/import.js')
     t.is(importScreen.statusCode, 200, 'import screen module is served')
     t.ok(importScreen.body.includes("file"), 'import screen has a file input')
-    t.ok(importScreen.body.includes('Disponible próximamente'), 'import screen clearly marks the feature as upcoming')
-    t.ok(importScreen.body.includes('/api/v1/import/html'), 'import screen documents the existing import endpoint')
+    t.ok(importScreen.body.includes('importHtml'), 'import screen calls the HTML import API')
+    t.ok(importScreen.body.includes('FileReader'), 'import screen reads the selected file with FileReader')
+    t.ok(importScreen.body.includes('Importados:'), 'import screen displays an import summary')
 
     const oldBookmarks = await request(api.port, '/assets/bookmarks.js')
     t.is(oldBookmarks.statusCode, 404, 'legacy bookmarks module is no longer served')
