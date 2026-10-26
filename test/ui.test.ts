@@ -93,6 +93,13 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(app.body.includes("navigate(query.get('tab') === 'collections' ? '#/collections' : '#/inbox')"), 'legacy bookmarks routes redirect to Inbox or collections')
     t.ok(app.body.includes("requestedRoute === '#/settings#import'"), 'legacy settings import route redirects to import')
 
+    const welcome = await request(api.port, '/assets/welcome.js')
+    t.is(welcome.statusCode, 200, 'marketing welcome module is served')
+    t.ok(welcome.contentType?.startsWith('text/javascript; charset=utf-8'), 'welcome module has JavaScript content type')
+    t.ok(welcome.body.includes('onStart'), 'welcome module supports the start callback')
+    t.ok(welcome.body.includes('Save links.'), 'welcome module includes the English translation')
+    t.ok(welcome.body.includes('Gorde estekak.'), 'welcome module includes the Basque translation')
+
     const apiModule = await request(api.port, '/assets/api.js')
     t.is(apiModule.statusCode, 200, 'API helper module is served')
     t.ok(apiModule.body.includes('fetch('), 'API helper uses fetch')
@@ -130,6 +137,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(collection.body.includes("element('header', 'collection-header')"), 'collection has a header card')
     t.ok(collection.body.includes("element('aside', 'collection-info')"), 'collection has a local information sidebar')
     t.ok(collection.body.includes('Pública') && collection.body.includes('Privada'), 'collection shows visibility badges')
+    t.ok(collection.body.includes('language'), 'collection screen displays and edits the collection language')
     t.ok(collection.body.includes('Editar') && collection.body.includes('Eliminar colección'), 'collection header exposes edit and delete actions')
     t.ok(collection.body.includes('bookmark-form-section') && collection.body.includes('group-create-section'), 'collection content includes add-bookmark and create-group forms')
     t.ok(collection.body.includes("element('h2', '', 'Sin grupo')"), 'ungrouped bookmarks have their own section')
@@ -156,6 +164,10 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(collections.body.includes('createCollection'), 'collections screen can create collections')
     t.ok(collections.body.includes('#/collections/'), 'collections screen links to collection details')
     t.ok(collections.body.includes('collection-count'), 'collections screen shows bookmark counts')
+    t.ok(collections.body.includes('language'), 'collections screen supports selecting a language')
+    t.ok(collections.body.includes('Español (ES)'), 'collections screen offers Spanish')
+    t.ok(collections.body.includes('English (EN)'), 'collections screen offers English')
+    t.ok(collections.body.includes('Euskara (EU)'), 'collections screen offers Basque')
 
     const importScreen = await request(api.port, '/assets/import.js')
     t.is(importScreen.statusCode, 200, 'import screen module is served')
