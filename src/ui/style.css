@@ -148,3 +148,15 @@ a { color: var(--accent); }
   .welcome .tagline { font-size: clamp(24px, 5vw, 32px); }
   .welcome .columns { grid-template-columns: 1fr; }
 }
+
+/* Importación de bookmarks HTML */
+.import-form input[type="file"] { padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.import-form button { justify-self: start; }
+.import-result { padding: 14px 16px; border-radius: 10px; background: #eef2f7; color: var(--fg); line-height: 1.6; overflow-wrap: anywhere; }
+.import-result.error { background: #fef2f2; color: #b91c1c; }
+.import-errors { margin: 0; padding: 16px 16px 16px 36px; border: 1px solid #fecaca; border-radius: 10px; background: #fff; color: #991b1b; }
+.import-errors li { margin: 5px 0; overflow-wrap: anywhere; }
+.onboarding .import-option { display: grid; gap: 10px; }
+.onboarding .import-option > label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.onboarding .import-option input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin: 2px 0 0; }
+.onboarding .import-option input[type="file"] { width: 100%; }
