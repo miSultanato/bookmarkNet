@@ -13,12 +13,14 @@ export function apiCollection(collection: DeviceCollectionState): object {
     name: string
     description?: string
     visibility: 'public' | 'unlisted'
+    language: 'es' | 'en' | 'eu'
     created_at: string
     updated_at?: string
   } = {
     collection_id: collection.collectionId,
     name: collection.name,
     visibility: collection.visibility,
+    language: collection.language,
     created_at: collection.createdAt
   }
   if (collection.description !== undefined) result.description = collection.description
@@ -36,6 +38,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isVisibility(value: unknown): value is 'public' | 'unlisted' {
   return value === 'public' || value === 'unlisted'
+}
+
+function isLanguage(value: unknown): value is 'es' | 'en' | 'eu' {
+  return value === 'es' || value === 'en' || value === 'eu'
 }
 
 export async function handleListCollections(
@@ -59,7 +65,7 @@ export async function handleListCollections(
 
 export async function handleCreateCollection(
   node: Node,
-  body: { name: string; description?: string; visibility?: 'public' | 'unlisted' }
+  body: { name: string; description?: string; visibility?: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu' }
 ): Promise<{ status: number; body: unknown }> {
   if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
   if (!isRecord(body) || typeof body.name !== 'string' || body.name.trim().length === 0) {
@@ -73,13 +79,18 @@ export async function handleCreateCollection(
     return error(400, 'INVALID_VISIBILITY', 'visibility debe ser public o unlisted')
   }
 
+  if (body.language !== undefined && !isLanguage(body.language)) {
+    return error(400, 'INVALID_LANGUAGE', 'language must be one of: es, en, eu')
+  }
+
   const collectionId = ulid()
   const event = deviceCreateCollection({
     authorId: node.identity.user_id,
     collectionId,
     name: body.name,
     description: body.description,
-    visibility
+    visibility,
+    language: body.language
   })
   await node.apply(event)
   const collection = node.state.collections.get(collectionId)
@@ -99,7 +110,7 @@ export async function handleGetCollection(
 export async function handleUpdateCollection(
   node: Node,
   id: string,
-  body: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted' }
+  body: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu' }
 ): Promise<{ status: number; body: unknown }> {
   if (node.identity === null) return error(401, 'NO_IDENTITY', 'Crea o importa una identidad antes de escribir')
   const collection = node.state.collections.get(id)
@@ -109,7 +120,8 @@ export async function handleUpdateCollection(
   const hasName = Object.prototype.hasOwnProperty.call(body, 'name')
   const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description')
   const hasVisibility = Object.prototype.hasOwnProperty.call(body, 'visibility')
-  if (!hasName && !hasDescription && !hasVisibility) {
+  const hasLanguage = Object.prototype.hasOwnProperty.call(body, 'language')
+  if (!hasName && !hasDescription && !hasVisibility && !hasLanguage) {
     return error(400, 'EMPTY_CHANGES', 'Indica al menos un campo para actualizar')
   }
   if (hasName && (typeof body.name !== 'string' || body.name.trim().length === 0)) {
@@ -121,11 +133,15 @@ export async function handleUpdateCollection(
   if (hasVisibility && !isVisibility(body.visibility)) {
     return error(400, 'INVALID_VISIBILITY', 'visibility debe ser public o unlisted')
   }
+  if (hasLanguage && !isLanguage(body.language)) {
+    return error(400, 'INVALID_LANGUAGE', 'language must be one of: es, en, eu')
+  }
 
-  const changes: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted' } = {}
+  const changes: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu' } = {}
   if (hasName) changes.name = body.name as string
   if (hasDescription) changes.description = body.description as string | null
   if (hasVisibility) changes.visibility = body.visibility as 'public' | 'unlisted'
+  if (hasLanguage) changes.language = body.language as 'es' | 'en' | 'eu'
 
   const event = deviceUpdateCollection({ authorId: node.identity.user_id, collectionId: id, changes })
   await node.apply(event)
