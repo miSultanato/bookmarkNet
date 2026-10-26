@@ -168,21 +168,50 @@ function errorBody(code: string, message: string): unknown {
   return { error: { code, message } }
 }
 
+const MAX_BODY_SIZE = 5 * 1024 * 1024
+const PAYLOAD_TOO_LARGE_MESSAGE = 'El body supera el límite de 5 MB'
+
 function readJsonBody(req: any): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    let payload = ''
+    const chunks: unknown[] = []
+    let totalSize = 0
+    let settled = false
+
     req.on('data', (chunk: unknown) => {
-      payload += typeof chunk === 'string' ? chunk : (chunk as { toString(): string }).toString()
+      if (settled) return
+      const size = typeof chunk === 'string'
+        ? utf8Bytes(chunk).length
+        : (chunk as { length?: number; toString(): string }).length ?? utf8Bytes((chunk as { toString(): string }).toString()).length
+      totalSize += size
+      if (totalSize > MAX_BODY_SIZE) {
+        settled = true
+        req.destroy()
+        reject(new RangeError(PAYLOAD_TOO_LARGE_MESSAGE))
+        return
+      }
+      chunks.push(chunk)
     })
     req.on('end', () => {
+      if (settled) return
+      const payload = chunks.map((chunk) => typeof chunk === 'string' ? chunk : (chunk as { toString(): string }).toString()).join('')
       try {
         resolve(JSON.parse(payload))
       } catch {
         reject(new RangeError('El body debe contener JSON válido'))
       }
     })
-    req.on('error', reject)
+    req.on('error', (err: unknown) => {
+      if (!settled) reject(err)
+    })
   })
+}
+
+function sendBodyReadError(res: any, err: unknown): void {
+  if (err instanceof RangeError && err.message === PAYLOAD_TOO_LARGE_MESSAGE) {
+    sendJson(res, 413, errorBody('PAYLOAD_TOO_LARGE', PAYLOAD_TOO_LARGE_MESSAGE))
+    return
+  }
+  sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
 }
 
 async function dispatchGroupRequest(
@@ -457,8 +486,8 @@ export async function createServer(config: Config, node: Node, listen = true): P
       let body: unknown
       try {
         body = await readJsonBody(req)
-      } catch {
-        sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+      } catch (err) {
+        sendBodyReadError(res, err)
         return
       }
       const result = route.path === '/api/v1/identity/export'
@@ -490,10 +519,10 @@ export async function createServer(config: Config, node: Node, listen = true): P
         let body: unknown
         try {
           body = await readJsonBody(req)
-        } catch {
-          sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+        } catch (err) {
+          sendBodyReadError(res, err)
           return
-        }
+      }
         const result = await handleUpdateProfile(node, body)
         sendJson(res, result.status, result.body)
         return
@@ -502,10 +531,10 @@ export async function createServer(config: Config, node: Node, listen = true): P
         let body: unknown
         try {
           body = await readJsonBody(req)
-        } catch {
-          sendJson(res, 400, errorBody('INVALID_JSON', 'El body debe contener JSON válido'))
+        } catch (err) {
+          sendBodyReadError(res, err)
           return
-        }
+      }
         const result = await handleImportHtml(node, body as { html: string })
         sendJson(res, result.status, result.body)
         return
@@ -518,7 +547,8 @@ export async function createServer(config: Config, node: Node, listen = true): P
       if (await dispatchBookmarkRequest(node, method, route, req, res)) return
       if (await dispatchGroupRequest(node, method, route, req, res)) return
       if (await dispatchCollectionRequest(node, method, route, req, res)) return
-    } catch {
+    } catch (err) {
+      console.error('Error no capturado:', err)
       sendJson(res, 500, errorBody('INTERNAL', 'Error interno del servidor'))
       return
     }
