@@ -186,7 +186,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.is(oldBookmarks.statusCode, 404, 'legacy bookmarks module is no longer served')
 
     const missingSvg = await request(api.port, '/assets/no-existe.svg')
-    t.is(missingSvg.statusCode, 404, 'missing SVG asset returns 404 after both lookup locations fail')
+    t.is(missingSvg.statusCode, 404, 'unknown generated SVG asset returns 404')
 
     const missing = await request(api.port, '/assets/nope.css')
     t.is(missing.statusCode, 404, 'missing static asset returns 404')
