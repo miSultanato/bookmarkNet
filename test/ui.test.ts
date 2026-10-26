@@ -156,6 +156,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(onboarding.body.includes('importHtml') || onboarding.body.includes('FileReader'), 'onboarding supports HTML bookmark import')
 
     t.ok(apiModule.body.includes('importHtml'), 'API client exposes importHtml')
+    t.ok(apiModule.body.includes('/api/v1/import/html'), 'API client calls the HTML import endpoint')
 
     const inbox = await request(api.port, '/assets/inbox.js')
     t.is(inbox.statusCode, 200, 'Inbox screen module is served')
@@ -178,6 +179,8 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(importScreen.body.includes('importHtml'), 'import screen calls the HTML import API')
     t.ok(importScreen.body.includes('FileReader'), 'import screen reads the selected file with FileReader')
     t.ok(importScreen.body.includes('Importados:'), 'import screen displays an import summary')
+    t.ok(importScreen.body.includes('Importar otro archivo'), 'import screen allows importing another file')
+    t.ok(importScreen.body.includes('import-errors'), 'import screen renders detailed import errors')
 
     const oldBookmarks = await request(api.port, '/assets/bookmarks.js')
     t.is(oldBookmarks.statusCode, 404, 'legacy bookmarks module is no longer served')
