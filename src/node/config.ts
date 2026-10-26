@@ -4,6 +4,7 @@ import os from 'bare-os'
 
 export interface Config {
   port: number
+  portExplicit: boolean
   dataDir: string
   logLevel: 'error' | 'warn' | 'info' | 'debug'
   openBrowserOnStart: boolean
@@ -33,6 +34,7 @@ function defaultDataDir(): string {
 export function defaultConfig(): Config {
   return {
     port: 7575,
+    portExplicit: false,
     dataDir: defaultDataDir(),
     logLevel: 'info',
     openBrowserOnStart: true,
@@ -107,6 +109,7 @@ export function loadConfig(configPath?: string): Config {
   }
 
   const portFromEnv = env.BOOKMARKNET_PORT
+  const portExplicit = portFromEnv !== undefined || effectiveJson.port !== undefined
   const port = portFromEnv !== undefined
     ? validPort(portFromEnv, 'BOOKMARKNET_PORT')
     : effectiveJson.port === undefined
@@ -130,6 +133,7 @@ export function loadConfig(configPath?: string): Config {
 
   return {
     port,
+    portExplicit,
     dataDir,
     logLevel,
     openBrowserOnStart,

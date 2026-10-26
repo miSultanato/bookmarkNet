@@ -43,6 +43,7 @@ test('loadConfig returns documented defaults when config.json is absent', async 
     const config = loadConfig(CONFIG_PATH)
     const defaults = defaultConfig()
     t.is(config.port, 7575)
+    t.is(config.portExplicit, false, 'default port is not explicit')
     t.is(config.dataDir, defaults.dataDir)
     t.is(config.logLevel, 'info')
     t.is(config.openBrowserOnStart, true)
@@ -69,6 +70,7 @@ test('loadConfig reads values from an explicit JSON config file', async (t) => {
     }))
     const config = loadConfig(CONFIG_PATH)
     t.is(config.port, 8123)
+    t.is(config.portExplicit, true, 'JSON port is explicit')
     t.is(config.dataDir, TMP_DIR + '/data')
     t.is(config.logLevel, 'debug')
     t.is(config.openBrowserOnStart, false)
@@ -126,6 +128,7 @@ test('environment variables override JSON values and parse allowed hosts', async
     env.BOOKMARKNET_ALLOWED_HOSTS = ' localhost, 127.0.0.1 , example.test '
     const config = loadConfig(CONFIG_PATH)
     t.is(config.port, 9001)
+    t.is(config.portExplicit, true, 'environment port is explicit')
     t.is(config.dataDir, TMP_DIR + '/from-env')
     t.alike(config.allowedHosts, ['localhost', '127.0.0.1', 'example.test'])
   } finally {
