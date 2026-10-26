@@ -1,710 +1,114 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-:root {
-  --bg: #f8fafc;
-  --fg: #172033;
-  --muted: #64748b;
-  --accent: #2563eb;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-main {
-  width: min(100% - 2rem, 48rem);
-  margin: 0 auto;
-  padding: 3rem 0;
-}
-
-button {
-  font: inherit;
-  cursor: pointer;
-}
-
-a {
-  color: var(--accent);
-}
-
-.status {
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.onboarding {
-  width: min(100%, 36rem);
-  margin: 3rem auto;
-}
-
-.onboarding h1 {
-  margin: 0 0 1rem;
-  font-size: clamp(1.8rem, 5vw, 2.4rem);
-  line-height: 1.2;
-}
-
-.onboarding p {
-  line-height: 1.6;
-}
-
-.onboarding .actions {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.onboarding button {
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: white;
-  color: var(--fg);
-  text-align: left;
-}
-
-.onboarding button.primary {
-  margin-top: 0.5rem;
-  border-color: var(--accent);
-  background: var(--accent);
-  color: white;
-  text-align: center;
-}
-
-.onboarding button:disabled {
-  cursor: wait;
-  opacity: 0.55;
-}
-
-.error {
-  color: #b91c1c;
-  line-height: 1.5;
-}
-
-.placeholder {
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-.placeholder h1 {
-  color: var(--fg);
-}
-
-
-/* Mis bookmarks */
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid #cbd5e1;
-  margin: 1.25rem 0;
-}
-
-.tabs button {
-  border: 1px solid transparent;
-  border-bottom: 3px solid transparent;
-  border-radius: 0.5rem 0.5rem 0 0;
-  padding: 0.7rem 1rem;
-  background: transparent;
-  color: var(--muted);
-}
-
-.tabs button.active {
-  border-bottom-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.bookmark-list,
-.collection-list {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.bookmark-item,
-.collection-item {
-  display: block;
-  min-width: 0;
-  padding: 1rem;
-  border: 1px solid #dbe2ea;
-  border-radius: 0.75rem;
-  background: #fff;
-  color: var(--fg);
-  text-decoration: none;
-}
-
-.bookmark-item {
-  display: grid;
-  gap: 0.65rem;
-}
-
-.bookmark-title {
-  color: var(--fg);
-  font-size: 1.05rem;
-  font-weight: 650;
-  overflow-wrap: anywhere;
-}
-
-.bookmark-url {
-  overflow-wrap: anywhere;
-}
-
-.bookmark-move,
-.inline-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.bookmark-move select,
-.inline-form input {
-  min-width: 0;
-  flex: 1;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--fg);
-  font: inherit;
-}
-
-.bookmark-move button,
-.inline-form button,
-.tab-content > button {
-  border: 1px solid var(--accent);
-  border-radius: 0.5rem;
-  padding: 0.65rem 0.9rem;
-  background: var(--accent);
-  color: #fff;
-}
-
-button:disabled,
-select:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.tag {
-  display: inline-block;
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  background: #e2e8f0;
-  color: #334155;
-  font-size: 0.85rem;
-}
-
-.collection-item {
-  cursor: pointer;
-  transition: border-color 120ms ease;
-}
-
-.collection-item:hover,
-.collection-item:focus-visible {
-  border-color: var(--accent);
-}
-
-.collection-item h2 {
-  margin: 0;
-  color: var(--fg);
-  font-size: 1.1rem;
-}
-
-.collection-description,
-.collection-count {
-  margin: 0.5rem 0 0;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.collection-count {
-  font-size: 0.9rem;
-}
-
-.inline-form {
-  margin-top: 1.25rem;
-}
-
-.empty {
-  padding: 1rem;
-  border-radius: 0.75rem;
-  background: #f1f5f9;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-.tab-content {
-  display: grid;
-  gap: 1rem;
-}
-
-
-/* Colección */
-.collection-page {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.collection-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #dbe2ea;
-}
-
-.collection-title-area {
-  min-width: 0;
-  flex: 1;
-}
-
-.collection-header h1 {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-size: clamp(1.6rem, 4vw, 2rem);
-  line-height: 1.25;
-}
-
-.collection-header .collection-description {
-  margin: 0.65rem 0;
-  line-height: 1.6;
-}
-
-.collection-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  padding: 0.25rem 0.65rem;
-  background: #f1f5f9;
-  color: #334155;
-  font-size: 0.85rem;
-}
-
-.badge-local {
-  background: #e0f2fe;
-  border-color: #bae6fd;
-  color: #075985;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.collection-actions {
-  flex-shrink: 0;
-}
-
-.collection-actions button,
-.bookmark-item .actions button,
-.bookmark-form button,
-.collection-edit-form button {
-  border: 1px solid var(--accent);
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--accent);
-  color: #fff;
-}
-
-.collection-actions button:disabled {
-  opacity: 0.55;
-}
-
-.collection-actions .danger-button,
-.bookmark-item .actions .danger-button {
-  border-color: #b91c1c;
-  background: #b91c1c;
-}
-
-.secondary-button {
-  border-color: #cbd5e1 !important;
-  background: #fff !important;
-  color: var(--fg) !important;
-}
-
-.bookmark-form-section h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.15rem;
-}
-
-.bookmark-form,
-.collection-edit-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.bookmark-form input,
-.collection-edit-form input,
-.collection-edit-form textarea,
-.collection-edit-form select {
-  min-width: 0;
-  flex: 1 1 12rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--fg);
-  font: inherit;
-}
-
-.collection-edit-form textarea {
-  min-height: 2.75rem;
-  resize: vertical;
-}
-
-.collection-edit-form label {
-  display: flex;
-  flex: 1 1 10rem;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--muted);
-}
-
-.collection-edit-form label select {
-  width: 100%;
-}
-
-.bookmark-form button {
-  flex: 0 0 auto;
-}
-
-.bookmark-item .actions {
-  justify-content: flex-end;
-}
-
-.collection-empty {
-  padding: 1rem;
-  border-radius: 0.75rem;
-  background: #f1f5f9;
-  color: var(--muted);
-  line-height: 1.6;
-}
-
-
-/* Grupos dentro de una colección */
-.group-create-section h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.15rem;
-}
-
-.group-section {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid #dbe2ea;
-  border-radius: 0.85rem;
-  background: #f8fafc;
-}
-
-.group-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.group-header h2 {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-size: 1.15rem;
-}
-
-.group-header button {
-  border: 1px solid #b91c1c;
-  border-radius: 0.5rem;
-  padding: 0.55rem 0.75rem;
-  background: #b91c1c;
-  color: #fff;
-}
-
-.group-empty {
-  margin: 0;
-  padding: 0.8rem;
-  border-radius: 0.6rem;
-  background: #f1f5f9;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.bookmark-group-select {
-  min-width: 8rem;
-  flex: 1 1 10rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--fg);
-  font: inherit;
-}
-
-.bookmark-item .actions > button {
-  flex: 0 0 auto;
-}
-
-.group-create-form input {
-  flex: 1 1 14rem;
-}
-
-
-/* Detalle de bookmark */
-.bookmark-detail {
-  display: grid;
-  gap: 1rem;
-  min-width: 0;
-}
-
-.bookmark-detail h1 {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-size: clamp(1.6rem, 4vw, 2rem);
-  line-height: 1.25;
-}
-
-.bookmark-detail .bookmark-url {
-  overflow-wrap: anywhere;
-}
-
-.bookmark-description {
-  margin: 0;
-  line-height: 1.6;
-}
-
-.bookmark-notes {
-  margin: 0;
-  padding: 1rem;
-  border-left: 3px solid #cbd5e1;
-  border-radius: 0.25rem;
-  background: #f1f5f9;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.bookmark-meta {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #dbe2ea;
-  border-radius: 0.75rem;
-  background: #fff;
-}
-
-.bookmark-meta p {
-  margin: 0;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.bookmark-actions {
-  align-items: center;
-}
-
-.bookmark-detail .bookmark-form {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid #dbe2ea;
-  border-radius: 0.75rem;
-  background: #fff;
-}
-
-.bookmark-form label {
-  display: grid;
-  gap: 0.35rem;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.bookmark-form input,
-.bookmark-form textarea,
-.move-form select {
-  width: 100%;
-  min-width: 0;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--fg);
-  font: inherit;
-}
-
-.bookmark-form textarea {
-  min-height: 5rem;
-  resize: vertical;
-}
-
-.bookmark-form button,
-.move-form button,
-.bookmark-actions button {
-  border: 1px solid var(--accent);
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--accent);
-  color: #fff;
-}
-
-.bookmark-actions .danger-button {
-  border-color: #b91c1c;
-  background: #b91c1c;
-}
-
-.move-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  padding-top: 1rem;
-  border-top: 1px solid #dbe2ea;
-}
-
-.move-form select {
-  flex: 1 1 12rem;
-}
-
-.move-form button {
-  flex: 0 0 auto;
-}
-
-.move-form .error {
-  flex-basis: 100%;
-  margin: 0;
-}
-
-
-/* Ajustes */
-.settings-page {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.settings-section {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid #dbe2ea;
-  border-radius: 0.85rem;
-  background: #fff;
-}
-
-.settings-section h2 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.settings-section p {
-  margin: 0;
-  line-height: 1.6;
-}
-
-.settings-form {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.settings-form label {
-  display: grid;
-  gap: 0.35rem;
-  color: var(--muted);
-}
-
-.settings-form input,
-.settings-form textarea {
-  width: 100%;
-  min-width: 0;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--fg);
-  font: inherit;
-}
-
-.settings-form textarea {
-  min-height: 5rem;
-  resize: vertical;
-}
-
-.settings-form button,
-.settings-section > button {
-  justify-self: start;
-  border: 1px solid var(--accent);
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--accent);
-  color: #fff;
-}
-
-.settings-disabled:disabled {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: var(--muted);
-}
-
-.settings-config {
-  display: grid;
-  grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr);
-  gap: 0.55rem 1rem;
-  margin: 0;
-}
-
-.settings-config dt {
-  color: var(--muted);
-}
-
-.settings-config dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem max(1rem, calc((100% - 48rem) / 2));
-  border-bottom: 1px solid #dbe2ea;
-  background: #fff;
-}
-
-.app-header a {
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.app-header .app-brand {
-  color: var(--fg);
-  font-size: 1.05rem;
-}
-
-.app-header a[aria-current="page"] {
-  text-decoration: underline;
-  text-underline-offset: 0.25rem;
+*, *::before, *::after { box-sizing: border-box; }
+:root { --bg: #f5f6f8; --fg: #222; --muted: #667085; --accent: #2563eb; --border: #ddd; }
+html, body { margin: 0; min-height: 100%; }
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: flex; height: 100vh; min-height: 0; }
+.sidebar { flex: 0 0 240px; width: 240px; background: #fff; border-right: 1px solid #ddd; padding: 20px; overflow-y: auto; }
+.logo { font-size: 24px; font-weight: bold; margin-bottom: 30px; }
+.nav { display: flex; flex-direction: column; gap: 10px; }
+.nav a { text-decoration: none; color: #333; padding: 10px 12px; border-radius: 8px; }
+.nav a:hover { background: #f0f0f0; }
+.nav a.active { background: #eef2f7; font-weight: 500; }
+.main { flex: 1; min-width: 0; overflow: auto; padding: 24px; }
+#app { width: 100%; min-width: 0; }
+h1, h2, h3 { line-height: 1.25; }
+h1 { margin: 0 0 1.25rem; font-size: clamp(1.6rem, 3vw, 2rem); }
+h2 { margin-top: 0; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; border-radius: 8px; padding: 9px 13px; border: 1px solid #cbd5e1; background: white; color: var(--fg); }
+button.primary, .primary { background: #2563eb; color: white; border-color: #2563eb; }
+button.secondary, .secondary-button { background: #e5e7eb; color: #222; border-color: #e5e7eb; }
+button:disabled, select:disabled { cursor: not-allowed; opacity: .55; }
+a { color: var(--accent); }
+.card, .bookmark-item, .collection-item, .settings-section, .bookmark-meta, .bookmark-detail > .bookmark-form, .bookmark-detail > .move-form { background: white; border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+.cards, .bookmark-list, .collection-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.bookmark-item { display: grid; gap: 10px; min-width: 0; }
+.bookmark-title { color: var(--fg); font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
+.bookmark-url { overflow-wrap: anywhere; }
+.bookmark-move, .inline-form, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.bookmark-move select, .inline-form input, input, textarea, select { min-width: 0; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: var(--fg); }
+.inline-form input { flex: 1; }
+.tabs { display: flex; gap: 8px; border-bottom: 1px solid #ddd; margin: 1rem 0 1.25rem; }
+.tabs button { border-color: transparent; border-radius: 8px 8px 0 0; background: transparent; color: var(--muted); }
+.tabs button.active { background: #eef2f7; color: var(--accent); font-weight: 600; }
+.tab-content { display: grid; gap: 16px; }
+.collection-item { display: block; color: var(--fg); text-decoration: none; transition: border-color 120ms ease; }
+.collection-item:hover, .collection-item:focus-visible { border-color: var(--accent); }
+.collection-item h2 { margin: 0; font-size: 1.1rem; }
+.collection-description, .collection-count, .status, .muted { color: var(--muted); line-height: 1.5; }
+.collection-description, .collection-count { margin: 8px 0 0; }
+.empty, .collection-empty, .group-empty { padding: 16px; border-radius: 10px; background: #f1f3f5; color: var(--muted); line-height: 1.6; }
+.tags, .collection-badges { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag, .badge { display: inline-flex; align-items: center; background: #eef2f7; padding: 4px 10px; border-radius: 20px; font-size: 13px; color: #334155; }
+.badge { border: 1px solid #ddd; }
+.badge-local { background: #eef2f7; }
+.collection-page { display: grid; gap: 20px; }
+.collection-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px; background: white; border: 1px solid #ddd; border-radius: 12px; }
+.collection-title-area { min-width: 0; flex: 1; }
+.collection-header h1 { margin: 0; overflow-wrap: anywhere; }
+.collection-header .collection-description { margin: 10px 0; }
+.collection-actions { flex-shrink: 0; }
+.collection-actions button, .bookmark-item .actions button, .bookmark-form button, .collection-edit-form button, .settings-form button, .settings-section > button, .move-form button, .bookmark-actions button, .tab-content > button { background: #2563eb; color: white; border-color: #2563eb; }
+.collection-actions .danger-button, .bookmark-item .actions .danger-button, .bookmark-actions .danger-button, .group-header .danger-button { background: #b91c1c; border-color: #b91c1c; color: white; }
+.collection-content-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; gap: 20px; }
+.collection-info { display: grid; gap: 10px; background: white; border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+.collection-info h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.collection-info p { margin: 0; color: var(--muted); }
+.collection-content { display: grid; gap: 16px; min-width: 0; }
+.bookmark-form-section, .group-create-section { padding: 16px; background: white; border: 1px solid #ddd; border-radius: 12px; }
+.bookmark-form-section h2, .group-create-section h2 { margin: 0 0 12px; font-size: 1.15rem; }
+.bookmark-form, .collection-edit-form, .settings-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.bookmark-form input, .collection-edit-form input, .collection-edit-form textarea, .collection-edit-form select { flex: 1 1 12rem; }
+.collection-edit-form label { display: flex; flex: 1 1 10rem; align-items: center; gap: 8px; }
+.group-section { display: grid; gap: 12px; padding: 16px; border: 1px solid #ddd; border-radius: 12px; background: white; }
+.group-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.group-header h2 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
+.group-header button { background: #b91c1c; color: white; border-color: #b91c1c; }
+.bookmark-group-select { flex: 1 1 10rem; }
+.bookmark-detail { display: grid; gap: 16px; min-width: 0; max-width: 960px; }
+.bookmark-detail h1 { margin: 0; overflow-wrap: anywhere; }
+.bookmark-description { margin: 0; line-height: 1.6; }
+.bookmark-notes { margin: 0; padding: 16px; border-left: 3px solid #cbd5e1; border-radius: 4px; background: white; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bookmark-meta { display: grid; gap: 8px; }
+.bookmark-meta p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.bookmark-detail .bookmark-form { display: grid; gap: 12px; }
+.bookmark-form label, .settings-form label { display: grid; gap: 6px; color: var(--muted); }
+.bookmark-form input, .bookmark-form textarea, .move-form select, .settings-form input, .settings-form textarea { width: 100%; }
+.bookmark-form textarea, .settings-form textarea { min-height: 5rem; resize: vertical; }
+.move-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.move-form select { flex: 1 1 12rem; }
+.settings-page { display: grid; gap: 20px; max-width: 960px; }
+.settings-section { display: grid; gap: 12px; }
+.settings-section h2 { margin: 0; font-size: 1.15rem; }
+.settings-section p { margin: 0; line-height: 1.6; }
+.settings-form { display: grid; }
+.settings-config { display: grid; grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr); gap: 8px 16px; margin: 0; }
+.settings-config dt { color: var(--muted); }
+.settings-config dd { margin: 0; overflow-wrap: anywhere; }
+.error { color: #b91c1c; line-height: 1.5; }
+.placeholder { color: var(--muted); line-height: 1.6; }
+.onboarding-layout .sidebar { display: none; }
+.onboarding-layout .main { flex: 1; padding: 0; }
+.onboarding { width: min(100% - 2rem, 36rem); margin: 8vh auto; padding: 32px; background: white; border: 1px solid #ddd; border-radius: 16px; }
+.onboarding h1 { margin: 0 0 16px; font-size: clamp(1.8rem, 5vw, 2.4rem); }
+.onboarding p { line-height: 1.6; }
+.onboarding .actions { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 24px; }
+.onboarding button { text-align: left; }
+.onboarding button.primary { text-align: center; }
+.onboarding button:disabled { cursor: wait; opacity: .55; }
+.settings-disabled:disabled { background: #f1f3f5; border-color: #ddd; color: var(--muted); }
+@media (max-width: 760px) {
+  .layout { height: auto; min-height: 100vh; }
+  .sidebar { flex-basis: 190px; width: 190px; padding: 16px 12px; }
+  .main { padding: 18px; }
+  .collection-content-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 540px) {
+  .layout { display: block; }
+  .sidebar { width: 100%; border-right: 0; border-bottom: 1px solid #ddd; padding: 12px 16px; }
+  .logo { margin-bottom: 12px; }
+  .nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .nav a { padding: 8px; }
+  .main { padding: 16px; }
+  .onboarding-layout .layout { display: block; }
 }
