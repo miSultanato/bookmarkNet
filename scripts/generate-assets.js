@@ -37,7 +37,7 @@ walk(uiDir)
 const lines = [
   '// Generado automáticamente por scripts/generate-assets.js. No editar.',
   'export const assets = {',
-  ...entries.map(({ key, source }) => `  '${key}': import.meta.asset('${source}'),`),
+  ...entries.map(({ key, source }) => `  '${key}': (() => { try { return import.meta.asset('${source}') } catch { return '${source}' } })(),`),
   '}',
   ''
 ]
