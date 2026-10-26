@@ -1,4 +1,5 @@
 import type Hypercore from 'hypercore'
+import type { HTTPServer } from 'bare-http1'
 import type { Config } from './config.ts'
 import { appendEvent, closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
 import type { DeviceState } from '../device-fold.ts'
@@ -37,4 +38,55 @@ export async function startNode(config: Config): Promise<Node> {
     },
     close: async () => closeDeviceCore(core)
   }
+}
+
+
+/**
+ * Starts an HTTP server on the requested port. When the port is implicit,
+ * EADDRINUSE advances through at most maxAttempts consecutive ports.
+ * The server itself is bound here so the returned port is the one actually
+ * listening; callers should create it without listening first.
+ */
+export async function listenWithPortFallback(
+  server: HTTPServer,
+  startPort: number,
+  bind: string,
+  portExplicit: boolean,
+  maxAttempts = 100
+): Promise<number> {
+  const attempts = portExplicit ? 1 : maxAttempts
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const port = startPort + attempt
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const onError = (error: Error) => {
+          server.removeListener('listening', onListening)
+          reject(error)
+        }
+        const onListening = () => {
+          server.removeListener('error', onError)
+          resolve()
+        }
+        server.once('error', onError)
+        server.once('listening', onListening)
+        server.listen(port, bind)
+      })
+      const address = server.address() as { port?: number } | string | null
+      if (address === null || typeof address === 'string' || typeof address.port !== 'number') {
+        await new Promise<void>((resolve) => server.close(() => resolve()))
+        throw new Error('No se pudo determinar el puerto del servidor HTTP')
+      }
+      return address.port
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      if (code !== 'EADDRINUSE') throw error
+      if (portExplicit) {
+        throw new Error(`El puerto ${startPort} está ocupado. Fíjalo en config.json o libera el puerto.`)
+      }
+      if (attempt === attempts - 1) {
+        throw new Error(`No se encontró un puerto libre en el rango ${startPort}-${startPort + attempts - 1}. Fija un puerto en config.json o libera alguno.`)
+      }
+    }
+  }
+  throw new Error('No se encontró un puerto libre')
 }
