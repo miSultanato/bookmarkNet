@@ -97,7 +97,7 @@ El bloque 0 de cada colección es `collection_genesis` (ver
   "name": "Japón 2027",
   "description": "...",
   "visibility": "public",
-  "author_id": "u_93c4fa12...",
+  "language": "es",
   "forked_from": null,
   "migrated_from": null,
   "signature_by_owner": "sig_xxxxx"
@@ -114,6 +114,7 @@ sha256(
   author_public_key ||
   name ||
   visibility ||
+  language ||
   (forked_from ?? "") ||
   (migrated_from ?? "")
 )
@@ -124,6 +125,8 @@ sha256(
 identidad del autor con el génesis. Sin estos campos, un
 atacante podría cambiar el `author_id` sin invalidar la
 firma.
+
+**Compatibilidad MVP0:** el campo `language` se añadió a la firma en MVP0, antes de que existieran génesis publicados. No rompe ninguna firma existente porque no hay colecciones publicadas en MVP0.
 
 **Nota:** `forked_from` y `migrated_from` se incluyen en la firma aunque sean `null` en colecciones originales, para que la firma cubra la procedencia de la colección. Son mutuamente excluyentes. Ver `docs/15-schema-eventos.md`.
 

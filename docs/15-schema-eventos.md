@@ -91,6 +91,7 @@ colección no es válida.
     "name": "Japón 2027",
     "description": "Recursos para un viaje de 30 días",
     "visibility": "public",
+    "language": "es",
     "forked_from": null,
     "migrated_from": null,
     "signature_by_owner": "sig_xxxxx"
@@ -98,8 +99,8 @@ colección no es válida.
 }
 ```
 
-**Valores de `visibility`:** `"public"` (aparece en búsquedas y descubrimiento) o `"unlisted"` (solo accesible por enlace directo). No existe `"private"`: el `collection_genesis` solo se crea al publicar, y una colección privada no se publica. El estado `"draft"` vive solo en el `device_core` (ver `docs/03-identidad.md`), no en el `collection_core`.
-**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del usuario propietario (identificado por `author_id`) sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility`, `(forked_from ?? "")` y `(migrated_from ?? "")`:
+**Valores de `visibility`:** `"public"` (aparece en búsquedas y descubrimiento) o `"unlisted"` (solo accesible por enlace directo). **`language`:** idioma principal de la colección. Valores: `es`, `en`, `eu`. No existe `"private"`: el `collection_genesis` solo se crea al publicar, y una colección privada no se publica. El estado `"draft"` vive solo en el `device_core` (ver `docs/03-identidad.md`), no en el `collection_core`.
+**Verificación:** El receptor verifica que `sha256(author_public_key).hex().slice(0, 16)` coincide con `author_id`. Esto permite verificar la firma sin depender de un directorio global de usuarios. Además, `signature_by_owner` es la firma del usuario propietario (identificado por `author_id`) sobre los campos `collection_id`, `collection_public_key`, `author_id`, `author_public_key`, `name`, `visibility`, `language`, `(forked_from ?? "")` y `(migrated_from ?? "")`:
 
 ```text
 sha256(
@@ -109,6 +110,7 @@ sha256(
   author_public_key ||
   name ||
   visibility ||
+  language ||
   (forked_from ?? "") ||
   (migrated_from ?? "")
 )
@@ -366,7 +368,7 @@ para cada bloque en el log (orden):
 
 | Evento | Efecto |
 |---|---|
-| `collection_genesis` | Crea la colección con sus metadatos |
+| `collection_genesis` | Crea la colección con sus metadatos, copiando `language` del payload al estado |
 | `add_bookmark` | Añade bookmark al estado (si no existe) |
 | `edit_bookmark` | Aplica cambios sobre el bookmark existente |
 | `remove_bookmark` | Marca el bookmark como eliminado (soft delete) |
@@ -440,7 +442,7 @@ Los tipos TypeScript de los eventos viven en `src/events.ts`, junto con los cons
 
 ```text
 message = collection_id || collection_public_key || author_id ||
-          author_public_key || name || visibility ||
+          author_public_key || name || visibility || language ||
           (forked_from ?? "") || (migrated_from ?? "")
 hash = sha256(message)
 signature = ed25519.sign(hash, secretKey)
@@ -467,6 +469,7 @@ message = collection_id + "\x00" +
           author_public_key + "\x00" +
           name + "\x00" +
           visibility + "\x00" +
+          language + "\x00" +
           (forked_from ?? "") + "\x00" +
           (migrated_from ?? "")
 ```
@@ -487,6 +490,7 @@ interface CollectionState {
     name: string
     description?: string
     visibility: 'public' | 'unlisted'
+    language: 'es' | 'en' | 'eu'
     forkedFrom: string | null
     migratedFrom: string | null
     createdAt: string                 // ISO8601 del génesis
