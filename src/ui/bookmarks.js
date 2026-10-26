@@ -14,7 +14,7 @@ function element(tag, className, text) {
 }
 
 export function render(container, state, { onReload, initialTab } = {}) {
-  activeTab = initialTab === 'collections' ? 'collections' : 'inbox'
+  activeTab = initialTab === 'inbox' ? 'inbox' : 'collections'
   container.replaceChildren()
 
   const section = element('section', 'bookmarks-page')
@@ -38,6 +38,8 @@ export function render(container, state, { onReload, initialTab } = {}) {
 
   function switchTab(tab) {
     activeTab = tab
+    const nextHash = '#/bookmarks?tab=' + tab
+    if (window.location.hash !== nextHash) window.location.hash = nextHash
     inboxTab.classList.toggle('active', tab === 'inbox')
     inboxTab.setAttribute('aria-selected', String(tab === 'inbox'))
     collectionsTab.classList.toggle('active', tab === 'collections')
