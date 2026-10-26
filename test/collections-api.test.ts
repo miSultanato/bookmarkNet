@@ -66,27 +66,46 @@ test('collections API supports local collection lifecycle', async (t) => {
     t.is(collection.name, 'Japón 2027', 'name is returned')
     t.is(collection.description, 'Viaje', 'description is returned')
     t.is(collection.visibility, 'public', 'visibility is returned')
+    t.is(collection.language, 'es', 'language defaults to Spanish')
     t.is(typeof collection.created_at, 'string', 'created_at is returned')
     t.is(Object.prototype.hasOwnProperty.call(collection, 'deleted'), false, 'deleted is not exposed')
 
     t.is((await request(api.port, 'POST', '/api/v1/collections', {})).statusCode, 400, 'missing name returns 400')
     t.is((await request(api.port, 'POST', '/api/v1/collections', { name: 'Inválida', visibility: 'private' })).statusCode, 400, 'invalid visibility returns 400')
+    const invalidLanguage = await request(api.port, 'POST', '/api/v1/collections', { name: 'Idioma inválido', language: 'fr' })
+    t.is(invalidLanguage.statusCode, 400, 'invalid language returns 400')
+    t.alike(invalidLanguage.body, { error: { code: 'INVALID_LANGUAGE', message: 'language must be one of: es, en, eu' } }, 'invalid language error is explicit')
+
+    const english = await request(api.port, 'POST', '/api/v1/collections', { name: 'English', language: 'en' })
+    t.is(english.statusCode, 201, 'English collection returns 201')
+    t.is(collectionBody(english).language, 'en', 'create accepts English language')
+    const englishId = collectionBody(english).collection_id
 
     const list = await request(api.port, 'GET', '/api/v1/collections')
     t.is(list.statusCode, 200, 'list returns 200')
-    t.is((list.body as { collections: unknown[] }).collections.length, 1, 'list contains collection')
+    const listedCollections = (list.body as { collections: Record<string, unknown>[] }).collections
+    t.is(listedCollections.length, 2, 'list contains both collections')
+    t.ok(listedCollections.every((item) => typeof item.language === 'string'), 'every listed collection includes language')
+    t.is(listedCollections.find((item) => item.collection_id === englishId)?.language, 'en', 'list returns collection language')
     const filtered = await request(api.port, 'GET', '/api/v1/collections?visibility=public')
-    t.is((filtered.body as { collections: unknown[] }).collections.length, 1, 'visibility filter returns matching collection')
+    t.is((filtered.body as { collections: unknown[] }).collections.length, 2, 'visibility filter returns matching collections')
     t.is((await request(api.port, 'GET', '/api/v1/collections?visibility=private')).statusCode, 400, 'invalid filter returns 400')
 
     const fetched = await request(api.port, 'GET', '/api/v1/collections/' + id)
     t.is(fetched.statusCode, 200, 'get collection returns 200')
     t.is(collectionBody(fetched).collection_id, id, 'get returns requested collection')
+    t.is(collectionBody(fetched).language, 'es', 'get includes language')
     t.is((await request(api.port, 'GET', '/api/v1/collections/01ARZ3NDEKTSV4RRFFQ69G5FAV')).statusCode, 404, 'unknown collection returns 404')
 
     const renamed = await request(api.port, 'PATCH', '/api/v1/collections/' + id, { name: 'Japón 2027 (v2)' })
     t.is(renamed.statusCode, 200, 'patch returns 200')
     t.is(collectionBody(renamed).name, 'Japón 2027 (v2)', 'patch changes name')
+    const translated = await request(api.port, 'PATCH', '/api/v1/collections/' + id, { language: 'eu' })
+    t.is(translated.statusCode, 200, 'language patch returns 200')
+    t.is(collectionBody(translated).language, 'eu', 'patch changes language')
+    const invalidPatchLanguage = await request(api.port, 'PATCH', '/api/v1/collections/' + id, { language: 'fr' })
+    t.is(invalidPatchLanguage.statusCode, 400, 'invalid patch language returns 400')
+    t.alike(invalidPatchLanguage.body, { error: { code: 'INVALID_LANGUAGE', message: 'language must be one of: es, en, eu' } }, 'invalid patch language error is explicit')
     const cleared = await request(api.port, 'PATCH', '/api/v1/collections/' + id, { description: null })
     t.is(cleared.statusCode, 200, 'null description patch returns 200')
     t.is(Object.prototype.hasOwnProperty.call(collectionBody(cleared), 'description'), false, 'null clears description')
@@ -94,7 +113,7 @@ test('collections API supports local collection lifecycle', async (t) => {
 
     t.is((await request(api.port, 'DELETE', '/api/v1/collections/' + id)).statusCode, 204, 'delete returns 204 without Content-Type')
     t.is((await request(api.port, 'GET', '/api/v1/collections/' + id)).statusCode, 404, 'deleted collection returns 404')
-    t.is(((await request(api.port, 'GET', '/api/v1/collections')).body as { collections: unknown[] }).collections.length, 0, 'deleted collection is omitted from list')
+    t.is(((await request(api.port, 'GET', '/api/v1/collections')).body as { collections: unknown[] }).collections.length, 1, 'deleted collection is omitted from list')
   } finally {
     if (api !== null) await api.close()
     if (node !== null) await node.close()
@@ -135,7 +154,7 @@ test('collection created through the API persists after restarting the node', as
     const identity = await request(api.port, 'POST', '/api/v1/identity/create', {})
     t.is(identity.statusCode, 201, 'identity is created')
     const response = await request(api.port, 'POST', '/api/v1/collections', {
-      name: 'Persistencia', description: 'Tras reiniciar', visibility: 'unlisted'
+      name: 'Persistencia', description: 'Tras reiniciar', visibility: 'unlisted', language: 'en'
     })
     t.is(response.statusCode, 201, 'collection is created through API')
     const id = collectionBody(response).collection_id
@@ -146,6 +165,10 @@ test('collection created through the API persists after restarting the node', as
     node = null
 
     node = await startNode(config)
+    api = await createServer(config, node)
+    const persistedResponse = await request(api.port, 'GET', '/api/v1/collections/' + id)
+    t.is(persistedResponse.statusCode, 200, 'collection can be fetched through API after reopening node')
+    t.is(collectionBody(persistedResponse).language, 'en', 'language persists across node restart')
     const persisted = node.state.collections.get(id as string)
     t.ok(persisted, 'collection exists after reopening node')
     t.is(persisted?.name, 'Persistencia', 'collection name was restored')
