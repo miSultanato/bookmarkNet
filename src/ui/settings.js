@@ -128,15 +128,13 @@ export function render(container, state, { onReload } = {}) {
     profileSection.append(form)
     page.append(profileSection)
 
-    const importSection = element('section', 'settings-section')
-    importSection.id = 'import'
-    importSection.append(element('h2', '', 'Importar bookmarks'))
-    importSection.append(element('p', '', 'Importa bookmarks desde un archivo HTML de tu navegador.'))
-    const importButton = element('button', 'settings-disabled', 'Importar — Disponible próximamente')
-    importButton.type = 'button'
-    importButton.disabled = true
-    importSection.append(importButton)
-    page.append(importSection)
+    const importLinkSection = element('section', 'settings-section')
+    importLinkSection.append(element('h2', '', 'Importar bookmarks'))
+    importLinkSection.append(element('p', '', 'La importación HTML está disponible en su pantalla propia.'))
+    const importLink = element('a', '', 'Ir a Importar bookmarks')
+    importLink.href = '#/import'
+    importLinkSection.append(importLink)
+    page.append(importLinkSection)
 
     const seedSection = element('section', 'settings-section')
     seedSection.append(element('h2', '', 'Seed pack'))

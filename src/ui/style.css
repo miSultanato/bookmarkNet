@@ -112,3 +112,14 @@ a { color: var(--accent); }
   .main { padding: 16px; }
   .onboarding-layout .layout { display: block; }
 }
+
+.home-page { display: grid; gap: 20px; }
+.home-card { display: block; color: var(--fg); text-decoration: none; min-height: 140px; }
+.home-card h2 { margin: 0 0 10px; }
+.home-card p { margin: 0; color: var(--muted); line-height: 1.6; }
+.import-page { display: grid; gap: 16px; max-width: 760px; }
+.import-page > p { margin: 0; line-height: 1.6; }
+.import-form { display: grid; gap: 16px; padding: 20px; background: white; border: 1px solid #ddd; border-radius: 12px; }
+.import-form label { display: grid; gap: 8px; color: var(--muted); }
+.import-form input[type="file"] { width: 100%; }
+.import-form button { justify-self: start; }
