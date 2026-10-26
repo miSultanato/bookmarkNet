@@ -102,7 +102,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     titleArea.append(element('h1', '', collection?.name || 'Colección sin nombre'))
     if (collection?.description) titleArea.append(element('p', 'collection-description', collection.description))
     const badges = element('div', 'collection-badges')
-    badges.append(element('span', 'badge', collection?.visibility === 'unlisted' ? 'No listada' : 'Pública'))
+    badges.append(element('span', 'badge', collection?.visibility === 'unlisted' ? 'Privada' : 'Pública'))
     badges.append(element('span', 'badge badge-local', 'Local'))
     titleArea.append(badges)
 
@@ -163,7 +163,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       const visibilitySelect = element('select')
       visibilitySelect.name = 'visibility'
       visibilitySelect.setAttribute('aria-label', 'Visibilidad')
-      for (const [value, label] of [['public', 'Pública'], ['unlisted', 'No listada']]) {
+      for (const [value, label] of [['public', 'Pública'], ['unlisted', 'Privada']]) {
         const option = element('option', '', label)
         option.value = value
         visibilitySelect.append(option)
