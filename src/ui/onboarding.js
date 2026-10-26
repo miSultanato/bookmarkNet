@@ -1,4 +1,16 @@
-import { createIdentity } from './api.js'
+import { createIdentity, importHtml } from './api.js'
+
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => typeof reader.result === 'string'
+      ? resolve(reader.result)
+      : reject(new Error('No se pudo leer el archivo HTML.'))
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo HTML.'))
+    reader.onabort = () => reject(new Error('La lectura del archivo se ha cancelado.'))
+    reader.readAsText(file)
+  })
+}
 
 export function render(container, state, onDone) {
   container.replaceChildren()
@@ -17,16 +29,32 @@ export function render(container, state, onDone) {
   const actions = document.createElement('div')
   actions.className = 'actions'
 
-  const importButton = document.createElement('button')
-  importButton.type = 'button'
-  importButton.textContent = 'Importar bookmarks de mi navegador (HTML)'
-  importButton.addEventListener('click', () => showComingSoon(section))
-  actions.append(importButton)
+  const importOption = document.createElement('div')
+  importOption.className = 'import-option'
+  const importLabel = document.createElement('label')
+  const importCheckbox = document.createElement('input')
+  importCheckbox.type = 'checkbox'
+  importCheckbox.name = 'import-html'
+  const importText = document.createElement('span')
+  importText.textContent = 'Importar bookmarks de mi navegador (HTML)'
+  importLabel.append(importCheckbox, importText)
+  const file = document.createElement('input')
+  file.type = 'file'
+  file.accept = '.html,.htm'
+  file.hidden = true
+  file.setAttribute('aria-label', 'Archivo HTML para importar')
+  importCheckbox.addEventListener('change', () => {
+    file.hidden = !importCheckbox.checked
+    if (!importCheckbox.checked) file.value = ''
+  })
+  importOption.append(importLabel, file)
+  actions.append(importOption)
 
   const seedButton = document.createElement('button')
   seedButton.type = 'button'
-  seedButton.textContent = 'Añadir colecciones iniciales (seed pack)'
-  seedButton.addEventListener('click', () => showComingSoon(section))
+  seedButton.textContent = 'Añadir colecciones iniciales (seed pack) — Disponible próximamente'
+  seedButton.disabled = true
+  seedButton.title = 'Disponible próximamente (MVP4)'
   actions.append(seedButton)
 
   const continueButton = document.createElement('button')
@@ -39,18 +67,38 @@ export function render(container, state, onDone) {
   feedback.hidden = true
 
   continueButton.addEventListener('click', async () => {
+    const selectedFile = importCheckbox.checked ? file.files?.[0] : null
+    if (importCheckbox.checked && !selectedFile &&
+      !window.confirm('No has seleccionado archivo. ¿Continuar sin importar?')) {
+      return
+    }
+
     continueButton.disabled = true
+    file.disabled = true
+    importCheckbox.disabled = true
     continueButton.textContent = 'Creando identidad…'
     feedback.hidden = true
     feedback.textContent = ''
     try {
       const identity = await createIdentity()
       state.identity = identity
+      if (selectedFile) {
+        continueButton.textContent = 'Importando bookmarks…'
+        try {
+          const html = await readFile(selectedFile)
+          await importHtml(html)
+        } catch (error) {
+          onDone(error instanceof Error ? error.message : String(error))
+          return
+        }
+      }
       onDone()
     } catch (error) {
       feedback.textContent = error instanceof Error ? error.message : String(error)
       feedback.hidden = false
       continueButton.disabled = false
+      file.disabled = false
+      importCheckbox.disabled = false
       continueButton.textContent = 'Continuar'
     }
   })
@@ -58,14 +106,4 @@ export function render(container, state, onDone) {
   actions.append(continueButton)
   section.append(actions, feedback)
   container.append(section)
-}
-
-function showComingSoon(section) {
-  let notice = section.querySelector('.coming-soon')
-  if (!notice) {
-    notice = document.createElement('p')
-    notice.className = 'placeholder coming-soon'
-    section.append(notice)
-  }
-  notice.textContent = 'Disponible próximamente'
 }

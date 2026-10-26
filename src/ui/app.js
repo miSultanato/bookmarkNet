@@ -110,7 +110,10 @@ function renderCurrentRoute() {
 
   renderHeader(routePath)
   if (routePath === '#/onboarding') {
-    renderOnboarding(content, state, () => { state.errors = []; navigate('#/') })
+    renderOnboarding(content, state, (importError) => {
+      state.errors = importError ? [`La identidad se ha creado, pero la importación ha fallado: ${importError}. Puedes reintentarlo desde Importar.`] : []
+      navigate('#/inbox')
+    })
   } else if (routePath === '#/') {
     if (state.identity) {
       renderHome()
