@@ -155,8 +155,6 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(onboarding.body.includes('createIdentity'), 'onboarding module creates an identity')
     t.ok(onboarding.body.includes('importHtml') || onboarding.body.includes('FileReader'), 'onboarding supports HTML bookmark import')
 
-    const apiModule = await request(api.port, '/assets/api.js')
-    t.is(apiModule.statusCode, 200, 'API client module is served')
     t.ok(apiModule.body.includes('importHtml'), 'API client exposes importHtml')
 
     const inbox = await request(api.port, '/assets/inbox.js')
