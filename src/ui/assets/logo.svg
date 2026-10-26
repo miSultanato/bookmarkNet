@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-labelledby="title">
+  <title id="title">Lotura</title>
+  <defs>
+    <linearGradient id="lotura-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3BC0F0"/>
+      <stop offset="25%" stop-color="#2E7BF6"/>
+      <stop offset="50%" stop-color="#3B5BDB"/>
+      <stop offset="75%" stop-color="#5B4FD6"/>
+      <stop offset="100%" stop-color="#8B4FE8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+  <rect x="0" y="100" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+  <rect x="0" y="200" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+  <rect x="100" y="200" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+  <rect x="200" y="200" width="90" height="90" rx="20" fill="url(#lotura-gradient)"/>
+</svg>
