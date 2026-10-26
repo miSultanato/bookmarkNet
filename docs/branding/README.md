@@ -48,7 +48,9 @@ El favicon incorpora fondo blanco y una versión simplificada del gradiente para
 - `favicon.svg`: pestaña del navegador; SVG escalable para tamaños 16, 32 y 48 px.
 - `logo-with-wordmark.svg`: composición vertical para portada y README, con símbolo arriba, nombre y dos líneas de texto debajo.
 - `src/ui/assets/logo.svg`: copia idéntica del símbolo canónico para servirlo en la UI.
-- `src/ui/assets/favicon.svg`: favicon para la UI. Las copias `src/ui/logo.svg` y `src/ui/favicon.svg` se mantienen porque el servidor sirve `/assets/<archivo>` desde la raíz de `src/ui/`, sin modificar el servidor.
+- `src/ui/assets/favicon.svg`: favicon para la UI.
+
+El servidor sirve `/assets/*` desde `src/ui/assets/` (con fallback a `src/ui/` para el resto de la UI). Los SVG viven solo en `src/ui/assets/`.
 
 ## Iconos de portada
 
