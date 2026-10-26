@@ -46,20 +46,19 @@ Tagline: **Guarda enlaces. Comparte colecciones.**
 
 Descripción: **Crea, comparte y descubre colecciones de enlaces.**
 
-## Usos de los archivos
+## Usos
 
-- `logo.svg`: símbolo principal a color.
-- `logo-monochrome.svg`: impresión y contextos monocromos.
+- `logo.svg`: símbolo principal para la aplicación y fondos transparentes.
+- `logo-monochrome.svg`: impresión, grabado y contextos monocromos.
 - `favicon.svg`: versión simplificada para la pestaña del navegador.
-- `logo-with-wordmark.svg`: portada, documentación y README.
+- `logo-with-wordmark.svg`: composición vertical para portada y README, con símbolo centrado sobre el nombre, tagline y descripción.
 
-`docs/branding/logo.svg` es la fuente canónica. Las copias `src/ui/assets/logo.svg` y `src/ui/logo.svg` contienen el mismo SVG: la primera conserva los recursos de marca organizados bajo `assets/`, y la segunda es la copia que sirve el servidor actual.
+La composición vertical sigue el estudio visual: símbolo modular arriba, «Lotura» como elemento tipográfico dominante y dos líneas descriptivas debajo. Las piezas mantienen fondo transparente.
 
-El favicon se conserva en `src/ui/assets/favicon.svg` como recurso de marca y se copia idénticamente a `src/ui/favicon.svg` para servirlo. El HTML enlaza `/assets/favicon.svg` y `/assets/logo.svg`; el servidor actual resuelve `/assets/<archivo>` directamente contra `src/ui/<archivo>` (no contra `src/ui/assets/`). Por eso hacen falta las copias en la raíz de `src/ui/`, sin modificar `src/api/server.ts`.
+## Paleta de acentos
 
-## Uso correcto
+- Azul: `#3B82F6`
+- Violeta: `#8B5CF6`
+- Verde: `#22C55E`
 
-- Mantener las proporciones y la transparencia del símbolo.
-- No recolorear los módulos individualmente ni añadir contornos o sombras.
-- Usar la versión monocroma cuando el proceso de impresión o el contexto no admita gradientes.
-- Mantener contraste suficiente entre el wordmark, la tagline y su fondo.
+Fondos suaves asociados: `#EEF2FF`, `#F3E8FF`, `#DCFCE7`.

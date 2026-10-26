@@ -5,9 +5,11 @@
       <stop offset="100%" stop-color="#8B4FE8"/>
     </linearGradient>
   </defs>
-  <rect x="1" y="1" width="10" height="10" rx="3" fill="url(#lotura-gradient)"/>
-  <rect x="1" y="11.5" width="10" height="10" rx="3" fill="url(#lotura-gradient)"/>
-  <rect x="1" y="21.5" width="10" height="10" rx="3" fill="url(#lotura-gradient)"/>
-  <rect x="11.5" y="21.5" width="10" height="10" rx="3" fill="url(#lotura-gradient)"/>
-  <rect x="21.5" y="21.5" width="10" height="10" rx="3" fill="url(#lotura-gradient)"/>
+  <g fill="url(#lotura-gradient)">
+    <rect x="1" y="1" width="10" height="10" rx="3"/>
+    <rect x="1" y="11.5" width="10" height="10" rx="3"/>
+    <rect x="1" y="22" width="10" height="9" rx="3"/>
+    <rect x="11.5" y="22" width="9" height="9" rx="3"/>
+    <rect x="22" y="22" width="9" height="9" rx="3"/>
+  </g>
 </svg>
