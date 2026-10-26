@@ -28,6 +28,7 @@ export function canonicalizeUrl(input: string): string {
     throw new RangeError('URL input must be an absolute http(s) URL')
   }
 
+  try {
   // Use bare-url's non-throwing parser so malformed input is reported
   // consistently as RangeError rather than a parser-specific exception.
   if (!URL.canParse(input)) {
@@ -92,6 +93,11 @@ export function canonicalizeUrl(input: string): string {
   // 8. Assigning an empty search removes a trailing empty "?" as well.
   // Non-default ports survive URL serialization.
   return url.href
+  } catch (cause) {
+    if (cause instanceof RangeError) throw cause
+    const message = cause instanceof Error ? cause.message : String(cause)
+    throw new RangeError('URL inválida: ' + message)
+  }
 }
 
 /** Return null for malformed or unsupported URLs instead of throwing RangeError. */
