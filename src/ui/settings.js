@@ -129,6 +129,7 @@ export function render(container, state, { onReload } = {}) {
     page.append(profileSection)
 
     const importSection = element('section', 'settings-section')
+    importSection.id = 'import'
     importSection.append(element('h2', '', 'Importar bookmarks'))
     importSection.append(element('p', '', 'Importa bookmarks desde un archivo HTML de tu navegador.'))
     const importButton = element('button', 'settings-disabled', 'Importar — Disponible próximamente')
