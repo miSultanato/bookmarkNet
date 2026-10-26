@@ -104,6 +104,33 @@ function decodeUtf8(bytes: Uint8Array): string {
   return output
 }
 
+function decodeUtf8(bytes: Uint8Array): string {
+  let output = ''
+  for (let i = 0; i < bytes.length;) {
+    const first = bytes[i++]
+    let codePoint: number
+    if (first <= 0x7f) {
+      codePoint = first
+    } else if ((first & 0xe0) === 0xc0 && i < bytes.length) {
+      codePoint = ((first & 0x1f) << 6) | (bytes[i++] & 0x3f)
+    } else if ((first & 0xf0) === 0xe0 && i + 1 < bytes.length) {
+      codePoint = ((first & 0x0f) << 12) | ((bytes[i++] & 0x3f) << 6) | (bytes[i++] & 0x3f)
+    } else if ((first & 0xf8) === 0xf0 && i + 2 < bytes.length) {
+      codePoint = ((first & 0x07) << 18) | ((bytes[i++] & 0x3f) << 12) |
+        ((bytes[i++] & 0x3f) << 6) | (bytes[i++] & 0x3f)
+    } else {
+      throw new RangeError('identity_blob descifrado no contiene UTF-8 válido')
+    }
+    if (codePoint <= 0xffff) {
+      output += String.fromCharCode(codePoint)
+    } else {
+      codePoint -= 0x10000
+      output += String.fromCharCode(0xd800 | (codePoint >> 10), 0xdc00 | (codePoint & 0x3ff))
+    }
+  }
+  return output
+}
+
 function isStoredIdentity(value: unknown): value is StoredIdentity {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
   const candidate = value as Record<string, unknown>
@@ -174,10 +201,7 @@ export async function importIdentity(
 
   let parsed: unknown
   try {
-    // Bare has no guaranteed TextDecoder; JSON is ASCII-compatible for these stored fields.
-    let text = ''
-    for (const byte of plaintext) text += String.fromCharCode(byte)
-    parsed = JSON.parse(text) as unknown
+    parsed = JSON.parse(decodeUtf8(plaintext)) as unknown
   } catch {
     throw new RangeError('identity_blob descifrado contiene JSON inválido')
   }
