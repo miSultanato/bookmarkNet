@@ -364,7 +364,7 @@ export function genesisSigningHash(params: GenesisSigningParams): Uint8Array {
 }
 
 export function collectionGenesis(params: CollectionGenesisParams): CollectionGenesisEvent {
-  const language = params.language ?? 'es'
+  const language = params.language === undefined ? 'es' : params.language
   const signingParams: GenesisSigningParams = { ...params, language }
   validateGenesisSigningParams(signingParams)
   if (!(params.secretKey instanceof Uint8Array) || params.secretKey.length !== 64) {
