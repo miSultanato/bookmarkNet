@@ -65,7 +65,7 @@ a { color: var(--accent); }
 .group-header h2 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
 .group-header button { background: #b91c1c; color: white; border-color: #b91c1c; }
 .bookmark-group-select { flex: 1 1 10rem; }
-.bookmark-detail { display: grid; gap: 16px; min-width: 0; max-width: 960px; }
+.bookmark-detail { display: grid; gap: 16px; min-width: 0; max-width: 960px; padding: 20px; background: white; border: 1px solid #ddd; border-radius: 12px; }
 .bookmark-detail h1 { margin: 0; overflow-wrap: anywhere; }
 .bookmark-description { margin: 0; line-height: 1.6; }
 .bookmark-notes { margin: 0; padding: 16px; border-left: 3px solid #cbd5e1; border-radius: 4px; background: white; white-space: pre-wrap; overflow-wrap: anywhere; }
