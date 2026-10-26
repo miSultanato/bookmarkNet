@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-labelledby="title">
+  <title id="title">Lotura — logo monocromo</title>
+  <rect x="0" y="0" width="90" height="90" rx="20" fill="#1A1D23"/>
+  <rect x="0" y="100" width="90" height="90" rx="20" fill="#1A1D23"/>
+  <rect x="0" y="200" width="90" height="90" rx="20" fill="#1A1D23"/>
+  <rect x="100" y="200" width="90" height="90" rx="20" fill="#1A1D23"/>
+  <rect x="200" y="200" width="90" height="90" rx="20" fill="#1A1D23"/>
+</svg>
