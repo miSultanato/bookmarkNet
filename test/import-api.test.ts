@@ -180,7 +180,7 @@ test('HTML import maps bookmarks, collections and nested folders and persists st
       errors: [{ url: 'javascript:alert(1)', reason: 'invalid URL' }]
     }, 'invalid URL is skipped and reported while valid bookmark imports')
 
-    const malformedUrl = 'https://example.com/100%'
+    const malformedUrl = 'https://example.com/path?q=%ZZ'
     const malformedUrlResult = await request(api.port, IMPORT_PATH, {
       html: '<DL><p><DT><A HREF="' + malformedUrl + '">Bad URL</A><DT><A HREF="https://example.com/after-malformed">Good URL</A></DL>'
     })
