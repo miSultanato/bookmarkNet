@@ -73,7 +73,7 @@ test('device_create_collection creates once with timestamps and optional descrip
   let state = applyDeviceEvent(emptyDeviceState(), collection(T1))
   t.alike(state.collections.get(COLLECTION_ID), {
     collectionId: COLLECTION_ID, name: 'Colección', description: 'Descripción',
-    visibility: 'public', deleted: false, createdAt: T1
+    visibility: 'public', language: 'es', deleted: false, createdAt: T1
   })
   const second = applyDeviceEvent(state, collection(T2))
   t.is(second, state)
@@ -82,6 +82,16 @@ test('device_create_collection creates once with timestamps and optional descrip
     authorId: AUTHOR_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ', name: 'Sin descripción', visibility: 'unlisted'
   }))
   t.is(Object.prototype.hasOwnProperty.call(withoutDescription.collections.get('01ARZ3NDEKTSV4RRFFQ69G5FAZ'), 'description'), false)
+  t.is(withoutDescription.collections.get('01ARZ3NDEKTSV4RRFFQ69G5FAZ')?.language, 'es')
+
+  const englishEvent = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAW', name: 'English', visibility: 'public', language: 'en' })
+  const english = applyDeviceEvent(emptyDeviceState(), englishEvent)
+  t.is(english.collections.get('01ARZ3NDEKTSV4RRFFQ69G5FAW')?.language, 'en')
+
+  const malformed = collection()
+  delete (malformed.payload as any).language
+  const defaulted = applyDeviceEvent(emptyDeviceState(), malformed)
+  t.is(defaulted.collections.get(COLLECTION_ID)?.language, 'es')
 })
 
 test('device_update_collection ignores missing/deleted collection and applies only present changes', (t) => {
@@ -89,15 +99,20 @@ test('device_update_collection ignores missing/deleted collection and applies on
   t.is(applyDeviceEvent(empty, deviceUpdateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: { name: 'Nueva' } })), empty)
   const state = initial()
   const updated = applyDeviceEvent(state, eventOn(deviceUpdateCollection({
-    authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: { name: 'Nueva', description: null, visibility: 'unlisted' }
+    authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: { name: 'Nueva', description: null, visibility: 'unlisted', language: 'eu' }
   }), T2))
   t.is(updated.collections.get(COLLECTION_ID)?.name, 'Nueva')
   t.is(updated.collections.get(COLLECTION_ID)?.visibility, 'unlisted')
+  t.is(updated.collections.get(COLLECTION_ID)?.language, 'eu')
   t.is(Object.prototype.hasOwnProperty.call(updated.collections.get(COLLECTION_ID), 'description'), false)
   t.is(updated.collections.get(COLLECTION_ID)?.updatedAt, T2)
   t.is(state.collections.get(COLLECTION_ID)?.name, 'Colección')
+  t.is(state.collections.get(COLLECTION_ID)?.language, 'es')
   const deleted = applyDeviceEvent(updated, eventOn(deviceDeleteCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID }), T3))
   t.is(applyDeviceEvent(deleted, deviceUpdateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: { name: 'Ignorar' } })), deleted)
+
+  const unchanged = applyDeviceEvent(state, deviceUpdateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: { name: 'Solo nombre' } }))
+  t.is(unchanged.collections.get(COLLECTION_ID)?.language, 'es')
 })
 
 test('device_delete_collection ignores missing/repeated events and cascades permanently', (t) => {
