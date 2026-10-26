@@ -138,7 +138,7 @@ function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): b
     return true
   }
 
-  const assetFile = staticAssets[assetPath]
+  const assetFile = staticAssets['assets/' + assetPath] ?? staticAssets[assetPath]
   if (assetFile === undefined) {
     sendEmpty(res, 404)
     return true
