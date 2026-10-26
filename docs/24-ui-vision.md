@@ -1,10 +1,21 @@
 # Visión de UI
 
-Este documento recoge la visión visual de BookmarkNet para MVP2–MVP4 y conserva wireframes HTML estáticos como referencia. Es un documento de diseño: no implica que todas las pantallas o métricas estén implementadas.
+Este documento recoge la visión visual de Lotura para MVP2–MVP4 y conserva wireframes HTML estáticos como referencia. Es un documento de diseño: no implica que todas las pantallas o métricas estén implementadas.
+
+## Branding
+
+- **Nombre:** LOTURA.
+- **Significado:** enlace, conexión, vínculo (euskera).
+- **Tagline:** «Guarda enlaces. Comparte colecciones.»
+- **Descripción:** «Crea, comparte y descubre colecciones de enlaces.»
+- **Logo:** L modular. Narrativa: «Los enlaces se agrupan en colecciones, y las colecciones construyen Lotura».
+- **Colores:** gradiente azul → violeta para el logo; para la UI, acento `#2563eb`.
+- **Inspiraciones:** Immich, Linkding, Raindrop, GitHub.
+- **No:** Facebook, Twitter, Instagram.
 
 ## 1. Filosofía visual
 
-BookmarkNet se diseña como una **aplicación local servida por el nodo y accedida desde el navegador**, no como una web pública centralizada. El modelo mental se acerca a Home Assistant, Immich, Linkding o qBittorrent: el usuario ejecuta su propio servicio y abre su interfaz local.
+Lotura se diseña como una **aplicación local servida por el nodo y accedida desde el navegador**, no como una web pública centralizada. El modelo mental se acerca a Home Assistant, Immich, Linkding o qBittorrent: el usuario ejecuta su propio servicio y abre su interfaz local.
 
 La entidad principal visible es la **colección**, no el usuario ni el tema. Los bookmarks son recursos organizados dentro de colecciones; la red P2P es la infraestructura que permite encontrarlos, replicarlos y mantenerlos disponibles.
 
@@ -15,11 +26,39 @@ Inspiraciones visuales y de interacción:
 - **Raindrop:** navegación visual por colecciones y recursos.
 - **GitHub:** exploración de proyectos y señales transparentes sobre actividad y disponibilidad.
 
-No se busca imitar Facebook, Twitter ni Instagram. BookmarkNet no es una red social: no necesita likes, publicaciones, perfiles como foco ni métricas de popularidad de personas.
+No se busca imitar Facebook, Twitter ni Instagram. Lotura no es una red social: no necesita likes, publicaciones, perfiles como foco ni métricas de popularidad de personas.
 
 La sensación general debe ser la de una **biblioteca de conocimiento**, tranquila y útil. Fondo claro u oscuro, acento azul o verde, mucho espacio en blanco, tarjetas legibles y jerarquía tipográfica sencilla. Los indicadores P2P (estado, peers y sincronización) están presentes, pero son discretos: primero se percibe la biblioteca y después se entiende la red que la sostiene.
 
 La UI debe mostrar la disponibilidad y la sincronización con honestidad. Una colección sin peers no debe parecer disponible si no lo está; las métricas globales futuras deben distinguirse de las observaciones locales.
+
+## Portada
+
+Wireframe conceptual de la portada de Lotura:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                            LOTURA                            │
+│                                                              │
+│              Guarda enlaces. Comparte colecciones.           │
+│     Crea, comparte y descubre colecciones de enlaces.        │
+│                                                              │
+│                   [ Empezar ]  [ Explorar ]                  │
+│                                                              │
+│  ES                         EN                         EU    │
+│  Guarda enlaces.            Save links.                Gorde estekak.
+│  Comparte colecciones.      Share collections.         Partekatu bildumak.
+│  Crea, comparte y           Create, share and          Sortu, partekatu
+│  descubre colecciones       discover link              eta aurkitu
+│  de enlaces.                collections.               esteka-bildumak.
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **ES:** «Guarda enlaces. Comparte colecciones.» / «Crea, comparte y descubre colecciones de enlaces.»
+- **EN:** «Save links. Share collections.» / «Create, share and discover link collections.»
+- **EU:** «Gorde estekak. Partekatu bildumak.» / «Sortu, partekatu eta aurkitu esteka-bildumak.»
+
+> En MVP0, Lotura es el nombre de producto. El código sigue siendo `bookmarknet`. En MVP1, se hace el cambio completo.
 
 ## 2. Estructura de navegación
 
@@ -62,7 +101,7 @@ Incluye una acción visible para crear una colección. Los estados de sincroniza
 
 ### 3.4. Colección
 
-Es la pantalla estrella de BookmarkNet. Presenta una colección como una biblioteca temática, no como una lista plana de URLs.
+Es la pantalla estrella de Lotura. Presenta una colección como una biblioteca temática, no como una lista plana de URLs.
 
 **Cabecera:** nombre, descripción, tags o tema, visibilidad y acciones disponibles. En las fases posteriores incluye **Seguir**, **Duplicar** y **Compartir**.
 
@@ -166,7 +205,7 @@ Los siguientes bloques son wireframes estáticos inspirados en los diseños orig
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>BookmarkNet — Inicio</title>
+  <title>Lotura — Inicio</title>
   <style>
     body { margin: 0; font: 16px system-ui, sans-serif; background: #f5f6f8; color: #222; }
     .layout { display: flex; min-height: 100vh; }
@@ -186,7 +225,7 @@ Los siguientes bloques son wireframes estáticos inspirados en los diseños orig
 <body>
 <div class="layout">
   <aside>
-    <strong>BookmarkNet</strong>
+    <strong>LOTURA</strong>
     <nav>
       <a href="#">🏠 Inicio</a><a href="#">📥 Inbox</a>
       <a href="#">📚 Mis colecciones</a><a href="#">🌍 Explorar</a>
@@ -229,7 +268,7 @@ Los siguientes bloques son wireframes estáticos inspirados en los diseños orig
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>BookmarkNet — Colección</title>
+  <title>Lotura — Colección</title>
   <style>
     body { margin: 0; font: 16px system-ui, sans-serif; background: #f5f6f8; color: #222; }
     .wrap { max-width: 1400px; margin: auto; padding: 28px; }
@@ -288,7 +327,7 @@ Los siguientes bloques son wireframes estáticos inspirados en los diseños orig
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>BookmarkNet — Descubrir</title>
+  <title>Lotura — Descubrir</title>
   <style>
     body { margin: 0; font: 16px system-ui, sans-serif; background: #f5f6f8; color: #222; }
     .layout { display: flex; min-height: 100vh; }
@@ -342,7 +381,7 @@ Los siguientes bloques son wireframes estáticos inspirados en los diseños orig
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>BookmarkNet — Resource</title>
+  <title>Lotura — Resource</title>
   <style>
     body { margin: 0; font: 16px system-ui, sans-serif; background: #f5f6f8; color: #222; }
     .wrap { max-width: 1300px; margin: auto; padding: 26px; }

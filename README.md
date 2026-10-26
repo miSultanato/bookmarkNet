@@ -1,6 +1,11 @@
-# BookmarkNet
+# Lotura
 
-Red P2P de bookmarks. El activo principal es el enlace, no el usuario, no el contenido generado, no los algoritmos.
+Guarda enlaces. Comparte colecciones.
+
+Crea, comparte y descubre colecciones de enlaces.
+
+> **Nota:** Lotura es el nombre de producto. El nombre técnico del proyecto es BookmarkNet (repo, paquete, directorio de datos).
+
 
 > El conocimiento no se crea. Se descubre, se organiza y se comparte.
 
@@ -8,7 +13,7 @@ Red P2P de bookmarks. El activo principal es el enlace, no el usuario, no el con
 
 ## Qué es
 
-BookmarkNet indexa las decisiones humanas sobre qué recursos son valiosos, no las páginas web. Los usuarios guardan enlaces, los organizan en grupos y colecciones, y la red descubre patrones (stacks, rutas, relaciones) que emergen de cómo miles de personas organizan la información.
+Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las páginas web. Los usuarios guardan enlaces, los organizan en grupos y colecciones, y la red descubre patrones (stacks, rutas, relaciones) que emergen de cómo miles de personas organizan la información.
 
 ## Qué NO es
 
