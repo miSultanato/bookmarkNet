@@ -6,7 +6,8 @@ Este documento define la configuración del nodo de BookmarkNet: puerto, directo
 
 - **Por defecto:** `7575`.
 - **Configurable:** por `BOOKMARKNET_PORT` (env var) o por `port` en `config.json`.
-- **Auto-incremento:** si el puerto está ocupado, el nodo intenta el siguiente (`7576`, `7577`...) hasta encontrar uno libre. El puerto elegido se escribe en el log y en `config.json` (si no estaba ya fijado).
+- **Auto-incremento:** si el puerto por defecto (`7575`) está ocupado, el nodo intenta los siguientes (`7576`, `7577`...) hasta encontrar uno libre, con un máximo de 100 intentos. Si el puerto se ha fijado explícitamente en `config.json` o `BOOKMARKNET_PORT`, no se auto-incrementa: si está ocupado, el arranque falla con un error claro.
+- El puerto elegido se escribe en el log. No se modifica `config.json` automáticamente; si el usuario quiere fijar el puerto, debe editarlo él.
 - **UI y API comparten puerto y origen.** La UI se sirve desde `/` y la API desde `/api/v1/`. No hay CORS.
 
 ## Directorio de datos
@@ -91,9 +92,11 @@ La API local y la UI comparten puerto. Para evitar DNS rebinding y CSRF:
   2. Aplica overrides de env vars.
   3. Crea el directorio de datos si no existe.
   4. Arranca el servidor HTTP en el puerto elegido.
-  5. Arranca Hyperswarm y se une a los topics de bootstrap.
-  6. Si `open_browser_on_start` es `true`, abre el navegador en `http://localhost:<puerto>`.
-- Si el puerto está ocupado, prueba el siguiente. Si el directorio de datos no se puede crear, sale con error.
+  5. Escribe en el log la URL con el puerto real.
+  6. Arranca Hyperswarm y se une a los topics de bootstrap.
+  7. Si `open_browser_on_start` es `true`, abre el navegador en `http://localhost:<puerto>`.
+- Tras arrancar el servidor, si `openBrowserOnStart` es `true`, el nodo abre el navegador en `http://localhost:<puerto>`. Si no puede abrirlo (entorno sin navegador), muestra un aviso y continúa.
+- Si el puerto por defecto está ocupado, prueba hasta 100 puertos consecutivos. Si un puerto explícito está ocupado, o no se encuentra ningún puerto libre en el rango, sale con error. Si el directorio de datos no se puede crear, sale con error.
 
 ## Lo que NO se configura en MVP
 
