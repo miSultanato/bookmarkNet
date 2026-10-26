@@ -134,7 +134,17 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     header.append(titleArea, headerActions)
     section.append(header)
 
-    if (actionError) section.append(element('p', 'error', actionError))
+    const contentLayout = element('div', 'collection-content-layout')
+    const infoSidebar = element('aside', 'collection-info')
+    infoSidebar.append(element('h2', '', 'Información'))
+    infoSidebar.append(element('p', '', bookmarks.length + (bookmarks.length === 1 ? ' bookmark' : ' bookmarks')))
+    infoSidebar.append(element('p', '', groups.length + (groups.length === 1 ? ' grupo' : ' grupos')))
+    infoSidebar.append(element('span', 'badge badge-local', 'Local'))
+    const collectionContent = element('div', 'collection-content')
+    contentLayout.append(infoSidebar, collectionContent)
+    section.append(contentLayout)
+
+    if (actionError) collectionContent.append(element('p', 'error', actionError))
 
     if (editing) {
       const editForm = element('form', 'inline-form collection-edit-form')
@@ -197,7 +207,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
           saveButton.disabled = false
         }
       })
-      section.append(editForm)
+      collectionContent.append(editForm)
     }
 
     const addSection = element('section', 'bookmark-form-section')
@@ -265,7 +275,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       }
     })
     addSection.append(form)
-    section.append(addSection)
+    collectionContent.append(addSection)
 
     const createGroupSection = element('section', 'group-create-section')
     createGroupSection.append(element('h2', '', 'Crear grupo'))
@@ -303,15 +313,15 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       }
     })
     createGroupSection.append(groupForm)
-    section.append(createGroupSection)
+    collectionContent.append(createGroupSection)
 
     if (bookmarksError || groupsError) {
-      if (bookmarksError) section.append(element('p', 'error', 'Error al cargar los bookmarks: ' + errorMessage(bookmarksError)))
-      if (groupsError) section.append(element('p', 'error', 'Error al cargar los grupos: ' + errorMessage(groupsError)))
+      if (bookmarksError) collectionContent.append(element('p', 'error', 'Error al cargar los bookmarks: ' + errorMessage(bookmarksError)))
+      if (groupsError) collectionContent.append(element('p', 'error', 'Error al cargar los grupos: ' + errorMessage(groupsError)))
       const retry = element('button', '', 'Reintentar')
       retry.type = 'button'
       retry.addEventListener('click', load)
-      section.append(retry)
+      collectionContent.append(retry)
       return
     }
 
@@ -400,7 +410,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       bookmarks.filter((bookmark) => bookmark.group_id == null),
       null
     ))
-    section.append(ungroupedSection)
+    collectionContent.append(ungroupedSection)
 
     for (const group of groups) {
       const groupSection = element('section', 'group-section')
@@ -424,7 +434,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         bookmarks.filter((bookmark) => bookmark.group_id === group.group_id),
         group.group_id
       ))
-      section.append(groupSection)
+      collectionContent.append(groupSection)
     }
   }
 
