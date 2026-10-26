@@ -1,5 +1,6 @@
 import http from 'bare-http1'
 import fs from 'bare-fs'
+import { assets } from '../ui/assets.generated.js'
 import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
 import type { Config } from '../node/config.ts'
@@ -107,27 +108,16 @@ function sendStaticFile(filePath: string, contentType: string, res: any): void {
   })
 }
 
-function sendStaticAsset(assetPath: string, contentType: string, res: any): void {
-  fs.readFile('src/ui/assets/' + assetPath, (error: any, data: any) => {
-    if (!error) {
-      res.statusCode = 200
-      res.setHeader('Content-Type', contentType)
-      res.setHeader('Content-Length', String(data.length))
-      res.end(data)
-      return
-    }
-    if (error.code !== 'ENOENT') {
-      sendEmpty(res, 500)
-      return
-    }
-    sendStaticFile('src/ui/' + assetPath, contentType, res)
-  })
-}
-
 function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): boolean {
   if (method !== 'GET') return false
+  const staticAssets = assets as Record<string, string>
   if (route.path === '/') {
-    sendStaticFile('src/ui/index.html', 'text/html; charset=utf-8', res)
+    const indexAsset = staticAssets['index.html']
+    if (indexAsset === undefined) {
+      sendEmpty(res, 404)
+      return true
+    }
+    sendStaticFile(indexAsset, 'text/html; charset=utf-8', res)
     return true
   }
   if (!route.path.startsWith('/assets/')) return false
@@ -148,10 +138,16 @@ function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): b
     return true
   }
 
+  const assetFile = staticAssets[assetPath]
+  if (assetFile === undefined) {
+    sendEmpty(res, 404)
+    return true
+  }
+
   const dot = assetPath.lastIndexOf('.')
   const extension = dot === -1 ? '' : assetPath.slice(dot).toLowerCase()
   const contentType = STATIC_CONTENT_TYPES[extension] ?? 'application/octet-stream'
-  sendStaticAsset(assetPath, contentType, res)
+  sendStaticFile(assetFile, contentType, res)
   return true
 }
 
