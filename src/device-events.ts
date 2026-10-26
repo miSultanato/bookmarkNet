@@ -20,10 +20,11 @@ export interface DeviceCreateCollectionPayload {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
 }
 export interface DeviceUpdateCollectionPayload {
   collectionId: string
-  changes: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted' }
+  changes: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu' }
 }
 export interface DeviceDeleteCollectionPayload { collectionId: string }
 export interface DeviceAddBookmarkPayload {
@@ -97,6 +98,9 @@ function requireNullableString(value: unknown, field: string): asserts value is 
 function requireVisibility(value: unknown, field = 'visibility'): asserts value is 'public' | 'unlisted' {
   if (value !== 'public' && value !== 'unlisted') throw new RangeError(field + ' must be public or unlisted')
 }
+function requireLanguage(value: unknown, field = 'language'): asserts value is 'es' | 'en' | 'eu' {
+  if (value !== 'es' && value !== 'en' && value !== 'eu') throw new RangeError(field + ' must be one of: es, en, eu')
+}
 function requireCollectionId(value: unknown): asserts value is string {
   requireNonEmptyString(value, 'collectionId')
 }
@@ -152,7 +156,7 @@ export function deviceMetadata(params: DeviceMetadataParams): DeviceMetadataEven
 }
 
 export interface DeviceCreateCollectionParams {
-  authorId: string; collectionId: string; name: string; description?: string; visibility: 'public' | 'unlisted'
+  authorId: string; collectionId: string; name: string; description?: string; visibility: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu'
 }
 export function deviceCreateCollection(params: DeviceCreateCollectionParams): DeviceCreateCollectionEvent {
   requireRecord(params, 'params')
@@ -161,8 +165,10 @@ export function deviceCreateCollection(params: DeviceCreateCollectionParams): De
   requireNonEmptyString(params.name, 'name')
   requireVisibility(params.visibility)
   requireOptionalString(params.description, 'description')
+  const language = params.language === undefined ? 'es' : params.language
+  requireLanguage(language)
   const payload: DeviceCreateCollectionPayload = {
-    collectionId: params.collectionId, name: params.name, visibility: params.visibility
+    collectionId: params.collectionId, name: params.name, visibility: params.visibility, language
   }
   if (params.description !== undefined) payload.description = params.description
   return makeEvent(params.authorId, 'device_create_collection', payload)
@@ -170,16 +176,17 @@ export function deviceCreateCollection(params: DeviceCreateCollectionParams): De
 
 export interface DeviceUpdateCollectionParams {
   authorId: string; collectionId: string
-  changes: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted' }
+  changes: { name?: string; description?: string | null; visibility?: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu' }
 }
 export function deviceUpdateCollection(params: DeviceUpdateCollectionParams): DeviceUpdateCollectionEvent {
   requireRecord(params, 'params')
   requireAuthorId(params.authorId)
   requireCollectionId(params.collectionId)
-  requireChanges(params.changes, ['name', 'description', 'visibility'])
+  requireChanges(params.changes, ['name', 'description', 'visibility', 'language'])
   if (Object.prototype.hasOwnProperty.call(params.changes, 'name')) requireNonEmptyString(params.changes.name, 'changes.name')
   if (Object.prototype.hasOwnProperty.call(params.changes, 'description')) requireNullableString(params.changes.description, 'changes.description')
   if (Object.prototype.hasOwnProperty.call(params.changes, 'visibility')) requireVisibility(params.changes.visibility, 'changes.visibility')
+  if (Object.prototype.hasOwnProperty.call(params.changes, 'language')) requireLanguage(params.changes.language, 'changes.language')
   return makeEvent(params.authorId, 'device_update_collection', { collectionId: params.collectionId, changes: { ...params.changes } })
 }
 
