@@ -78,6 +78,7 @@ function genesisParams(overrides: Record<string, unknown> = {}): any {
     name: 'Mi colección',
     description: 'Descripción',
     visibility: 'public',
+    language: 'es',
     forkedFrom: null,
     migratedFrom: null,
     ...overrides
