@@ -55,6 +55,18 @@ bare src/main.ts
 
 El nodo sirve la interfaz web en [http://localhost:7575](http://localhost:7575). Abre esa dirección en el navegador. El puerto por defecto es `7575`; el auto-incremento si está ocupado está pendiente de implementación.
 
+### Binario standalone
+
+Para generar un binario que no requiera Node.js ni Bare:
+
+```bash
+npm run build
+```
+
+El binario se genera en `build/lotura` (Linux/macOS) o `build/lotura.exe` (Windows). Ejecútalo con `./build/lotura`.
+
+> **Verificación pendiente:** el binario se genera con `bare-build`. La verificación de que sirve la UI está pendiente de validación manual.
+
 Para ejecutar los tests:
 
 ```bash
