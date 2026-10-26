@@ -13,7 +13,8 @@ function element(tag, className, text) {
   return node
 }
 
-export function render(container, state, { onReload } = {}) {
+export function render(container, state, { onReload, initialTab } = {}) {
+  activeTab = initialTab === 'collections' ? 'collections' : 'inbox'
   container.replaceChildren()
 
   const section = element('section', 'bookmarks-page')
