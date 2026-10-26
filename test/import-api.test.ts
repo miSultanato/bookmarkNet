@@ -180,6 +180,17 @@ test('HTML import maps bookmarks, collections and nested folders and persists st
       errors: [{ url: 'javascript:alert(1)', reason: 'invalid URL' }]
     }, 'invalid URL is skipped and reported while valid bookmark imports')
 
+    const malformedUrl = 'https://example.com/100%'
+    const malformedUrlResult = await request(api.port, IMPORT_PATH, {
+      html: '<DL><p><DT><A HREF="' + malformedUrl + '">Bad URL</A><DT><A HREF="https://example.com/after-malformed">Good URL</A></DL>'
+    })
+    t.is(malformedUrlResult.status, 200, 'malformed percent escape does not fail the import')
+    t.alike(malformedUrlResult.body, {
+      imported: { collections: 0, groups: 0, bookmarks: 1 },
+      skipped: 1,
+      errors: [{ url: malformedUrl, reason: 'invalid URL' }]
+    }, 'malformed URL is reported and valid bookmark still imports')
+
     const malformed = await request(api.port, IMPORT_PATH, { html: '<html><body>not a bookmark export</body></html>' })
     t.is(malformed.status, 200, 'HTML without DL is treated as an empty tree')
     t.alike(malformed.body, {

@@ -137,6 +137,18 @@ test('canonicalizeUrl throws RangeError for unparseable inputs', (t) => {
   expectRangeError(t, () => canonicalizeUrl('://'))
 })
 
+test('malformed percent escapes always produce RangeError and null fallback', (t) => {
+  const input = 'https://example.com/path?q=%ZZ'
+  let thrown: unknown
+  try {
+    canonicalizeUrl(input)
+  } catch (error) {
+    thrown = error
+  }
+  t.ok(thrown instanceof RangeError, 'malformed percent escape throws RangeError')
+  t.is(canonicalizeUrlOrNull(input), null, 'non-throwing helper returns null for malformed percent escape')
+})
+
 test('canonicalizeUrlOrNull returns null for invalid inputs', (t) => {
   t.is(canonicalizeUrlOrNull('no es una url'), null)
   t.is(canonicalizeUrlOrNull(''), null)
