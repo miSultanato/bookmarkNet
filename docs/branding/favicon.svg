@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="lotura-fav" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3BC0F0"/>
+      <stop offset="50%" stop-color="#3B5BDB"/>
+      <stop offset="100%" stop-color="#8B4FE8"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#lotura-fav)">
+    <rect x="2"  y="2"  width="9" height="9"  rx="2.5"/>
+    <rect x="2"  y="12" width="9" height="9"  rx="2.5"/>
+    <rect x="2"  y="22" width="9" height="8"  rx="2.5"/>
+    <rect x="12" y="22" width="9" height="8"  rx="2.5"/>
+    <rect x="22" y="22" width="8" height="8"  rx="2.5"/>
+  </g>
+</svg>
