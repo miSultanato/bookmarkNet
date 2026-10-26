@@ -159,3 +159,11 @@ export async function updateProfile(changes) {
 export async function getConfig() {
   return request('/api/v1/config')
 }
+
+export async function importHtml(html) {
+  return request('/api/v1/import/html', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html })
+  })
+}
