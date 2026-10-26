@@ -28,6 +28,7 @@ function genesis(name = 'Mi colección', eventId) {
     name,
     description: 'Descripción original',
     visibility: 'public',
+    language: 'es',
     forked_from: null,
     migrated_from: null,
     signature_by_owner: 'signature'
@@ -71,6 +72,7 @@ test('collection_genesis creates CollectionMeta from payload and event timestamp
     name: 'Mi colección',
     description: 'Descripción original',
     visibility: 'public',
+    language: 'es',
     forkedFrom: null,
     migratedFrom: null,
     createdAt: CREATED_AT,
