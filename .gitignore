@@ -27,3 +27,6 @@ Thumbs.db
 
 # Tests temporales
 tmp-test-*/
+
+# Mapa de assets generado automáticamente
+src/ui/assets.generated.js
