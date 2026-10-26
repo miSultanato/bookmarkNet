@@ -412,7 +412,7 @@ async function dispatchBookmarkRequest(
   return false
 }
 
-export async function createServer(config: Config, node: Node): Promise<ApiServer> {
+export async function createServer(config: Config, node: Node, listen = true): Promise<ApiServer> {
   const server = http.createServer(async (req, res) => {
     const host = req.headers.host
     const method = (req.method ?? 'GET').toUpperCase()
@@ -530,33 +530,37 @@ export async function createServer(config: Config, node: Node): Promise<ApiServe
     sendJson(res, 404, errorBody('NOT_FOUND', 'Ruta no encontrada'))
   })
 
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const onError = (error: Error) => {
-        server.removeListener('listening', onListening)
-        reject(error)
-      }
-      const onListening = () => {
-        server.removeListener('error', onError)
-        resolve()
-      }
-      server.once('error', onError)
-      server.once('listening', onListening)
-      server.listen(config.port, config.bind)
-    })
-  } catch (error) {
-    throw error
-  }
+  let port = config.port
+  if (listen) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const onError = (error: Error) => {
+          server.removeListener('listening', onListening)
+          reject(error)
+        }
+        const onListening = () => {
+          server.removeListener('error', onError)
+          resolve()
+        }
+        server.once('error', onError)
+        server.once('listening', onListening)
+        server.listen(config.port, config.bind)
+      })
+    } catch (error) {
+      throw error
+    }
 
-  const address = server.address() as { port?: number } | string | null
-  if (address === null || typeof address === 'string' || typeof address.port !== 'number') {
-    await new Promise<void>((resolve) => server.close(() => resolve()))
-    throw new Error('No se pudo determinar el puerto del servidor HTTP')
+    const address = server.address() as { port?: number } | string | null
+    if (address === null || typeof address === 'string' || typeof address.port !== 'number') {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+      throw new Error('No se pudo determinar el puerto del servidor HTTP')
+    }
+    port = address.port
   }
 
   return {
     server,
-    port: address.port,
+    port,
     close: async () => {
       await new Promise<void>((resolve, reject) => {
         server.close((error?: Error) => error ? reject(error) : resolve())
