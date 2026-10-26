@@ -36,11 +36,12 @@ export async function getCollection(id) {
   return request('/api/v1/collections/' + encodeURIComponent(id))
 }
 
-export async function updateCollection(id, { name, description, visibility } = {}) {
+export async function updateCollection(id, { name, description, visibility, language } = {}) {
   const body = {}
   if (name !== undefined) body.name = name
   if (description !== undefined) body.description = description
   if (visibility !== undefined) body.visibility = visibility
+  if (language !== undefined) body.language = language
   return request('/api/v1/collections/' + encodeURIComponent(id), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -120,10 +121,11 @@ export async function deleteBookmark(id) {
   })
 }
 
-export async function createCollection({ name, description, visibility } = {}) {
+export async function createCollection({ name, description, visibility, language } = {}) {
   const body = { name }
   if (description !== undefined) body.description = description
   if (visibility !== undefined) body.visibility = visibility
+  if (language !== undefined) body.language = language
   return request('/api/v1/collections', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

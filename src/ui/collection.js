@@ -103,6 +103,11 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     if (collection?.description) titleArea.append(element('p', 'collection-description', collection.description))
     const badges = element('div', 'collection-badges')
     badges.append(element('span', 'badge', collection?.visibility === 'unlisted' ? 'Privada' : 'Pública'))
+    const language = collection?.language === 'en' ? 'EN' : collection?.language === 'eu' ? 'EU' : 'ES'
+    const languageTitle = collection?.language === 'en' ? 'English' : collection?.language === 'eu' ? 'Euskara' : 'Español'
+    const languageBadge = element('span', 'badge', language)
+    languageBadge.title = languageTitle
+    badges.append(languageBadge)
     badges.append(element('span', 'badge badge-local', 'Local'))
     titleArea.append(badges)
 
@@ -170,6 +175,17 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       }
       visibilitySelect.value = collection?.visibility === 'unlisted' ? 'unlisted' : 'public'
       visibilityLabel.append(visibilitySelect)
+      const languageLabel = element('label', '', 'Idioma')
+      const languageSelect = element('select')
+      languageSelect.name = 'language'
+      languageSelect.setAttribute('aria-label', 'Idioma de la colección')
+      for (const [value, label] of [['es', 'Español (ES)'], ['en', 'English (EN)'], ['eu', 'Euskara (EU)']]) {
+        const option = element('option', '', label)
+        option.value = value
+        languageSelect.append(option)
+      }
+      languageSelect.value = ['es', 'en', 'eu'].includes(collection?.language) ? collection.language : 'es'
+      languageLabel.append(languageSelect)
       const saveButton = element('button', '', 'Guardar')
       saveButton.type = 'submit'
       const cancelButton = element('button', 'secondary-button', 'Cancelar')
@@ -181,7 +197,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       })
       const formError = element('p', 'error')
       formError.hidden = true
-      editForm.append(nameInput, descriptionInput, visibilityLabel, saveButton, cancelButton, formError)
+      editForm.append(nameInput, descriptionInput, visibilityLabel, languageLabel, saveButton, cancelButton, formError)
       editForm.addEventListener('submit', async (event) => {
         event.preventDefault()
         const name = nameInput.value.trim()
@@ -197,7 +213,8 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
           await updateCollection(collectionId, {
             name,
             description: descriptionInput.value.trim() || null,
-            visibility: visibilitySelect.value
+            visibility: visibilitySelect.value,
+            language: languageSelect.value
           })
           editing = false
           await onReload?.()

@@ -48,11 +48,20 @@ export function render(container, state, { onReload } = {}) {
   nameInput.placeholder = 'Nombre de la colección'
   nameInput.required = true
   nameInput.setAttribute('aria-label', 'Nombre de la colección')
+  const languageSelect = element('select')
+  languageSelect.name = 'language'
+  languageSelect.setAttribute('aria-label', 'Idioma de la colección')
+  for (const [value, label] of [['es', 'Español (ES)'], ['en', 'English (EN)'], ['eu', 'Euskara (EU)']]) {
+    const option = element('option', '', label)
+    option.value = value
+    languageSelect.append(option)
+  }
+  languageSelect.value = 'es'
   const createButton = element('button', '', 'Crear')
   createButton.type = 'submit'
   const feedback = element('p', 'error')
   feedback.hidden = true
-  form.append(nameInput, createButton)
+  form.append(nameInput, languageSelect, createButton)
   page.append(form, feedback)
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
@@ -66,7 +75,7 @@ export function render(container, state, { onReload } = {}) {
     createButton.disabled = true
     feedback.hidden = true
     try {
-      await createCollection({ name })
+      await createCollection({ name, language: languageSelect.value })
       await onReload?.()
     } catch (error) {
       feedback.hidden = false
