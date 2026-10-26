@@ -80,6 +80,20 @@ test('collection_genesis creates CollectionMeta from payload and event timestamp
   })
 })
 
+test('collection_genesis stores language from payload', (t) => {
+  const englishGenesis = genesis()
+  englishGenesis.payload.language = 'en'
+  const state = applyEvent(emptyState(), englishGenesis)
+  t.is(state.collection?.language, 'en')
+})
+
+test('collection_genesis defaults missing payload language to es', (t) => {
+  const malformedGenesis = genesis()
+  delete malformedGenesis.payload.language
+  const state = applyEvent(emptyState(), malformedGenesis)
+  t.is(state.collection?.language, 'es')
+})
+
 test('collection_genesis only applies once', (t) => {
   const first = applyEvent(emptyState(), genesis('Primera', 'genesis-1'))
   const second = applyEvent(first, genesis('Segunda', 'genesis-2'))

@@ -232,6 +232,7 @@ test('collectionGenesis signs the SHA-256 hash of its specified fields', (t) => 
   const event = collectionGenesis(params)
   assertCommonEvent(t, event, 'collection_genesis')
   t.is(event.payload.collection_id, COLLECTION_ID)
+  t.is(event.payload.language, 'es')
   t.ok(isCollectionId(event.payload.collection_id))
   t.is(event.payload.collection_public_key, 'pk_col_' + toHex(collectionPair.publicKey))
   t.is(event.payload.author_public_key, 'pk_user_' + toHex(userPair.publicKey))
@@ -239,6 +240,36 @@ test('collectionGenesis signs the SHA-256 hash of its specified fields', (t) => 
   const hash = genesisSigningHash(params)
   const signature = deserializeSignature(event.payload.signature_by_owner)
   t.ok(verify(signature, hash, userPair.publicKey))
+})
+
+test('collectionGenesis defaults language to es and accepts English', (t) => {
+  const defaultEvent = collectionGenesis(genesisParams())
+  const englishEvent = collectionGenesis(genesisParams({ language: 'en' }))
+  t.is(defaultEvent.payload.language, 'es')
+  t.is(englishEvent.payload.language, 'en')
+})
+
+test('collectionGenesis rejects unsupported language values', (t) => {
+  expectRangeError(t, () => collectionGenesis(genesisParams({ language: 'fr' })))
+})
+
+test('genesis language participates in the signing hash and signature', (t) => {
+  const spanishParams = genesisParams({ language: 'es' })
+  const englishParams = genesisParams({ language: 'en' })
+  const spanish = collectionGenesis(spanishParams)
+  const english = collectionGenesis(englishParams)
+  t.ok(toHex(genesisSigningHash(spanishParams)) !== toHex(genesisSigningHash(englishParams)))
+  t.ok(spanish.payload.signature_by_owner !== english.payload.signature_by_owner)
+  t.ok(verify(
+    deserializeSignature(spanish.payload.signature_by_owner),
+    genesisSigningHash(spanishParams),
+    userPair.publicKey
+  ))
+  t.ok(!verify(
+    deserializeSignature(spanish.payload.signature_by_owner),
+    genesisSigningHash(englishParams),
+    userPair.publicKey
+  ))
 })
 
 test('genesisSigningHash uses null bytes between signing fields', (t) => {
