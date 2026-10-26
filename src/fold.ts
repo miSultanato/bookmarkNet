@@ -8,6 +8,7 @@ export interface CollectionMeta {
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
+  language: 'es' | 'en' | 'eu'
   forkedFrom: string | null
   migratedFrom: string | null
   createdAt: string
@@ -65,6 +66,7 @@ export function applyEvent(state: CollectionState, event: CollectionEvent): Coll
         authorPublicKey: payload.author_public_key,
         name: payload.name,
         visibility: payload.visibility,
+        language: payload.language ?? 'es',
         forkedFrom: payload.forked_from,
         migratedFrom: payload.migrated_from,
         createdAt: event.created_at,
