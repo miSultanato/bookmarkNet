@@ -24,6 +24,7 @@
     "bare-open": "^1.0.3",
     "bare-process": "^4.5.1",
     "hypercore": "^11.39.3",
+    "pear-gracedown": "^1.0.5",
     "sodium-native": "^5.2.0"
   }
 }
