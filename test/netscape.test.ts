@@ -68,6 +68,20 @@ test('promotes children of Barra de marcadores to the root case-insensitively', 
     bookmarks: []
   })
 })
+test('promotes browser root folders after user folders to the root', (t) => {
+  t.alike(parseNetscapeBookmarks('<DL><DT><H3>openSUSE</H3><DL><DT><A HREF="https://opensuse.example">openSUSE bookmark</A></DL><DT><H3>Barra de herramientas de marcadores</H3><DL><DT><A HREF="https://one.example">One</A><DT><A HREF="https://two.example">Two</A></DL></DL>'), {
+    name: '',
+    folders: [{
+      name: 'openSUSE',
+      folders: [],
+      bookmarks: [{ url: 'https://opensuse.example', title: 'openSUSE bookmark' }]
+    }],
+    bookmarks: [
+      { url: 'https://one.example', title: 'One' },
+      { url: 'https://two.example', title: 'Two' }
+    ]
+  })
+})
 
 test('ignores empty folders', (t) => {
   t.alike(parseNetscapeBookmarks('<DL><DT><H3>Empty</H3><DL></DL></DL>'), emptyRoot())
