@@ -28,11 +28,13 @@ function request(port: number, path: string, method = 'GET', headers: Record<str
       let body = ''
       res.on('data', (chunk) => { body += chunk.toString() })
       res.on('end', () => {
+        let parsed: any
         try {
-          resolve({ status: res.statusCode ?? 0, body: JSON.parse(body) })
-        } catch (error) {
-          reject(error)
+          parsed = JSON.parse(body)
+        } catch {
+          parsed = body
         }
+        resolve({ status: res.statusCode ?? 0, body: parsed })
       })
     })
     req.on('error', reject)
@@ -103,5 +105,46 @@ test('local API health, identity routes and request security checks', async (t) 
     if (api !== null) await api.close()
     await node.close()
     await fs.rm(DATA_DIR, { recursive: true, force: true })
+  }
+})
+
+
+test('API serves the UI while the node loads and becomes ready after setNode', async (t) => {
+  const dataDir = './tmp-test-api-not-ready'
+  await fs.rm(dataDir, { recursive: true, force: true })
+  const config = { ...defaultConfig(), dataDir, port: 0, bind: '127.0.0.1' }
+  let api: Awaited<ReturnType<typeof createServer>> | null = null
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+
+  try {
+    api = await createServer(config, null)
+    const loadingIdentity = await request(api.port, '/api/v1/identity')
+    t.is(loadingIdentity.status, 503, 'identity returns 503 while node is loading')
+    t.alike(loadingIdentity.body, {
+      error: {
+        code: 'NOT_READY',
+        message: 'El nodo está cargando. Reintenta en unos segundos.'
+      }
+    }, 'loading response has NOT_READY error')
+    const loadingHealth = await request(api.port, '/health')
+    t.is(loadingHealth.status, 503, 'health returns 503 while node is loading')
+    t.alike(loadingHealth.body, { status: 'loading' }, 'health indicates loading')
+
+    const index = await request(api.port, '/')
+    t.is(index.status, 200, 'UI is served while node is loading')
+    t.ok(typeof index.body === 'string' && index.body.includes('<title>Lotura</title>'), 'root response contains UI HTML')
+
+    node = await startNode(config)
+    api.setNode(node)
+    const readyIdentity = await request(api.port, '/api/v1/identity')
+    t.is(readyIdentity.status, 200, 'identity returns 200 after setNode')
+    t.alike(readyIdentity.body, { identity: null }, 'identity handler works after node is ready')
+    const readyHealth = await request(api.port, '/health')
+    t.is(readyHealth.status, 200, 'health returns 200 after setNode')
+    t.alike(readyHealth.body, { status: 'ok' }, 'health indicates ready')
+  } finally {
+    if (api !== null) await api.close()
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
