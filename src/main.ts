@@ -22,38 +22,21 @@ let phaseStart = now()
 const config = loadConfig()
 logTiming('config', phaseStart)
 
-let node: Awaited<ReturnType<typeof startNode>>
-
-phaseStart = now()
-try {
-  node = await startNode(config)
-} catch (error) {
-  console.error((error as Error).message)
-  process.exit(1)
-  throw error
-}
-logTiming('node', phaseStart)
-
+let node: Awaited<ReturnType<typeof startNode>> | null = null
 let api: Awaited<ReturnType<typeof createServer>>
 
 phaseStart = now()
 try {
-  api = await createServer(config, node, false)
+  api = await createServer(config, null, false)
   api.port = await listenWithPortFallback(api.server, config.port, config.bind, config.portExplicit, 100)
 } catch (error) {
-  await node.close()
   console.error((error as Error).message)
   process.exit(1)
   throw error
 }
 logTiming('http', phaseStart)
 
-const collectionSummary = node.state.collections.size === 0
-  ? 'sin colecciones'
-  : String(node.state.collections.size) + (node.state.collections.size === 1 ? ' colección' : ' colecciones')
-
-console.log(`Lotura escuchando en http://localhost:${api.port}`)
-console.log(`BookmarkNet v${version}: ${collectionSummary}`)
+console.log(`Lotura escuchando en http://localhost:${api.port} (cargando nodo…)`)
 
 if (config.openBrowserOnStart === true) {
   phaseStart = now()
@@ -65,10 +48,21 @@ if (config.openBrowserOnStart === true) {
   logTiming('browser', phaseStart)
 }
 
+phaseStart = now()
+try {
+  node = await startNode(config)
+  api.setNode(node)
+  const collectionSummary = node.state.collections.size === 0
+    ? 'sin colecciones'
+    : String(node.state.collections.size) + (node.state.collections.size === 1 ? ' colección' : ' colecciones')
+  console.log(`BookmarkNet v${version}: ${collectionSummary}`)
+} catch (error) {
+  console.error('No se pudo iniciar el nodo; la API seguirá en NOT_READY:', (error as Error).message)
+}
+logTiming('node', phaseStart)
 logTiming('total', t0)
 
 gracedown(async () => {
-  // Timeout de seguridad: si el cierre se cuelga, resolver para que pear-gracedown reenvíe la señal
   const timeout = new Promise<void>((resolve) => {
     setTimeout(() => {
       console.warn('El cierre tardó demasiado; forzando la salida.')
@@ -77,7 +71,7 @@ gracedown(async () => {
   })
   const close = (async () => {
     await api.close()
-    await node.close()
+    if (node !== null) await node.close()
   })()
   await Promise.race([close, timeout])
 })
