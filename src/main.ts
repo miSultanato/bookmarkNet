@@ -6,15 +6,18 @@ import { loadConfig } from './node/config.ts'
 import { listenWithPortFallback, startNode } from './node/start.ts'
 import { version } from './index.ts'
 
-// Usa performance.now() monotónico cuando Bare lo ofrece; Date.now() es el fallback.
+// Primera instrucción ejecutable: reloj monotónico si está disponible, con fallback a Date.now().
+const t0 = typeof performance !== 'undefined' && typeof performance.now === 'function'
+  ? performance.now()
+  : Date.now()
+
+// Usa el mismo reloj para todas las fases; no depende de console.time en Bare.
 const now = (): number => typeof performance !== 'undefined' && typeof performance.now === 'function'
   ? performance.now()
   : Date.now()
 const logTiming = (phase: string, start: number): void => {
   console.log(`[timing] ${phase}: ${Math.round(now() - start)}ms`)
 }
-
-const t0 = now()
 let phaseStart = now()
 const config = loadConfig()
 logTiming('config', phaseStart)
