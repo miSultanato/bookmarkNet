@@ -29,11 +29,14 @@ export function render(container) {
   another.type = 'button'
   another.hidden = true
 
+  const details = element('details', 'import-details')
+  const detailsSummary = element('summary')
   const errorsList = element('ul', 'import-errors')
-  errorsList.hidden = true
+  details.append(detailsSummary, errorsList)
+  details.hidden = true
 
   form.append(label, button)
-  page.append(form, status, errorsList, another)
+  page.append(form, status, details, another)
   container.append(page)
 
   function reset() {
@@ -44,8 +47,10 @@ export function render(container) {
     status.textContent = ''
     status.className = 'import-result'
     status.hidden = true
+    details.open = false
+    details.hidden = true
+    detailsSummary.textContent = ''
     errorsList.replaceChildren()
-    errorsList.hidden = true
     another.hidden = true
     form.hidden = false
   }
@@ -68,8 +73,10 @@ export function render(container) {
     status.className = 'import-result'
     status.textContent = 'Importando…'
     status.hidden = false
+    details.open = false
+    details.hidden = true
+    detailsSummary.textContent = ''
     errorsList.replaceChildren()
-    errorsList.hidden = true
 
     try {
       const html = await new Promise((resolve, reject) => {
@@ -83,13 +90,33 @@ export function render(container) {
       })
       const result = await importHtml(html)
       const imported = result.imported || {}
-      status.textContent = `Importados: ${imported.collections ?? 0} colecciones, ${imported.groups ?? 0} grupos, ${imported.bookmarks ?? 0} bookmarks. Omitidos: ${result.skipped ?? 0}.`
+      status.textContent = `Importados: ${imported.collections ?? 0} colecciones, ${imported.groups ?? 0} grupos, ${imported.bookmarks ?? 0} bookmarks.`
       status.className = 'import-result'
-      if (Array.isArray(result.errors) && result.errors.length > 0) {
-        for (const item of result.errors) {
-          errorsList.append(element('li', '', `${item.url || '(sin URL)'}: ${item.reason || 'Error de importación'}`))
+      const errors = Array.isArray(result.errors) ? result.errors : []
+      if ((result.skipped ?? 0) > 0) {
+        detailsSummary.append(
+          element('span', '', `Omitidos: ${result.skipped} bookmarks. `),
+          element('span', 'import-details-action', 'Ver detalle')
+        )
+        for (const item of errors) {
+          const url = typeof item.url === 'string' ? item.url : ''
+          const shortenedUrl = url.length > 60 ? `${url.slice(0, 60)}…` : (url || '(sin URL)')
+          let reason = 'URL no válida'
+          if (/^javascript:/i.test(url)) {
+            reason = 'Enlace de JavaScript (no es una URL web)'
+          } else if (/^about:/i.test(url)) {
+            reason = 'Enlace interno del navegador'
+          } else if (/%(?![0-9a-f]{2})/i.test(url)) {
+            reason = 'URL con caracteres inválidos'
+          }
+          const itemRow = element('li')
+          itemRow.append(
+            element('span', 'import-details-url', shortenedUrl),
+            element('span', 'import-details-reason', reason)
+          )
+          errorsList.append(itemRow)
         }
-        errorsList.hidden = false
+        details.hidden = false
       }
       form.hidden = true
       another.hidden = false
