@@ -94,30 +94,60 @@ const STATIC_CONTENT_TYPES: Record<string, string> = {
   '.ico': 'image/x-icon'
 }
 
-function sendStaticFile(filePath: string, contentType: string, res: any): void {
-  fs.readFile(filePath, (error: any, data: any) => {
-    if (error) {
-      const status = error.code === 'ENOENT' ? 404 : 500
-      sendEmpty(res, status)
-      return
-    }
-    res.statusCode = 200
-    res.setHeader('Content-Type', contentType)
-    res.setHeader('Content-Length', String(data.length))
-    res.end(data)
+type StaticAsset = { data: Buffer; contentType: string }
+
+function contentTypeForAsset(assetPath: string): string {
+  const dot = assetPath.lastIndexOf('.')
+  const extension = dot === -1 ? '' : assetPath.slice(dot).toLowerCase()
+  return STATIC_CONTENT_TYPES[extension] ?? 'application/octet-stream'
+}
+
+function readAsset(filePath: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    fs.readFile(filePath, (error: any, data: Buffer) => {
+      if (error) reject(error)
+      else resolve(data)
+    })
   })
 }
 
-function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): boolean {
+async function loadStaticAssets(): Promise<Map<string, StaticAsset>> {
+  const generatedAssets = assets as Record<string, string>
+  const cache = new Map<string, StaticAsset>()
+  try {
+    await Promise.all(Object.entries(generatedAssets).map(async ([key, filePath]) => {
+      const data = await readAsset(filePath)
+      cache.set(key, { data, contentType: contentTypeForAsset(key) })
+    }))
+  } catch (error) {
+    console.error('No se pudieron precargar los assets estáticos; no se iniciará el servidor:', error)
+    throw error
+  }
+  console.log(`Assets estáticos precargados en memoria: ${cache.size}`)
+  return cache
+}
+
+function sendStaticAsset(asset: StaticAsset, res: any): void {
+  res.statusCode = 200
+  res.setHeader('Content-Type', asset.contentType)
+  res.setHeader('Content-Length', String(asset.data.length))
+  res.end(asset.data)
+}
+
+function dispatchStaticRequest(
+  method: string,
+  route: MatchedRoute,
+  res: any,
+  staticAssets: Map<string, StaticAsset>
+): boolean {
   if (method !== 'GET') return false
-  const staticAssets = assets as Record<string, string>
   if (route.path === '/') {
-    const indexAsset = staticAssets['index.html']
+    const indexAsset = staticAssets.get('index.html')
     if (indexAsset === undefined) {
       sendEmpty(res, 404)
       return true
     }
-    sendStaticFile(indexAsset, 'text/html; charset=utf-8', res)
+    sendStaticAsset(indexAsset, res)
     return true
   }
   if (!route.path.startsWith('/assets/')) return false
@@ -138,16 +168,13 @@ function dispatchStaticRequest(method: string, route: MatchedRoute, res: any): b
     return true
   }
 
-  const assetFile = staticAssets['assets/' + assetPath] ?? staticAssets[assetPath]
-  if (assetFile === undefined) {
+  const asset = staticAssets.get('assets/' + assetPath) ?? staticAssets.get(assetPath)
+  if (asset === undefined) {
     sendEmpty(res, 404)
     return true
   }
 
-  const dot = assetPath.lastIndexOf('.')
-  const extension = dot === -1 ? '' : assetPath.slice(dot).toLowerCase()
-  const contentType = STATIC_CONTENT_TYPES[extension] ?? 'application/octet-stream'
-  sendStaticFile(assetFile, contentType, res)
+  sendStaticAsset(asset, res)
   return true
 }
 
@@ -439,12 +466,14 @@ async function dispatchBookmarkRequest(
 }
 
 export async function createServer(config: Config, node: Node, listen = true): Promise<ApiServer> {
+  // La precarga falla de forma cerrada: si falta un asset, no se crea ni escucha el servidor.
+  const staticAssets = await loadStaticAssets()
   const server = http.createServer(async (req, res) => {
     const host = req.headers.host
     const method = (req.method ?? 'GET').toUpperCase()
     const route = matchRoute(req.url)
 
-    if (dispatchStaticRequest(method, route, res)) return
+    if (dispatchStaticRequest(method, route, res, staticAssets)) return
 
     if (!isAllowedHost(host, config.allowedHosts)) {
       sendJson(res, 421, errorBody('MISDIRECTED_REQUEST', 'Host no permitido'))
