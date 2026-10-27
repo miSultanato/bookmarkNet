@@ -187,19 +187,41 @@ async function reloadData() {
   return dataReloadPromise
 }
 window.addEventListener('hashchange', renderCurrentRoute)
+function renderStartupMessage(text, isError = false) {
+  content.replaceChildren()
+  const message = document.createElement('p')
+  message.className = isError ? 'error' : 'loading'
+  message.textContent = text
+  content.append(message)
+}
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
 async function start() {
-  try {
-    const result = await getIdentity()
-    state.identity = result.identity
-    initialized = true
-    if (!window.location.hash) window.location.hash = '#/'
-    renderCurrentRoute()
-  } catch (error) {
-    content.replaceChildren()
-    const message = document.createElement('p')
-    message.className = 'error'
-    message.textContent = `Error al conectar con la API: ${error instanceof Error ? error.message : String(error)}`
-    content.append(message)
+  const retryInterval = 500
+  const maxWait = 30000
+  const startedAt = Date.now()
+  renderStartupMessage('Cargando Lotura…')
+  while (true) {
+    try {
+      const result = await getIdentity()
+      state.identity = result.identity
+      initialized = true
+      if (!window.location.hash) window.location.hash = '#/'
+      renderCurrentRoute()
+      return
+    } catch (error) {
+      if (error?.code !== 'NOT_READY') {
+        renderStartupMessage(`Error al conectar con la API: ${error instanceof Error ? error.message : String(error)}`, true)
+        return
+      }
+      if (Date.now() - startedAt >= maxWait) {
+        renderStartupMessage('El nodo está tardando en arrancar. Comprueba la terminal o reinicia Lotura.', true)
+        return
+      }
+      renderStartupMessage('Cargando Lotura…')
+      await delay(retryInterval)
+    }
   }
 }
 start()
