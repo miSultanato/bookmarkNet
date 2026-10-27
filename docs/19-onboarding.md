@@ -8,7 +8,7 @@ El onboarding debe ser lo más rápido posible. La identidad se crea cuando el u
 
 ## Flujo
 
-Al arrancar por primera vez, el nodo no tiene identidad (`GET /api/v1/identity` devuelve `{ identity: null }`). La UI muestra el onboarding. Cuando el usuario pulsa "Continuar" (o "Importar"), la UI llama a `POST /api/v1/identity/create` y luego a `POST /api/v1/identity/import` si procede. A continuación, el usuario ve la pantalla principal. La pantalla de onboarding ofrece tres opciones independientes:
+Al arrancar por primera vez, el nodo no tiene identidad (`GET /api/v1/identity` devuelve `{ identity: null }`). La UI muestra el onboarding. Cuando el usuario pulsa "Continuar" (o "Importar"), la UI llama a `POST /api/v1/identity/create` y luego a `POST /api/v1/identity/import` si procede. A continuación, el usuario ve la pantalla principal; "Continuar" navega a Inbox sin importar bookmarks. La pantalla de onboarding ofrece tres opciones independientes:
 
 1. **Importar bookmarks de mi navegador** (HTML).
 2. **Añadir colecciones iniciales** (seed pack).
@@ -16,7 +16,7 @@ Al arrancar por primera vez, el nodo no tiene identidad (`GET /api/v1/identity` 
 
 Las tres son opcionales. El usuario puede marcar una, ambas o ninguna.
 
-**Fase:** este flujo es el diseño completo. En MVP0 solo funciona "Importar bookmarks HTML". Las otras dos opciones se muestran pero no están operativas hasta MVP4 (seed pack).
+**Estado en MVP0:** "Continuar" funciona: crea la identidad y navega a Inbox. "Importar bookmarks de mi navegador" también está integrado en la UI de MVP0; el parser HTML ya existe y la integración completa con la UI se realizó en la tarea 5. La única opción no operativa en MVP0 es "Añadir colecciones iniciales", que depende del seed pack y queda para MVP4.
 
 ## Identidad y perfil
 

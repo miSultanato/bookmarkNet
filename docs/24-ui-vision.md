@@ -58,7 +58,7 @@ Wireframe conceptual de la portada de Lotura:
 - **EN:** «Save links. Share collections.» / «Create, share and discover link collections.»
 - **EU:** «Gorde estekak. Partekatu bildumak.» / «Sortu, partekatu eta aurkitu esteka-bildumak.»
 
-> En MVP0, Lotura es el nombre de producto. El código sigue siendo `bookmarknet`. En MVP1, se hace el cambio completo.
+> Desde MVP0, **Lotura** es el nombre del producto y **BookmarkNet** sigue siendo el nombre técnico. El cambio completo de nombre técnico —incluidos repositorio, `package.json` y `dataDir`— está planificado para MVP1.
 
 ## 2. Estructura de navegación
 
