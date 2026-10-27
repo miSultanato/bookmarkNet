@@ -472,6 +472,8 @@ export async function createServer(config: Config, initialNode: Node | null, lis
   let node: Node | null = initialNode
   let ready = node !== null
   const server = http.createServer(async (req, res) => {
+    // Cierra cada conexión para evitar que el keep-alive quede asignado al worker bloqueado.
+    res.setHeader('Connection', 'close')
     const host = req.headers.host
     const method = (req.method ?? 'GET').toUpperCase()
     const route = matchRoute(req.url)
