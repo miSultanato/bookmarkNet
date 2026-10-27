@@ -6,9 +6,22 @@ import { loadConfig } from './node/config.ts'
 import { listenWithPortFallback, startNode } from './node/start.ts'
 import { version } from './index.ts'
 
+// Usa performance.now() monotónico cuando Bare lo ofrece; Date.now() es el fallback.
+const now = (): number => typeof performance !== 'undefined' && typeof performance.now === 'function'
+  ? performance.now()
+  : Date.now()
+const logTiming = (phase: string, start: number): void => {
+  console.log(`[timing] ${phase}: ${Math.round(now() - start)}ms`)
+}
+
+const t0 = now()
+let phaseStart = now()
 const config = loadConfig()
+logTiming('config', phaseStart)
+
 let node: Awaited<ReturnType<typeof startNode>>
 
+phaseStart = now()
 try {
   node = await startNode(config)
 } catch (error) {
@@ -16,9 +29,11 @@ try {
   process.exit(1)
   throw error
 }
+logTiming('node', phaseStart)
 
 let api: Awaited<ReturnType<typeof createServer>>
 
+phaseStart = now()
 try {
   api = await createServer(config, node, false)
   api.port = await listenWithPortFallback(api.server, config.port, config.bind, config.portExplicit, 100)
@@ -28,6 +43,7 @@ try {
   process.exit(1)
   throw error
 }
+logTiming('http', phaseStart)
 
 const collectionSummary = node.state.collections.size === 0
   ? 'sin colecciones'
@@ -37,12 +53,16 @@ console.log(`Lotura escuchando en http://localhost:${api.port}`)
 console.log(`BookmarkNet v${version}: ${collectionSummary}`)
 
 if (config.openBrowserOnStart === true) {
+  phaseStart = now()
   try {
     await open(`http://localhost:${api.port}`)
   } catch (error) {
     console.warn('No se pudo abrir el navegador:', (error as Error).message)
   }
+  logTiming('browser', phaseStart)
 }
+
+logTiming('total', t0)
 
 gracedown(async () => {
   // Timeout de seguridad: si el cierre se cuelga, resolver para que pear-gracedown reenvíe la señal
