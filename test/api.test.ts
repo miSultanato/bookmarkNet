@@ -10,6 +10,7 @@ const DATA_DIR = './tmp-test-api'
 interface HttpResult {
   status: number
   body: any
+  connection: string | undefined
 }
 
 function request(port: number, path: string, method = 'GET', headers: Record<string, string> = {}): Promise<HttpResult> {
@@ -34,7 +35,8 @@ function request(port: number, path: string, method = 'GET', headers: Record<str
         } catch {
           parsed = body
         }
-        resolve({ status: res.statusCode ?? 0, body: parsed })
+        const connection = res.headers['connection']
+        resolve({ status: res.statusCode ?? 0, body: parsed, connection: typeof connection === 'string' ? connection : undefined })
       })
     })
     req.on('error', reject)
@@ -59,6 +61,7 @@ test('local API health, identity routes and request security checks', async (t) 
 
     const empty = await request(api.port, '/api/v1/identity')
     t.is(empty.status, 200, 'identity read without identity returns 200')
+    t.is(empty.connection?.toLowerCase(), 'close', 'API response disables keep-alive')
     t.alike(empty.body, { identity: null }, 'identity is null before creation')
 
     const created = await request(api.port, '/api/v1/identity/create', 'POST', {
