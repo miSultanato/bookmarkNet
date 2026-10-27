@@ -24,6 +24,8 @@ Funcionalidades:
 
 Resultado: «Pocket local».
 
+**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local, binario standalone (`bare-build`), auto-incremento de puerto y `openBrowserOnStart` implementados y testeados.
+
 ## MVP 1 — Modelo Hypercore
 
 **Objetivo:** todo vive sobre Hyper*, aunque siga siendo local.

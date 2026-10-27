@@ -12,7 +12,7 @@ Bare es un runtime de JavaScript "zero-core" diseñado para embeber y compilar a
 ## Por qué Bare y no Node.js
 
 - **Multiplataforma real:** binarios precompilados para macOS, iOS, Linux, Android y Windows.
-- **Binario pequeño:** el runtime completo pesa menos de 3 MB. Un nodo BookmarkNet empaquetado con `bare-build` queda en ~5-15 MB, frente a ~30-50 MB de Node.js con `pkg`.
+- **Tamaño del binario:** el ejecutable standalone actual pesa aproximadamente 97 MB. El runtime Bare por sí solo es pequeño, pero el binario empaqueta el core y los assets necesarios.
 - **Móvil en el horizonte:** el core P2P se escribe una vez y corre igual en desktop y móvil. El shell cambia; el core no.
 - **Ecosistema Hyper nativo:** es el runtime para el que Holepunch diseña Hypercore, Hyperswarm y Autobase.
 
@@ -32,7 +32,8 @@ El core no importa frameworks de UI. La UI es HTML/CSS/JS estático servido por 
 
 ## Empaquetado (desktop)
 
-- **Binario único:** `bare-build` con `--standalone` genera un ejecutable único por plataforma (Mach-O en macOS, ELF en Linux, PE en Windows) que contiene el core + los assets web estáticos.
+- **Binario único:** `bare-build` con `--standalone` genera un ejecutable único por plataforma (Mach-O en macOS, ELF en Linux, PE en Windows) que contiene el core + los assets web estáticos. `bare-build --standalone` usa `import.meta.asset()` para embeber los assets de la UI en el binario.
+- **Precarga de assets:** el servidor de estáticos precarga los assets de la UI en memoria al arrancar. Así evita acceder a `bare-fs` en cada petición y puede servirlos directamente desde memoria.
 - **Arranque:** al ejecutar el binario, arranca el servidor web local y (opcionalmente) abre el navegador del usuario en `http://localhost:<puerto>`.
 - **Instaladores:** `bare-build` con `--package` genera `.pkg`/`.AppImage`/`.msix` según plataforma.
 

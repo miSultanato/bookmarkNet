@@ -96,6 +96,7 @@ La API local y la UI comparten puerto. Para evitar DNS rebinding y CSRF:
   6. Arranca Hyperswarm y se une a los topics de bootstrap.
   7. Si `open_browser_on_start` es `true`, abre el navegador en `http://localhost:<puerto>`.
 - Tras arrancar el servidor, si `openBrowserOnStart` es `true`, el nodo abre el navegador en `http://localhost:<puerto>`. Si no puede abrirlo (entorno sin navegador), muestra un aviso y continúa.
+- **Arranque temprano:** el servidor HTTP arranca antes de que el nodo esté listo. Durante esa fase, `/` sirve la UI con el mensaje `Cargando Lotura…` y los endpoints de la API devuelven `503 Service Unavailable` con el estado `NOT_READY` hasta que el nodo termina de inicializarse.
 - Si el puerto por defecto está ocupado, prueba hasta 100 puertos consecutivos. Si un puerto explícito está ocupado, o no se encuentra ningún puerto libre en el rango, sale con error. Si el directorio de datos no se puede crear, sale con error.
 
 ## Lo que NO se configura en MVP
