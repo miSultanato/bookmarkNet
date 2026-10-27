@@ -1,4 +1,5 @@
 import process from 'bare-process'
+import gracedown from 'pear-gracedown'
 import open from 'bare-open'
 import { createServer } from './api/server.ts'
 import { loadConfig } from './node/config.ts'
@@ -43,35 +44,19 @@ if (config.openBrowserOnStart === true) {
   }
 }
 
-await new Promise<void>((resolve) => {
-  let closing = false
-
-  const shutdown = async () => {
-    if (closing) return
-    closing = true
-    try {
-      const timeout = new Promise<void>((resolveTimeout) => {
-        setTimeout(() => {
-          console.warn('El cierre tardó demasiado; forzando la salida.')
-          resolveTimeout()
-        }, 3000)
-      })
-      await Promise.race([
-        (async () => {
-          await api.close()
-          await node.close()
-        })(),
-        timeout
-      ])
-      process.exit(0)
-    } catch (error) {
-      console.error('Error al cerrar BookmarkNet:', error)
-      process.exit(1)
-    } finally {
+gracedown(async () => {
+  // Timeout de seguridad: si el cierre se cuelga, resolver para que pear-gracedown reenvíe la señal
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn('El cierre tardó demasiado; forzando la salida.')
       resolve()
-    }
-  }
-
-  process.on('SIGINT', () => { void shutdown() })
-  process.on('SIGTERM', () => { void shutdown() })
+    }, 3000)
+  })
+  const close = (async () => {
+    await api.close()
+    await node.close()
+  })()
+  await Promise.race([close, timeout])
 })
+
+await new Promise<void>(() => {})
