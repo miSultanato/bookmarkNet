@@ -22,6 +22,7 @@ import {
 export interface ApiServer {
   server: HTTPServer
   port: number
+  setNode(node: Node): void
   close(): Promise<void>
 }
 
@@ -465,9 +466,11 @@ async function dispatchBookmarkRequest(
   return false
 }
 
-export async function createServer(config: Config, node: Node, listen = true): Promise<ApiServer> {
+export async function createServer(config: Config, initialNode: Node | null, listen = true): Promise<ApiServer> {
   // La precarga falla de forma cerrada: si falta un asset, no se crea ni escucha el servidor.
   const staticAssets = await loadStaticAssets()
+  let node: Node | null = initialNode
+  let ready = node !== null
   const server = http.createServer(async (req, res) => {
     const host = req.headers.host
     const method = (req.method ?? 'GET').toUpperCase()
@@ -504,7 +507,11 @@ export async function createServer(config: Config, node: Node, listen = true): P
     }
 
     if (method === 'GET' && route.path === '/health') {
-      sendJson(res, 200, { status: 'ok' })
+      sendJson(res, ready ? 200 : 503, { status: ready ? 'ok' : 'loading' })
+      return
+    }
+    if (route.path.startsWith('/api/v1/') && (!ready || node === null)) {
+      sendJson(res, 503, errorBody('NOT_READY', 'El nodo está cargando. Reintenta en unos segundos.'))
       return
     }
     if (method === 'GET' && route.path === '/api/v1/identity') {
@@ -525,7 +532,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
         : await handleImportIdentity(config.dataDir, body)
       if (route.path === '/api/v1/identity/import' && result.status === 201) {
         const identity = (result.body as { identity: NonNullable<Node['identity']> }).identity
-        node.identity = identity
+        node!.identity = identity
       }
       sendJson(res, result.status, result.body)
       return
@@ -533,7 +540,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
     if (method === 'POST' && route.path === '/api/v1/identity/create') {
       const result = await handleCreateIdentity(config.dataDir)
       if (result.status === 201) {
-        node.identity = result.body as NonNullable<Node['identity']>
+        node!.identity = result.body as NonNullable<Node['identity']>
       }
       sendJson(res, result.status, result.body)
       return
@@ -541,7 +548,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
 
     try {
       if (method === 'GET' && route.path === '/api/v1/profile') {
-        const result = handleGetProfile(node)
+        const result = handleGetProfile(node!)
         sendJson(res, result.status, result.body)
         return
       }
@@ -553,7 +560,7 @@ export async function createServer(config: Config, node: Node, listen = true): P
           sendBodyReadError(res, err, req)
           return
       }
-        const result = await handleUpdateProfile(node, body)
+        const result = await handleUpdateProfile(node!, body)
         sendJson(res, result.status, result.body)
         return
       }
@@ -565,18 +572,18 @@ export async function createServer(config: Config, node: Node, listen = true): P
           sendBodyReadError(res, err, req)
           return
       }
-        const result = await handleImportHtml(node, body as { html: string })
+        const result = await handleImportHtml(node!, body as { html: string })
         sendJson(res, result.status, result.body)
         return
       }
       if (method === 'GET' && route.path === '/api/v1/config') {
-        const result = handleGetConfig(node)
+        const result = handleGetConfig(node!)
         sendJson(res, result.status, result.body)
         return
       }
-      if (await dispatchBookmarkRequest(node, method, route, req, res)) return
-      if (await dispatchGroupRequest(node, method, route, req, res)) return
-      if (await dispatchCollectionRequest(node, method, route, req, res)) return
+      if (await dispatchBookmarkRequest(node!, method, route, req, res)) return
+      if (await dispatchGroupRequest(node!, method, route, req, res)) return
+      if (await dispatchCollectionRequest(node!, method, route, req, res)) return
     } catch (err) {
       console.error('Error no capturado:', err)
       sendJson(res, 500, errorBody('INTERNAL', 'Error interno del servidor'))
@@ -617,6 +624,10 @@ export async function createServer(config: Config, node: Node, listen = true): P
   return {
     server,
     port,
+    setNode: (nextNode: Node) => {
+      node = nextNode
+      ready = true
+    },
     close: async () => {
       await new Promise<void>((resolve, reject) => {
         server.close((error?: Error) => error ? reject(error) : resolve())
