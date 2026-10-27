@@ -1,11 +1,11 @@
 import fs from 'bare-fs'
-import os from 'bare-os'
+import { kill } from 'bare-os'
 import process from 'bare-process'
 import { spawn } from 'bare-subprocess'
 
 function parsePid(value: string): number | null {
   const trimmed = value.trim()
-  if (!/^\\d+$/.test(trimmed)) return null
+  if (!/^\d+$/.test(trimmed)) return null
   const pid = Number(trimmed)
   return Number.isSafeInteger(pid) && pid > 0 ? pid : null
 }
@@ -90,7 +90,7 @@ async function killStaleLoturaProcessesOnLinux(lockPath: string): Promise<void> 
 
   const currentPid = process.pid
   for (const entry of entries) {
-    if (!/^\\d+$/.test(entry)) continue
+    if (!/^\d+$/.test(entry)) continue
     const pid = Number(entry)
     if (!Number.isSafeInteger(pid) || pid <= 0 || pid === currentPid) continue
 
@@ -108,7 +108,7 @@ async function killStaleLoturaProcessesOnLinux(lockPath: string): Promise<void> 
 
     if (comm !== 'lotura' && comm !== 'bare') continue
     try {
-      os.kill(pid, 'SIGKILL')
+      kill(pid, 'SIGKILL')
     } catch (error) {
       const code = (error as { code?: string }).code
       if (code === 'ESRCH') continue
@@ -130,8 +130,8 @@ async function killStaleLoturaProcessesOnLinux(lockPath: string): Promise<void> 
  */
 export async function acquirePidLock(dataDir: string): Promise<() => Promise<void>> {
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 })
-  const pidPath = dataDir.replace(/\\/+$/, '') + '/lotura.pid'
-  const lockPath = dataDir.replace(/\\/+$/, '') + '/device-core/db/LOCK'
+  const pidPath = dataDir.replace(/\/+$/, '') + '/lotura.pid'
+  const lockPath = dataDir.replace(/\/+$/, '') + '/device-core/db/LOCK'
 
   let previousPid: number | null = null
   try {
@@ -164,7 +164,7 @@ export async function acquirePidLock(dataDir: string): Promise<() => Promise<voi
     if ((error as { code?: string }).code !== 'ENOENT') throw error
   }
 
-  await fs.writeFile(pidPath, String(process.pid) + '\\n')
+  await fs.writeFile(pidPath, String(process.pid) + '\n')
 
   return async (): Promise<void> => {
     try {
