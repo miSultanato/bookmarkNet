@@ -1,10 +1,11 @@
 import fs from 'bare-fs'
+import os from 'bare-os'
 import process from 'bare-process'
 import { spawn } from 'bare-subprocess'
 
 function parsePid(value: string): number | null {
   const trimmed = value.trim()
-  if (!/^\d+$/.test(trimmed)) return null
+  if (!/^\\d+$/.test(trimmed)) return null
   const pid = Number(trimmed)
   return Number.isSafeInteger(pid) && pid > 0 ? pid : null
 }
@@ -71,6 +72,57 @@ async function killLockHoldersOnLinux(lockPath: string): Promise<void> {
 }
 
 /**
+ * En Linux, localiza procesos Lotura/Bare mediante /proc/<pid>/comm y los
+ * termina salvo al proceso actual. Si /proc no se puede inspeccionar, conserva
+ * el fallback anterior basado en fuser para no bloquear el arranque.
+ */
+async function killStaleLoturaProcessesOnLinux(lockPath: string): Promise<void> {
+  if (process.platform !== 'linux') return
+
+  let entries: string[]
+  try {
+    entries = await fs.readdir('/proc')
+  } catch (error) {
+    console.warn('No se pudo leer /proc para localizar procesos Lotura; se usa fuser como fallback:', error)
+    await killLockHoldersOnLinux(lockPath)
+    return
+  }
+
+  const currentPid = process.pid
+  for (const entry of entries) {
+    if (!/^\\d+$/.test(entry)) continue
+    const pid = Number(entry)
+    if (!Number.isSafeInteger(pid) || pid <= 0 || pid === currentPid) continue
+
+    let comm: string
+    try {
+      comm = (await fs.readFile('/proc/' + entry + '/comm', 'utf8')).trim()
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      // Es normal que un proceso desaparezca mientras se recorre /proc.
+      if (code === 'ENOENT' || code === 'ESRCH') continue
+      console.warn('No se pudo leer /proc/' + entry + '/comm; se usa fuser como fallback:', error)
+      await killLockHoldersOnLinux(lockPath)
+      return
+    }
+
+    if (comm !== 'lotura' && comm !== 'bare') continue
+    try {
+      os.kill(pid, 'SIGKILL')
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      if (code === 'ESRCH') continue
+      console.warn('No se pudo terminar el proceso Lotura/Bare PID ' + String(pid) + '; se usa fuser como fallback:', error)
+      await killLockHoldersOnLinux(lockPath)
+      return
+    }
+  }
+
+  // Da tiempo al kernel para liberar los locks tras terminar los procesos.
+  await new Promise<void>((resolve) => setTimeout(resolve, 100))
+}
+
+/**
  * Uses an application PID file to distinguish an active Lotura instance from
  * a stale RocksDB LOCK. A Hypercore worker may inherit the LOCK file descriptor
  * and keep the kernel lock alive even after the main process exits, so LOCK
@@ -78,12 +130,8 @@ async function killLockHoldersOnLinux(lockPath: string): Promise<void> {
  */
 export async function acquirePidLock(dataDir: string): Promise<() => Promise<void>> {
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 })
-  const pidPath = dataDir.replace(/\/+$/, '') + '/lotura.pid'
-  const lockPath = dataDir.replace(/\/+$/, '') + '/device-core/db/LOCK'
-
-  // Linux-only workaround for orphaned Hypercore workers holding RocksDB LOCK.
-  // Run before checking lotura.pid or unlinking LOCK.
-  await killLockHoldersOnLinux(lockPath)
+  const pidPath = dataDir.replace(/\\/+$/, '') + '/lotura.pid'
+  const lockPath = dataDir.replace(/\\/+$/, '') + '/device-core/db/LOCK'
 
   let previousPid: number | null = null
   try {
@@ -91,6 +139,9 @@ export async function acquirePidLock(dataDir: string): Promise<() => Promise<voi
   } catch (error) {
     if ((error as { code?: string }).code !== 'ENOENT') throw error
   }
+
+  // Limpiar procesos huérfanos antes de validar el PID previo y abrir device-core.
+  await killStaleLoturaProcessesOnLinux(lockPath)
 
   const currentPid = process.pid
   if (previousPid !== null && previousPid === currentPid) {
@@ -113,7 +164,7 @@ export async function acquirePidLock(dataDir: string): Promise<() => Promise<voi
     if ((error as { code?: string }).code !== 'ENOENT') throw error
   }
 
-  await fs.writeFile(pidPath, String(process.pid) + '\n')
+  await fs.writeFile(pidPath, String(process.pid) + '\\n')
 
   return async (): Promise<void> => {
     try {
