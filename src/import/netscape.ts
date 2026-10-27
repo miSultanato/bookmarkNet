@@ -13,8 +13,12 @@ export interface ParsedFolder {
 const ROOT_FOLDER_NAMES = new Set([
   'bookmarks bar',
   'bookmarks toolbar',
+  'favorites bar',
   'favoritos',
   'barra de favoritos',
+  'barra de herramientas de marcadores',
+  'barra de marcadores',
+  'marcadores',
   'other bookmarks',
   'otros marcadores'
 ])

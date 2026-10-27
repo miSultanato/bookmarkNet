@@ -52,6 +52,23 @@ test('promotes children of Favoritos to the root case-insensitively', (t) => {
   })
 })
 
+
+test('promotes children of Barra de herramientas de marcadores to the root', (t) => {
+  t.alike(parseNetscapeBookmarks('<DL><DT><H3>Barra de herramientas de marcadores</H3><DL><DT><H3>Trabajo</H3><DL><DT><A HREF="https://work.example">Trabajo</A></DL><DT><A HREF="https://loose.example">Suelto</A></DL></DL>'), {
+    name: '',
+    folders: [{ name: 'Trabajo', folders: [], bookmarks: [{ url: 'https://work.example', title: 'Trabajo' }] }],
+    bookmarks: [{ url: 'https://loose.example', title: 'Suelto' }]
+  })
+})
+
+test('promotes children of Barra de marcadores to the root case-insensitively', (t) => {
+  t.alike(parseNetscapeBookmarks('<DL><DT><H3>bArRa De MaRcAdOrEs</H3><DL><DT><H3>Personal</H3><DL><DT><A HREF="https://personal.example">Personal</A></DL></DL></DL>'), {
+    name: '',
+    folders: [{ name: 'Personal', folders: [], bookmarks: [{ url: 'https://personal.example', title: 'Personal' }] }],
+    bookmarks: []
+  })
+})
+
 test('ignores empty folders', (t) => {
   t.alike(parseNetscapeBookmarks('<DL><DT><H3>Empty</H3><DL></DL></DL>'), emptyRoot())
 })
