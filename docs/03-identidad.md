@@ -105,7 +105,7 @@ El `device_core` es un log single-writer local. Sus eventos son distintos de los
 5. `device_add_bookmark`: añade un bookmark a una colección local.
 6. `device_edit_bookmark`: modifica campos de un bookmark.
 7. `device_remove_bookmark`: marca un bookmark como eliminado (soft delete).
-8. `device_move_bookmark`: mueve un bookmark a otro grupo (o a Inbox).
+8. `device_move_bookmark`: mueve un bookmark a otro grupo (o a la raíz de la colección). El Inbox global es distinto: usa `collectionId: null` y `groupId: null`; la raíz conserva el `collectionId` de la colección y usa `groupId: null`.
 9. `device_reorder_bookmark`: cambia la posición de un bookmark dentro de un grupo.
 10. `device_create_group`: crea un grupo en una colección local.
 11. `device_delete_group`: marca un grupo como eliminado (sus bookmarks vuelven a la raíz de su colección).

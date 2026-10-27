@@ -23,7 +23,7 @@ Primera ejecución. Tres opciones independientes:
 
 Las tres opcionales. Si el usuario marca "Importar" pero no selecciona archivo, aviso suave. Después de "Continuar", va a Explorar (si marcó seed pack) o a un mensaje claro de qué puede hacer.
 
-**Fase:** el onboarding básico (esta pantalla) es MVP0. La opción "Añadir colecciones iniciales" solo funciona a partir de MVP4 (cuando existe el seed pack). En MVP0 muestra "disponible próximamente".
+**Fase:** el onboarding básico y la opción "Continuar" son MVP0. "Continuar" crea la identidad y navega a Inbox. "Añadir colecciones iniciales" depende del seed pack y queda para MVP4; en MVP0 muestra "disponible próximamente". La importación HTML está integrada en la UI de MVP0.
 
 ### 2. Explorar
 
@@ -37,7 +37,7 @@ Pantalla principal tras el onboarding.
 
 Fase MVP0: "Mis bookmarks" tiene dos pestañas:
 
-- **Inbox:** bookmarks con `collectionId: null` (Inbox global). Cada uno muestra título, URL y tags. Acción "Mover a colección" (se implementa cuando exista la pantalla de Bookmark).
+- **Inbox:** bookmarks con `collectionId: null` (Inbox global). Cada uno muestra título, URL y tags. Acción "Mover a colección": está implementada en MVP0 mediante un `<select>` en la pestaña Inbox que permite elegir la colección de destino.
 - **Colecciones:** lista de colecciones propias, con contador de bookmarks por colección. Incluye un formulario inline para crear una colección nueva.
 
 Los grupos no son una pestaña global. Los grupos son por colección y se ven dentro de la pantalla "Colección". En una colección, los bookmarks con `groupId: null` se muestran en un grupo visual "Sin grupo" (o "Raíz"). No se llama Inbox.
@@ -67,10 +67,10 @@ Vista de un bookmark concreto.
 ### 6. Ajustes
 
 - **Perfil:** nombre, bio, avatar (opcional).
-- **Dispositivos:** lista de dispositivos del usuario.
+- **Dispositivos:** sección planificada para MVP2; no se muestra en MVP0.
 - **Importar bookmarks:** HTML de navegador.
 - **Añadir seed pack:** si no lo hizo en el onboarding.
-- **Configuración:** puerto, directorio de datos, bootstrap nodes, log level.
+- **Configuración:** puerto, directorio de datos y log level. La gestión de **Bootstrap peers** es de MVP2 y no se muestra en MVP0.
 
 ## Pantallas MVP2 — Multidispositivo
 

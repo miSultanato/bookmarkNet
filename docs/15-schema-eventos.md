@@ -68,7 +68,7 @@ Tipos de evento (v1)
 | 6 | reorder_bookmark | Cambia la posición dentro del grupo |
 | 7 | update_metadata | Cambia nombre/descripción/visibilidad |
 | 8 | create_group | Crea grupo |
-| 9 | delete_group | Elimina grupo (bookmarks → Inbox) |
+| 9 | delete_group | Elimina grupo (bookmarks → raíz de su colección) |
 | 10 | collection_unpublished | El autor deja de compartir la colección |
 
 1. collection_genesis
@@ -169,7 +169,7 @@ Notas:
     resource_id = SHA256("v1:" + canonical_url) — se incluye por
     conveniencia y verificación, pero se puede recalcular.
 
-    group_id es opcional. null = Inbox.
+    group_id es opcional. null = raíz de la colección (el bookmark conserva su collection_id).
 
 3. edit_bookmark
 
@@ -223,7 +223,7 @@ Marca un bookmark como eliminado. No borra el bloque anterior.
 
 5. move_bookmark
 
-Mueve un bookmark a otro grupo (o al Inbox).
+Mueve un bookmark a otro grupo (o a la raíz de su colección). El evento pertenece al log de una colección; `group_id: null` no significa moverlo al Inbox global.
 ```json
 
 {
@@ -239,7 +239,7 @@ Mueve un bookmark a otro grupo (o al Inbox).
 }
 ```
 
-group_id: null → Inbox.
+group_id: null → raíz de la colección del evento.
 6. update_metadata
 
 Cambia nombre, descripción o visibilidad de la colección.
@@ -282,7 +282,7 @@ Crea un grupo dentro de la colección.
 
 8. delete_group
 
-Elimina un grupo. Los bookmarks que contenía se mueven a Inbox.
+Elimina un grupo. Los bookmarks que contenía vuelven a la raíz de su colección (`group_id: null`), conservando su `collection_id`.
 ```json
 
 {
@@ -299,7 +299,7 @@ Elimina un grupo. Los bookmarks que contenía se mueven a Inbox.
 
 9. `reorder_bookmark`
 
-Cambia la posición de un bookmark dentro de un grupo (o del Inbox).
+Cambia la posición de un bookmark dentro de un grupo (o de la raíz de la colección).
 
 ```json
 {
@@ -319,7 +319,7 @@ Cambia la posición de un bookmark dentro de un grupo (o del Inbox).
 **Reglas:**
 
 - `position` es un entero. Orden dentro del grupo (0 = primero).
-- Si `group_id` es `null`, reordena en Inbox.
+- Si `group_id` es `null`, reordena en la raíz de la colección.
 - Si `position` es mayor que el número actual de bookmarks en el grupo, se coloca al final.
 - Idempotente: aplicar dos veces el mismo `reorder_bookmark` da el mismo resultado.
 - El orden por defecto (si nunca se ha reordenado) es por `created_at` ascendente.
@@ -366,6 +366,8 @@ para cada bloque en el log (orden):
 
 ## Reglas de fold
 
+**Inbox global y raíz de colección no son lo mismo:** el Inbox global (`collectionId: null`) es distinto de la raíz de una colección (`collectionId: 'c_...'`, `groupId: null`). `delete_group` mueve los bookmarks a la raíz de su colección, no al Inbox global.
+
 | Evento | Efecto |
 |---|---|
 | `collection_genesis` | Crea la colección con sus metadatos, copiando `language` del payload al estado |
@@ -376,7 +378,7 @@ para cada bloque en el log (orden):
 | `reorder_bookmark` | Actualiza la posición del bookmark en el grupo. Reajusta el resto |
 | `update_metadata` | Aplica cambios sobre la colección |
 | `create_group` | Añade grupo al estado |
-| `delete_group` | Marca grupo como eliminado y mueve sus bookmarks a Inbox |
+| `delete_group` | Marca el grupo como eliminado y mueve sus bookmarks a la raíz de su colección (`groupId: null`), conservando `collectionId` |
 | `collection_unpublished` | Marca la colección como despublicada. No elimina bookmarks |
 Idempotencia
 
@@ -510,7 +512,7 @@ interface BookmarkState {
   description?: string
   tags: string[]
   notes?: string
-  groupId: string | null              // null = Inbox
+  groupId: string | null              // null = raíz de la colección (Inbox global: collectionId null y groupId null)
   position: number | null             // null = no reordenado, usar createdAt
   createdAt: string                   // ISO8601 del add_bookmark
   updatedAt?: string                  // ISO8601 del último evento que lo modificó
@@ -530,7 +532,7 @@ interface GroupState {
 
 - **Sin génesis, no hay colección.** Si el primer evento del log no es `collection_genesis`, el estado queda con `collection: null` y el fold ignora todos los eventos posteriores. Un log sin génesis no es una colección válida.
 - **Idempotencia silenciosa.** El fold nunca lanza error por un evento inválido (por ejemplo, `edit_bookmark` sobre un `bookmark_id` inexistente, `remove_bookmark` sobre uno ya eliminado, `move_bookmark` sobre un grupo inexistente). Devuelve el estado sin cambios. Esto es crítico porque el fold se aplica sobre logs que pueden venir de otros nodos: un evento inválido en un log ajeno no debe romper la replicación.
-- **Soft delete.** `remove_bookmark` marca `deleted: true`; `delete_group` marca `deleted: true` en el grupo y mueve sus bookmarks a Inbox (`groupId: null`). Los bookmarks y grupos eliminados siguen en el estado (no se borran), pero no se muestran en la UI. Un `edit_bookmark` posterior sobre un bookmark eliminado se ignora (no lo "resucita").
+- **Soft delete.** `remove_bookmark` marca `deleted: true`; `delete_group` marca `deleted: true` en el grupo y mueve sus bookmarks a la raíz de su colección (`groupId: null`), conservando `collectionId`. Los bookmarks y grupos eliminados siguen en el estado (no se borran), pero no se muestran en la UI. Un `edit_bookmark` posterior sobre un bookmark eliminado se ignora (no lo "resucita").
 - **`position` en `add_bookmark`.** `add_bookmark` pone `position: null`. El orden por defecto (por `createdAt` ascendente) se calcula al consultar. Solo `reorder_bookmark` asigna un número.
 - **Materialización de posiciones en `reorder_bookmark`.** Al aplicar `reorder_bookmark`, el fold materializa las posiciones de todos los bookmarks no eliminados del grupo antes de reajustar. Los que tenían `position: null` reciben una posición numérica basada en `createdAt`. Resultado: o todos los bookmarks del grupo tienen `position` numérica, o todos tienen `null` (si nunca se ha reordenado). Nunca se mezclan.
 - **`reorder_bookmark` ignora casos inválidos.** Si el bookmark no existe, está eliminado, o no está en el grupo indicado, el fold ignora el evento. Para mover y reordenar, se emiten dos eventos: `move_bookmark` y luego `reorder_bookmark`.

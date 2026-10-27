@@ -12,7 +12,7 @@ Búsqueda multilingüe sin traducir el contenido guardado en las colecciones.
 
 ## Modelo
 
-El campo `language` pertenece a la colección y ya está contemplado en MVP0. Los valores admitidos en esta visión son:
+El campo `language` pertenece a la colección y está implementado en MVP0: se gestiona en `device_create_collection`, se incluye en `collection_genesis` y se expone mediante la API. La UI lo utiliza en badges y en el `<select>` de idioma. Los valores admitidos son:
 
 - `es`: español.
 - `en`: inglés.
