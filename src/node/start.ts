@@ -10,6 +10,14 @@ import { identityToApi, loadIdentity } from '../identity/store.ts'
 
 export type NodeIdentity = ReturnType<typeof identityToApi>
 
+// Usa performance.now() monotónico cuando Bare lo ofrece; Date.now() es el fallback.
+const now = (): number => typeof performance !== 'undefined' && typeof performance.now === 'function'
+  ? performance.now()
+  : Date.now()
+const logTiming = (phase: string, start: number): void => {
+  console.log(`[timing] ${phase}: ${Math.round(now() - start)}ms`)
+}
+
 export interface Node {
   config: Config
   core: Hypercore
@@ -23,12 +31,22 @@ export async function startNode(config: Config): Promise<Node> {
   const releasePidLock = await acquirePidLock(config.dataDir)
 
   try {
+    const openStart = now()
     const core = await openDeviceCore(config.dataDir)
+    logTiming('node:open', openStart)
     try {
+      const readStart = now()
       const events = await readAllEvents(core)
+      logTiming('node:read', readStart)
+
+      const foldStart = now()
       let state = foldDeviceEvents(events)
+      logTiming('node:fold', foldStart)
+
+      const identityStart = now()
       const stored = await loadIdentity(config.dataDir)
       const identity = stored ? identityToApi(stored) : null
+      logTiming('node:identity', identityStart)
 
       return {
         config,
