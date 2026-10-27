@@ -92,6 +92,17 @@ export async function acquirePidLock(dataDir: string): Promise<() => Promise<voi
     if ((error as { code?: string }).code !== 'ENOENT') throw error
   }
 
+  const currentPid = process.pid
+  if (previousPid !== null && previousPid === currentPid) {
+    // El PID del proceso actual puede haberse reutilizado tras un cierre anterior.
+    try {
+      await fs.unlink(pidPath)
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'ENOENT') throw error
+    }
+    previousPid = null
+  }
+
   if (previousPid !== null && isProcessAlive(previousPid)) {
     throw new RangeError('Ya hay un proceso de Lotura usando este directorio de datos (PID ' + String(previousPid) + '). Ciérralo antes de arrancar otro.')
   }

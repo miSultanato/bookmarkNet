@@ -38,13 +38,42 @@ test('acquirePidLock writes the current PID and release removes the file', async
   }
 })
 
+test('acquirePidLock ignores its own PID in a stale PID file', async (t) => {
+  const dataDir = DATA_DIR + '/own-pid'
+  const pidPath = dataDir + '/lotura.pid'
+  let release: (() => Promise<void>) | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    await fs.mkdir(dataDir, { recursive: true })
+    await fs.writeFile(pidPath, String(process.pid))
+    release = await acquirePidLock(dataDir)
+    t.is(typeof release, 'function', 'returns release when PID file contains the current PID')
+    t.is(await fs.readFile(pidPath, 'utf8'), String(process.pid) + '\n')
+    await release()
+    release = null
+
+    let exists = true
+    try {
+      await fs.readFile(pidPath, 'utf8')
+    } catch (error) {
+      if ((error as { code?: string }).code === 'ENOENT') exists = false
+      else throw error
+    }
+    t.is(exists, false, 'release removes lotura.pid')
+  } finally {
+    if (release !== null) await release()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
 test('acquirePidLock rejects a PID that is still alive', async (t) => {
   const dataDir = DATA_DIR + '/live-pid'
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
     await fs.mkdir(dataDir, { recursive: true })
-    await fs.writeFile(dataDir + '/lotura.pid', String(process.pid))
+    await fs.writeFile(dataDir + '/lotura.pid', '1')
     let thrown: unknown = null
     try {
       await acquirePidLock(dataDir)
@@ -54,7 +83,7 @@ test('acquirePidLock rejects a PID that is still alive', async (t) => {
     t.is(thrown instanceof RangeError, true)
     t.is(
       (thrown as Error | null)?.message,
-      `Ya hay un proceso de Lotura usando este directorio de datos (PID ${process.pid}). Ciérralo antes de arrancar otro.`
+      'Ya hay un proceso de Lotura usando este directorio de datos (PID 1). Ciérralo antes de arrancar otro.'
     )
   } finally {
     await fs.rm(dataDir, { recursive: true, force: true })
