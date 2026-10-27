@@ -32,7 +32,7 @@ MVP en diseño. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 ## Requisitos
 
 - **Para desarrollo:** Node.js 22 o posterior y Bare. Instala Bare con `npm install -g bare-runtime`.
-- **Para usar el binario standalone:** no necesitas instalar Node.js ni Bare; el binario incluirá el runtime cuando esté disponible. Por ahora, sigue los pasos de desarrollo.
+- **Para ejecutar el binario standalone ya generado:** no necesitas instalar Node.js ni Bare. Para generarlo desde el código fuente, consulta [Desarrollo](#desarrollo).
 
 ## Instalación
 
@@ -57,21 +57,33 @@ El nodo sirve la interfaz web en [http://localhost:7575](http://localhost:7575).
 
 ### Binario standalone
 
-Para generar un binario que no requiera Node.js ni Bare:
+El comando `npm run build` genera un binario standalone mediante `bare-build`, en `build/lotura` (Linux/macOS) o `build/lotura.exe` (Windows). En Linux/macOS puedes ejecutarlo con:
 
 ```bash
-npm run build
+./build/lotura
 ```
 
-El binario se genera en `build/lotura` (Linux/macOS) o `build/lotura.exe` (Windows). Ejecútalo con `./build/lotura`.
+Consulta también las [notas de ejecución](#notas-de-ejecución) sobre la primera carga y el cierre limpio.
 
-> **Verificación pendiente:** el binario se genera con `bare-build`. La verificación de que sirve la UI está pendiente de validación manual.
+## Notas de ejecución
 
-Para ejecutar los tests:
+### Cold start
 
-```bash
-npm test
-```
+La primera vez que ejecutes el binario, el sistema operativo tarda unos segundos en cargarlo en memoria (el binario pesa ~97 MB). Las siguientes ejecuciones son instantáneas: la UI carga en menos de 100 ms.
+
+### Cierre limpio
+
+Cierra Lotura con Ctrl+C (SIGINT) o SIGTERM. Evita `kill -9` (SIGKILL), porque puede dejar locks huérfanos en el `device_core`.
+
+### Workaround para macOS y Windows
+
+En Linux, Lotura mata automáticamente los procesos huérfanos al arrancar. En macOS y Windows, si Lotura se cierra abruptamente, el siguiente arranque puede fallar con `File descriptor could not be locked`. Solución: cierra todos los procesos de Lotura, borra el archivo `~/.bookmarknet/device-core/db/LOCK` y vuelve a arrancar.
+
+En Windows, la ruta de datos por defecto es `%APPDATA%\\bookmarknet\\`; elimina `device-core\\db\\LOCK` dentro de ese directorio en lugar de usar la ruta Unix del ejemplo.
+
+### Arranque temprano de la UI
+
+Lotura sirve la UI inmediatamente al arrancar (los assets están precargados en memoria). Mientras el nodo carga, la UI muestra “Cargando Lotura…” y reintenta automáticamente. El nodo suele estar listo en ~30 ms.
 
 ## Uso básico
 
@@ -82,6 +94,26 @@ npm test
 5. Añade bookmarks desde la pantalla de una colección o desde el **Inbox**.
 6. Importa un archivo HTML en cualquier momento desde **Importar** (`#/import`).
 7. Configura tu perfil desde **Configuración**.
+
+## Desarrollo
+
+Desde la raíz del repositorio:
+
+```bash
+# Arrancar en modo desarrollo
+bare src/main.ts
+
+# Generar el binario standalone
+npm run build
+
+# Ejecutar los tests con brittle-bare
+npm test
+```
+
+`npm test` ejecuta los tests con `brittle-bare`. El proceso de build genera los assets antes de empaquetar el binario.
+
+- [`docs/branding/`](docs/branding/): assets de marca (logos y favicon).
+- [`docs/`](docs/): documentación completa del proyecto, con más de 24 documentos.
 
 ## Dónde viven los datos
 
@@ -153,3 +185,5 @@ La pantalla **Configuración** muestra la configuración en modo de solo lectura
 | [21-distribucion](docs/21-distribucion.md) | Distribución |
 | [22-configuracion](docs/22-configuracion.md) | Configuración local |
 | [23-migraciones](docs/23-migraciones.md) | Migraciones de schema |
+| [24-ui-vision](docs/24-ui-vision.md) | Visión y dirección de la UI |
+| [25-busqueda-i18n](docs/25-busqueda-i18n.md) | Búsqueda e internacionalización |
