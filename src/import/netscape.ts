@@ -118,10 +118,21 @@ export function parseNetscapeBookmarks(html: string): ParsedFolder {
   }
   prune(root)
 
-  const firstFolder = root.folders[0]
-  if (firstFolder && ROOT_FOLDER_NAMES.has(firstFolder.name.trim().toLowerCase())) {
-    root.folders = firstFolder.folders.concat(root.folders.slice(1))
-    root.bookmarks = firstFolder.bookmarks.concat(root.bookmarks)
+  if (root.folders.length > 0) {
+    const remainingFolders: ParsedFolder[] = []
+    const promotedBookmarks: ParsedBookmark[] = []
+
+    for (const folder of root.folders) {
+      if (ROOT_FOLDER_NAMES.has(folder.name.trim().toLowerCase())) {
+        remainingFolders.push(...folder.folders)
+        promotedBookmarks.push(...folder.bookmarks)
+      } else {
+        remainingFolders.push(folder)
+      }
+    }
+
+    root.folders = remainingFolders
+    root.bookmarks = promotedBookmarks.concat(root.bookmarks)
   }
 
   return root
