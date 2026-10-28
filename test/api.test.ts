@@ -77,6 +77,7 @@ test('local API health, identity routes and request security checks', async (t) 
 
     const loaded = await request(api.port, '/api/v1/identity')
     t.is(loaded.status, 200, 'identity read after creation returns 200')
+    t.ok(loaded.body.identity !== null, 'identity endpoint returns the stored identity')
     t.is(typeof loaded.body.identity.user_id, 'string', 'identity response includes user_id')
     t.is(loaded.body.identity.public_key.startsWith('pk_user_'), true, 'identity response includes public key')
     t.alike(loaded.body.identity.profile, {}, 'identity response includes profile')
