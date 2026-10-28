@@ -34,6 +34,8 @@ El workflow de release (`.github/workflows/release.yml`) genera el binario Linux
 
 ## Docker
 
+La imagen Docker se publica automáticamente en ghcr.io/misultanato/lotura al crear un tag v*. El workflow .github/workflows/docker-publish.yml se encarga de construirla y subirla.
+
 La imagen Docker se puede ejecutar en equipos de homelab y NAS. Desde el repositorio, construye la imagen localmente:
 
 ```bash
