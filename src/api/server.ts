@@ -512,7 +512,7 @@ export async function createServer(config: Config, initialNode: Node | null, lis
     if (dispatchStaticRequest(method, route, res, staticAssets)) return
 
     if (!ready || node === null) {
-      sendJson(res, 503, errorBody('NOT_READY', 'El nodo todavía está cargando. Reintenta en unos segundos.'))
+      sendJson(res, 503, errorBody('NOT_READY', 'El nodo está cargando. Reintenta en unos segundos.'))
       return
     }
 
