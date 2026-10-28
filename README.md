@@ -114,6 +114,8 @@ npm test
 
 ### Docker
 
+Para descargar la imagen oficial (publicada automáticamente en cada release): `docker pull ghcr.io/misultanato/lotura:latest`.
+
 Construye la imagen desde la raíz del repositorio:
 
 ```bash
