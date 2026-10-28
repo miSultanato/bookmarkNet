@@ -79,6 +79,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(style.body.includes('--bg: #f5f6f8'), 'stylesheet uses the MVP0 background')
     t.ok(style.body.includes('width: 240px'), 'stylesheet uses the 240px sidebar')
     t.ok(style.body.includes('.brand { display: flex; align-items: center; gap: 10px;'), 'stylesheet aligns the sidebar logo and wordmark')
+    t.ok(style.body.includes('--bg: #f5f6f8'), 'stylesheet content is served from the generated in-memory bundle')
 
     const app = await request(api.port, '/assets/app.js')
     t.is(app.statusCode, 200, 'application module in src/ui root is served through the static fallback')

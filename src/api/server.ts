@@ -1,5 +1,4 @@
 import http from 'bare-http1'
-import fs from 'bare-fs'
 import { assets } from '../ui/assets.generated.js'
 import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
@@ -103,28 +102,21 @@ function contentTypeForAsset(assetPath: string): string {
   return STATIC_CONTENT_TYPES[extension] ?? 'application/octet-stream'
 }
 
-function readAsset(filePath: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    fs.readFile(filePath, (error: any, data: Buffer) => {
-      if (error) reject(error)
-      else resolve(data)
-    })
-  })
+function pathExtension(assetPath: string): string {
+  const dot = assetPath.lastIndexOf('.')
+  return dot === -1 ? '' : assetPath.slice(dot).toLowerCase()
 }
 
-async function loadStaticAssets(): Promise<Map<string, StaticAsset>> {
-  const generatedAssets = assets as Record<string, string>
+function loadStaticAssets(): Map<string, StaticAsset> {
   const cache = new Map<string, StaticAsset>()
-  try {
-    await Promise.all(Object.entries(generatedAssets).map(async ([key, filePath]) => {
-      const data = await readAsset(filePath)
-      cache.set(key, { data, contentType: contentTypeForAsset(key) })
-    }))
-  } catch (error) {
-    console.error('No se pudieron precargar los assets estáticos; no se iniciará el servidor:', error)
-    throw error
+  for (const [key, content] of Object.entries(assets as Record<string, string>)) {
+    const extension = pathExtension(key)
+    const data = extension === '.png' || extension === '.ico'
+      ? Buffer.from(content, 'base64')
+      : Buffer.from(content, 'utf8')
+    cache.set(key, { data, contentType: contentTypeForAsset(key) })
   }
-  console.log(`Assets estáticos precargados en memoria: ${cache.size}`)
+  console.log(`Assets estáticos cargados desde el bundle: ${cache.size}`)
   return cache
 }
 
@@ -467,8 +459,8 @@ async function dispatchBookmarkRequest(
 }
 
 export async function createServer(config: Config, initialNode: Node | null, listen = true): Promise<ApiServer> {
-  // La precarga falla de forma cerrada: si falta un asset, no se crea ni escucha el servidor.
-  const staticAssets = await loadStaticAssets()
+  // Los assets están embebidos en el módulo generado; no se leen archivos de UI en runtime.
+  const staticAssets = loadStaticAssets()
   let node: Node | null = initialNode
   let ready = node !== null
   const server = http.createServer(async (req, res) => {
@@ -480,48 +472,26 @@ export async function createServer(config: Config, initialNode: Node | null, lis
 
     if (dispatchStaticRequest(method, route, res, staticAssets)) return
 
-    if (!isAllowedHost(host, config.allowedHosts)) {
-      sendJson(res, 421, errorBody('MISDIRECTED_REQUEST', 'Host no permitido'))
+    if (route.path === '/api/v1/health' && method === 'GET') {
+      sendJson(res, 200, { status: 'ok', ready })
+      return
+    }
+    if (!isAllowedHost(host, config.allowedHosts) && !isLoopback(req.socket?.remoteAddress)) {
+      sendJson(res, 403, errorBody('FORBIDDEN_HOST', 'Host no permitido'))
+      return
+    }
+    if (!ready || node === null) {
+      sendJson(res, 503, errorBody('NOT_READY', 'El nodo todavía está cargando'))
       return
     }
 
-    const mutating = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
-    if (mutating) {
-      const origin = req.headers.origin
-      if (typeof origin === 'string') {
-        const match = /^https?:\/\/([^/]+)$/i.exec(origin)
-        if (!match || match[1].toLowerCase() !== (host ?? '').toLowerCase()) {
-          sendJson(res, 403, errorBody('FORBIDDEN_ORIGIN', 'Origin no coincide con Host'))
-          return
-        }
-      } else if (!isLoopback((req as any).socket?.remoteAddress)) {
-        sendJson(res, 403, errorBody('FORBIDDEN_ORIGIN', 'Las mutaciones sin Origin solo se permiten desde loopback'))
-        return
-      }
-    }
-
-    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-      const contentType = req.headers['content-type']
-      if (typeof contentType !== 'string' || !/^application\/json(?:\s*;|\s*$)/i.test(contentType)) {
-        sendJson(res, 415, errorBody('UNSUPPORTED_MEDIA_TYPE', 'Content-Type debe ser application/json'))
-        return
-      }
-    }
-
-    if (method === 'GET' && route.path === '/health') {
-      sendJson(res, ready ? 200 : 503, { status: ready ? 'ok' : 'loading' })
-      return
-    }
-    if (route.path.startsWith('/api/v1/') && (!ready || node === null)) {
-      sendJson(res, 503, errorBody('NOT_READY', 'El nodo está cargando. Reintenta en unos segundos.'))
-      return
-    }
     if (method === 'GET' && route.path === '/api/v1/identity') {
-      const result = await handleGetIdentity(config.dataDir)
+      const result = handleGetIdentity(node)
       sendJson(res, result.status, result.body)
       return
     }
-    if (method === 'POST' && (route.path === '/api/v1/identity/export' || route.path === '/api/v1/identity/import')) {
+    if ((method === 'POST' && route.path === '/api/v1/identity/import') ||
+        (method === 'POST' && route.path === '/api/v1/identity/export')) {
       let body: unknown
       try {
         body = await readJsonBody(req)
@@ -561,7 +531,7 @@ export async function createServer(config: Config, initialNode: Node | null, lis
         } catch (err) {
           sendBodyReadError(res, err, req)
           return
-      }
+        }
         const result = await handleUpdateProfile(node!, body)
         sendJson(res, result.status, result.body)
         return
@@ -573,7 +543,7 @@ export async function createServer(config: Config, initialNode: Node | null, lis
         } catch (err) {
           sendBodyReadError(res, err, req)
           return
-      }
+        }
         const result = await handleImportHtml(node!, body as { html: string })
         sendJson(res, result.status, result.body)
         return
