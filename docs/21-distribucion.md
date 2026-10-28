@@ -34,10 +34,25 @@ El workflow de release (`.github/workflows/release.yml`) genera el binario Linux
 
 ## Docker
 
-- Imagen multi-arch (`linux/amd64`, `linux/arm64`) publicada en GitHub Container Registry ([ghcr.io](https://ghcr.io/)).
-- El contenedor expone el puerto de la API local (por defecto el mismo que el binario).
-- Variables de entorno para configurar el directorio de datos y el puerto.
-- El contenedor no incluye el navegador; el usuario abre la UI en su navegador apuntando al puerto expuesto.
+La imagen Docker se puede ejecutar en equipos de homelab y NAS. Desde el repositorio, construye la imagen localmente:
+
+```bash
+docker build -t lotura .
+```
+
+Para ejecutarla usando el volumen persistente `lotura-data`:
+
+```bash
+docker run -d \
+  --name lotura \
+  -p 7575:7575 \
+  -v lotura-data:/data \
+  ghcr.io/misultanato/lotura:latest
+```
+
+Abre la UI en [http://localhost:7575](http://localhost:7575). Los datos se guardan en el volumen Docker `lotura-data` y sobreviven al reemplazo o reinicio del contenedor. El contenedor configura `BOOKMARKNET_BIND=0.0.0.0` para aceptar conexiones a través del puerto publicado y `BOOKMARKNET_DATA_DIR=/data` para persistir los datos. No se abre ningún navegador dentro del contenedor.
+
+Para otras opciones de configuración, consulta [docs/22-configuracion.md](22-configuracion.md). Si accedes desde otro equipo de la LAN, configura también `BOOKMARKNET_ALLOWED_HOSTS` para permitir el nombre o la IP usados en la cabecera Host.
 
 ## Lo que NO se ofrece en MVP0–MVP2
 
