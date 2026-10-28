@@ -172,6 +172,10 @@ function dispatchStaticRequest(
 }
 
 function sendJson(res: any, status: number, body: unknown): void {
+  if (typeof status !== 'number' || status < 100 || status > 599) {
+    console.error('[server] Invalid status code:', status, 'body:', body)
+    status = 500
+  }
   const payload = JSON.stringify(body)
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -486,7 +490,7 @@ export async function createServer(config: Config, initialNode: Node | null, lis
     }
 
     if (method === 'GET' && route.path === '/api/v1/identity') {
-      const result = handleGetIdentity(node)
+      const result = await handleGetIdentity(node.config.dataDir)
       sendJson(res, result.status, result.body)
       return
     }
