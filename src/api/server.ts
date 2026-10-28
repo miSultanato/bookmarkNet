@@ -474,18 +474,45 @@ export async function createServer(config: Config, initialNode: Node | null, lis
     const method = (req.method ?? 'GET').toUpperCase()
     const route = matchRoute(req.url)
 
+    // El Host se valida incluso para /health, para no permitir peticiones mal dirigidas.
+    if (!isAllowedHost(host, config.allowedHosts)) {
+      sendJson(res, 421, errorBody('FORBIDDEN_HOST', 'Host no permitido'))
+      return
+    }
+
+    // La comprobación de salud no requiere identidad ni validaciones de Origin/Content-Type.
+    if (route.path === '/health' && method === 'GET') {
+      sendJson(res, ready ? 200 : 503, { status: ready ? 'ok' : 'loading' })
+      return
+    }
+
+    const mutating = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+    if (mutating) {
+      const origin = req.headers.origin
+      if (typeof origin === 'string') {
+        const match = /^https?:\/\/([^/]+)$/i.exec(origin)
+        if (!match || match[1].toLowerCase() !== (host ?? '').toLowerCase()) {
+          sendJson(res, 403, errorBody('FORBIDDEN_ORIGIN', 'Origin no coincide con Host'))
+          return
+        }
+      } else if (!isLoopback(req.socket?.remoteAddress)) {
+        sendJson(res, 403, errorBody('FORBIDDEN_ORIGIN', 'Las mutaciones sin Origin solo se permiten desde loopback'))
+        return
+      }
+    }
+
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+      const contentType = req.headers['content-type']
+      if (typeof contentType !== 'string' || !/^application\/json(?:\s*;|\s*$)/i.test(contentType)) {
+        sendJson(res, 415, errorBody('UNSUPPORTED_MEDIA_TYPE', 'Content-Type debe ser application/json'))
+        return
+      }
+    }
+
     if (dispatchStaticRequest(method, route, res, staticAssets)) return
 
-    if (route.path === '/api/v1/health' && method === 'GET') {
-      sendJson(res, 200, { status: 'ok', ready })
-      return
-    }
-    if (!isAllowedHost(host, config.allowedHosts) && !isLoopback(req.socket?.remoteAddress)) {
-      sendJson(res, 403, errorBody('FORBIDDEN_HOST', 'Host no permitido'))
-      return
-    }
     if (!ready || node === null) {
-      sendJson(res, 503, errorBody('NOT_READY', 'El nodo todavía está cargando'))
+      sendJson(res, 503, errorBody('NOT_READY', 'El nodo todavía está cargando. Reintenta en unos segundos.'))
       return
     }
 
