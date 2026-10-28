@@ -112,6 +112,22 @@ npm test
 
 `npm test` ejecuta los tests con `brittle-bare`. El proceso de build genera los assets antes de empaquetar el binario.
 
+### Docker
+
+Construye la imagen desde la raíz del repositorio:
+
+```bash
+docker build -t lotura .
+```
+
+Ejecuta el contenedor con el puerto web publicado y un volumen persistente para los datos:
+
+```bash
+docker run -d -p 7575:7575 -v lotura-data:/data lotura
+```
+
+La UI se abre en [http://localhost:7575](http://localhost:7575). La configuración se pasa por variables de entorno. Consulta [docs/22-configuracion.md](docs/22-configuracion.md) para las opciones.
+
 Para generar un release, crea un tag `v*` (por ejemplo, `git tag v0.1.0 && git push origin v0.1.0`). El workflow de GitHub Actions compilará el binario Linux y lo publicará en Releases.
 
 - [`docs/branding/`](docs/branding/): assets de marca (logos y favicon).
