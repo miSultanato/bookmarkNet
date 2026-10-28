@@ -1,0 +1,49 @@
+name: Release Linux AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Bare runtime
+        run: npm install -g bare-runtime
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate assets
+        run: npm run generate:assets
+
+      - name: Build Linux AppImage
+        run: |
+          mkdir -p build
+          npx bare-build --package --name lotura --out build src/main.ts
+          test -n "$(find build -maxdepth 1 -type f -name 'lotura*.AppImage' -print -quit)"
+          sha256sum build/lotura*.AppImage > build/lotura.sha256
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/lotura*.AppImage
+            build/lotura.sha256
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+# macOS and Windows builds can be added later with macos-latest and
+# windows-latest runners; they require platform-specific builds or cross-compilation.

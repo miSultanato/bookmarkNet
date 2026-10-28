@@ -112,6 +112,8 @@ npm test
 
 `npm test` ejecuta los tests con `brittle-bare`. El proceso de build genera los assets antes de empaquetar el binario.
 
+Para generar un release, crea un tag `v*` (por ejemplo, `git tag v0.1.0 && git push origin v0.1.0`). El workflow de GitHub Actions compilará el binario Linux y lo publicará en Releases.
+
 - [`docs/branding/`](docs/branding/): assets de marca (logos y favicon).
 - [`docs/`](docs/): documentación completa del proyecto, con más de 24 documentos.
 

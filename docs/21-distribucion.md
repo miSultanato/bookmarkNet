@@ -20,6 +20,8 @@ Ambos formatos contienen el mismo core Bare + UI web local. El binario arranca e
 - **Firma de código:** no en MVP0–MVP2. Se añadirá cuando haya usuarios no técnicos (notarización de Apple, firma EV de Windows).
 - **Firma GPG:** no en MVP0–MVP2. Se añadirá cuando haya usuarios técnicos que quieran verificar la integridad. Mientras tanto, el hash SHA-256 es suficiente.
 
+El workflow de release (`.github/workflows/release.yml`) genera el binario Linux (`.AppImage`) al crear un tag `v*` y lo publica en GitHub Releases con su hash SHA-256. Los binarios de macOS y Windows se añadirán en una fase posterior (requieren runners específicos o cross-compilación).
+
 ## Actualización
 
 - **MVP0–MVP2:** actualización manual. El usuario descarga la nueva versión de GitHub Releases y la instala encima.
