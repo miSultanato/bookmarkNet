@@ -178,7 +178,7 @@ a { color: var(--accent); }
 a.logo { color: inherit; text-decoration: none; cursor: pointer; }
 a.logo:hover, a.logo:focus-visible { text-decoration: none; }
 .logo { display: inline-flex; align-items: center; gap: 8px; }
-.logo img { display: block; flex: 0 0 24px; width: 24px; height: 24px; }
+.logo::before { content: ""; display: block; flex: 0 0 24px; width: 24px; height: 24px; background: url("/assets/logo.svg") center / contain no-repeat; }
 .search { width: 440px; max-width: 100%; padding: 10px 14px; border: 1px solid #d9dee7; border-radius: 999px; background: #f8fafc; }
 .search:focus { outline: 2px solid #bfdbfe; border-color: var(--accent); }
 
