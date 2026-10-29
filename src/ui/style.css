@@ -487,3 +487,59 @@ body.welcome-layout {
   outline-offset: 3px;
   border-radius: 3px;
 }
+
+
+/* Actions for group details and bookmark cards. */
+.group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.group-actions .delete-button,
+.bookmark-actions .delete-button {
+  color: #b42318;
+  border-color: #f1c7c4;
+  background: #fff;
+}
+.group-actions .delete-button:hover,
+.bookmark-actions .delete-button:hover {
+  color: #fff;
+  border-color: #b42318;
+  background: #b42318;
+}
+.bookmark-card-details { flex: 1 1 auto; min-width: 0; }
+.group-detail-page .bookmark-top { align-items: flex-start; }
+.bookmark-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.bookmark-actions button {
+  padding: 5px 8px;
+  border: 1px solid #d8dde5;
+  border-radius: 7px;
+  background: #fff;
+  color: #475467;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bookmark-actions button:hover { background: #f4f7fb; border-color: #b9c8df; }
+.bookmark-actions button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.bookmark-actions button:disabled { cursor: wait; opacity: .6; }
+.bookmark-action-error { grid-column: 1 / -1; margin: 8px 0 0; }
+.group-bookmark-form { display: grid; gap: 12px; }
+.group-bookmark-form > input,
+.group-bookmark-form select { width: 100%; }
+@media (max-width: 540px) {
+  .group-actions { align-items: stretch; }
+  .group-actions > * { flex: 1 1 auto; text-align: center; }
+  .bookmark-actions { flex-wrap: wrap; gap: 4px; }
+  .bookmark-actions button { padding: 5px 6px; }
+}
