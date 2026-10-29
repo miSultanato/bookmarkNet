@@ -364,3 +364,26 @@ body.welcome-layout {
   outline-offset: 3px;
   border-radius: 3px;
 }
+
+
+/* Collection group cards and compact group detail header. */
+.groups-list-section { display: grid; gap: 14px; }
+.groups-list-section > h2 { margin: 0; color: #20242d; font-size: 24px; font-weight: 800; }
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.group-card {
+  display: grid; gap: 8px; min-width: 0; padding: 18px; border: 1px solid #e0e4eb;
+  border-radius: 12px; background: #fff; color: var(--fg); text-decoration: none;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.group-card:hover, .group-card:focus-visible { background: #f8fafc; border-color: #b9c8df; }
+.group-card:hover { transform: translateY(-1px); }
+.group-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.group-card h3 { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+.group-detail-page { display: grid; gap: 18px; width: min(100%, 1400px); margin: 0 auto; }
+.group-detail-header { display: grid; gap: 12px; padding: 22px 26px; border: 1px solid #e6e8ed; border-radius: 16px; background: #fff; }
+.group-detail-breadcrumb { color: var(--muted); font-size: 14px; }
+.group-detail-breadcrumb a { font-weight: 650; text-decoration: none; }
+.group-detail-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.group-detail-header h1 { margin: 0; color: #171923; font-size: clamp(26px, 4vw, 36px); font-weight: 800; letter-spacing: -.8px; overflow-wrap: anywhere; }
+.group-detail-header .group-count { padding: 6px 10px; border-radius: 999px; background: #f0f3f8; }
+.group-detail-back { justify-self: start; }
