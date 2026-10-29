@@ -109,6 +109,25 @@ export function render(container, state, bookmarkId, { onReload, onDeleted } = {
     }
 
     const section = element('section', 'bookmark-detail')
+    const collectionId = bookmark.collection_id ?? bookmark.collectionId ?? null
+    const groupId = bookmark.group_id ?? bookmark.groupId ?? null
+    const collection = collectionId === null
+      ? null
+      : (state.collections ?? []).find((item) =>
+          (item.collection_id ?? item.collectionId ?? item.id) === collectionId && !item.deleted
+        )
+    const group = groupId === null
+      ? null
+      : groups.find((item) => (item.group_id ?? item.groupId ?? item.id) === groupId)
+    const back = element('a', 'back-button', '← Volver a ' + (
+      groupId !== null ? (group?.name || 'el grupo') : (collection?.name || 'la colección')
+    ))
+    back.href = groupId !== null
+      ? '#/collections/' + encodeURIComponent(collectionId) + '/groups/' + encodeURIComponent(groupId)
+      : (collectionId !== null
+          ? '#/collections/' + encodeURIComponent(collectionId)
+          : '#/inbox')
+    section.append(back)
     const heading = element('h1', '', bookmark.title || bookmark.canonical_url || 'Bookmark')
     section.append(heading)
 
