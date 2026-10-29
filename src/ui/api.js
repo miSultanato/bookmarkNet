@@ -167,3 +167,7 @@ export async function importHtml(html) {
     body: JSON.stringify({ html })
   })
 }
+
+export async function search(query) {
+  return request('/api/v1/search?q=' + encodeURIComponent(query))
+}
