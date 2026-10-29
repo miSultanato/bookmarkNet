@@ -342,3 +342,25 @@ body.welcome-layout {
   flex: 1;
   width: 100%;
 }
+
+
+/* Group index controls scroll in place without navigating the hash router. */
+.index .index-item {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+}
+.index .index-item:hover {
+  color: var(--accent);
+}
+.index .index-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}

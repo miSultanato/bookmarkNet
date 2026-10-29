@@ -179,17 +179,20 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
 
     const groupIndex = element('nav', 'index')
     groupIndex.setAttribute('aria-label', 'Índice de grupos')
+    function appendIndexItem(id, label, count) {
+      const button = element('button', 'index-item', label)
+      button.type = 'button'
+      button.append(element('span', 'index-count', ' (' + count + ')'))
+      button.addEventListener('click', () => {
+        document.getElementById('grupo-' + id)?.scrollIntoView({ behavior: 'smooth' })
+      })
+      groupIndex.append(button)
+    }
     for (const group of activeGroups) {
       const id = groupIdOf(group)
-      const link = element('a', '', group.name ?? 'Grupo')
-      link.href = '#grupo-' + id
-      link.append(element('span', 'index-count', ' (' + countForGroup(id) + ')'))
-      groupIndex.append(link)
+      appendIndexItem(id, group.name ?? 'Grupo', countForGroup(id))
     }
-    const inboxLink = element('a', '', 'Sin grupo')
-    inboxLink.href = '#grupo-sin-grupo'
-    inboxLink.append(element('span', 'index-count', ' (' + countForGroup(null) + ')'))
-    groupIndex.append(inboxLink)
+    appendIndexItem('sin-grupo', 'Sin grupo', countForGroup(null))
     section.append(groupIndex)
 
     const content = element('div', 'collection-content')
