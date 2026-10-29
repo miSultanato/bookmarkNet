@@ -202,10 +202,3 @@ export function render(container, state, collectionId, groupId, { onReload } = {
 }
 
 
-/* Compact bookmark cards for the group detail grid. */
-.group-detail-page .bookmarks-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
-.group-detail-page .bookmark { padding: 10px; }
-.group-detail-page .bookmark-title { font-size: 15px; }
-@media (max-width: 540px) {
-  .group-detail-page .bookmarks-grid { grid-template-columns: minmax(0, 1fr); }
-}

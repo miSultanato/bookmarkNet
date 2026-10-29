@@ -443,3 +443,11 @@ body.welcome-layout {
   .modal-content { max-height: 92vh; padding: 18px; border-radius: 16px 16px 10px 10px; }
   .group-row { padding: 13px 6px; }
 }
+
+/* Compact bookmark cards for the group detail grid. */
+.group-detail-page .bookmarks-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.group-detail-page .bookmark { padding: 10px; }
+.group-detail-page .bookmark-title { font-size: 15px; }
+@media (max-width: 540px) {
+  .group-detail-page .bookmarks-grid { grid-template-columns: minmax(0, 1fr); }
+}
