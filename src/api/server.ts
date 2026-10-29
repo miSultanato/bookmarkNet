@@ -8,6 +8,7 @@ import { handleCreateIdentity, handleExportIdentity, handleGetIdentity, handleIm
 import { handleGetProfile, handleUpdateProfile } from './profile.ts'
 import { handleGetConfig } from './config.ts'
 import { handleImportHtml } from './import.ts'
+import { handleSearch } from './search.ts'
 import { handleCreateGroup, handleDeleteGroup, handleListGroups, handleMoveBookmarkToGroup } from './groups.ts'
 import { handleCreateBookmark, handleDeleteBookmark, handleGetBookmark, handleListBookmarks, handleMoveBookmark, handleReorderBookmark, handleUpdateBookmark } from './bookmarks.ts'
 import {
@@ -550,6 +551,11 @@ export async function createServer(config: Config, initialNode: Node | null, lis
     }
 
     try {
+      if (method === 'GET' && route.path === '/api/v1/search') {
+        const result = await handleSearch(node!, { q: route.query.q })
+        sendJson(res, result.status, result.body)
+        return
+      }
       if (method === 'GET' && route.path === '/api/v1/profile') {
         const result = handleGetProfile(node!)
         sendJson(res, result.status, result.body)
