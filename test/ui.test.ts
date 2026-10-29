@@ -140,7 +140,9 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(collection.body.includes('Pública') && collection.body.includes('Privada'), 'collection shows visibility badges')
     t.ok(collection.body.includes('language'), 'collection screen displays and edits the collection language')
     t.ok(collection.body.includes('Editar') && collection.body.includes('Eliminar colección'), 'collection header exposes edit and delete actions')
-    t.ok(collection.body.includes('bookmark-form-section') && collection.body.includes('group-create-section'), 'collection content includes add-bookmark and create-group forms')
+    t.ok(collection.body.includes('modal-overlay') && collection.body.includes('Añadir bookmark') && collection.body.includes('Crear grupo'), 'collection forms are available in modal overlays')
+    t.ok(collection.body.includes('titleInput.maxLength = 200') && collection.body.includes('groupNameInput.maxLength = 100'), 'bookmark titles and group names have character limits')
+    t.ok(collection.body.includes('class="group-row"') || collection.body.includes("element('a', 'group-row')"), 'collection lists groups as compact rows')
     t.ok(collection.body.includes("element('h2', '', 'Sin grupo')"), 'ungrouped bookmarks have their own section')
     t.ok(!/peers|seguidores|Seguir|Duplicar|Compartir|métricas P2P/i.test(collection.body), 'collection excludes MVP2+ social and P2P features')
 

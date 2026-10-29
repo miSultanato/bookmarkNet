@@ -173,12 +173,43 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         renderView()
       }
     })
-    headerActions.append(editButton, deleteButton)
+    const addBookmarkOpenButton = element('button', 'btn btn-primary', '+ Añadir bookmark')
+    addBookmarkOpenButton.type = 'button'
+    addBookmarkOpenButton.addEventListener('click', () => openModal(bookmarkModal))
+    const createGroupOpenButton = element('button', 'btn btn-secondary', '+ Crear grupo')
+    createGroupOpenButton.type = 'button'
+    createGroupOpenButton.addEventListener('click', () => openModal(groupModal))
+    headerActions.append(editButton, deleteButton, addBookmarkOpenButton, createGroupOpenButton)
     header.append(titleArea, headerActions)
     section.append(header)
 
     const content = element('div', 'collection-content')
     section.append(content)
+    const bookmarkModal = createModal('Añadir bookmark')
+    const groupModal = createModal('Crear grupo')
+    section.append(bookmarkModal.overlay, groupModal.overlay)
+    function openModal(modal) {
+      modal.overlay.hidden = false
+      modal.overlay.querySelector('input, select, textarea')?.focus()
+    }
+    function closeModal(modal) {
+      modal.overlay.hidden = true
+    }
+    function createModal(title) {
+      const overlay = element('div', 'modal-overlay')
+      overlay.hidden = true
+      overlay.setAttribute('role', 'presentation')
+      const panel = element('section', 'modal-content')
+      panel.setAttribute('role', 'dialog')
+      panel.setAttribute('aria-modal', 'true')
+      panel.setAttribute('aria-label', title)
+      panel.append(element('h2', '', title))
+      overlay.append(panel)
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeModal({ overlay })
+      })
+      return { overlay, panel }
+    }
     if (actionError) content.append(element('p', 'error', actionError))
 
     if (editing) {
@@ -257,8 +288,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       content.append(editForm)
     }
 
-    const addSection = element('section', 'bookmark-form-section')
-    addSection.append(element('h2', '', 'Añadir bookmark'))
+    const addSection = element('div', 'modal-form-section')
     const bookmarkForm = element('form', 'bookmark-form')
     const urlInput = element('input')
     urlInput.type = 'url'
@@ -271,6 +301,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     titleInput.name = 'title'
     titleInput.placeholder = 'Título (opcional)'
     titleInput.setAttribute('aria-label', 'Título')
+    titleInput.maxLength = 200
     const tagsInput = element('input')
     tagsInput.type = 'text'
     tagsInput.name = 'tags'
@@ -289,11 +320,16 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       groupSelect.append(option)
     }
     groupSelectLabel.append(groupSelect)
-    const addButton = element('button', '', 'Añadir')
+    const addButton = element('button', '', 'Guardar')
     addButton.type = 'submit'
     const bookmarkError = element('p', 'error')
     bookmarkError.hidden = true
-    bookmarkForm.append(urlInput, titleInput, tagsInput, groupSelectLabel, addButton, bookmarkError)
+    const bookmarkCancel = element('button', 'btn btn-secondary', 'Cancelar')
+    bookmarkCancel.type = 'button'
+    bookmarkCancel.addEventListener('click', () => closeModal(bookmarkModal))
+    const bookmarkActions = element('div', 'modal-actions')
+    bookmarkActions.append(bookmarkCancel, addButton)
+    bookmarkForm.append(urlInput, titleInput, tagsInput, groupSelectLabel, bookmarkError, bookmarkActions)
     bookmarkForm.addEventListener('submit', async (event) => {
       event.preventDefault()
       const url = urlInput.value.trim()
@@ -301,6 +337,12 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         bookmarkError.hidden = false
         bookmarkError.textContent = 'La URL no puede estar vacía.'
         urlInput.focus()
+        return
+      }
+      if (titleInput.value.length > 200) {
+        bookmarkError.hidden = false
+        bookmarkError.textContent = 'El título no puede superar los 200 caracteres.'
+        titleInput.focus()
         return
       }
       addButton.disabled = true
@@ -314,6 +356,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
           group_id: groupSelect.value || null
         })
         bookmarkForm.reset()
+        closeModal(bookmarkModal)
         await onReload?.()
       } catch (error) {
         bookmarkError.hidden = false
@@ -322,22 +365,27 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       }
     })
     addSection.append(bookmarkForm)
-    content.append(addSection)
+    bookmarkModal.panel.append(addSection)
 
-    const createGroupSection = element('section', 'group-create-section')
-    createGroupSection.append(element('h2', '', 'Crear grupo'))
+    const createGroupSection = element('div', 'modal-form-section')
     const groupForm = element('form', 'inline-form group-create-form')
     const groupNameInput = element('input')
     groupNameInput.type = 'text'
     groupNameInput.name = 'group-name'
     groupNameInput.placeholder = 'Nombre del grupo'
     groupNameInput.setAttribute('aria-label', 'Nombre del grupo')
+    groupNameInput.maxLength = 100
     groupNameInput.required = true
-    const createGroupButton = element('button', '', 'Crear grupo')
+    const createGroupButton = element('button', 'btn btn-primary', 'Guardar')
     createGroupButton.type = 'submit'
     const groupError = element('p', 'error')
     groupError.hidden = true
-    groupForm.append(groupNameInput, createGroupButton, groupError)
+    const groupCancel = element('button', 'btn btn-secondary', 'Cancelar')
+    groupCancel.type = 'button'
+    groupCancel.addEventListener('click', () => closeModal(groupModal))
+    const groupActions = element('div', 'modal-actions')
+    groupActions.append(groupCancel, createGroupButton)
+    groupForm.append(groupNameInput, groupError, groupActions)
     groupForm.addEventListener('submit', async (event) => {
       event.preventDefault()
       const name = groupNameInput.value.trim()
@@ -347,11 +395,18 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         groupNameInput.focus()
         return
       }
+      if (name.length > 100) {
+        groupError.hidden = false
+        groupError.textContent = 'El nombre del grupo no puede superar los 100 caracteres.'
+        groupNameInput.focus()
+        return
+      }
       createGroupButton.disabled = true
       groupError.hidden = true
       try {
         await createGroup({ name, collection_id: collectionId })
         groupForm.reset()
+        closeModal(groupModal)
         await onReload?.()
       } catch (error) {
         groupError.hidden = false
@@ -360,7 +415,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       }
     })
     createGroupSection.append(groupForm)
-    content.append(createGroupSection)
+    groupModal.panel.append(createGroupSection)
 
     function appendBookmarkGrid(parent, items) {
       if (items.length === 0) {
@@ -408,17 +463,17 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     if (activeGroups.length === 0) {
       groupsSection.append(element('p', 'group-empty', 'Todavía no hay grupos. Crea uno arriba.'))
     } else {
-      const groupsGrid = element('div', 'groups-grid')
+      const groupsList = element('div', 'groups-list')
       for (const group of activeGroups) {
         const id = groupIdOf(group)
-        const card = element('a', 'group-card')
-        card.href = '#/collections/' + encodeURIComponent(collectionId) + '/groups/' + encodeURIComponent(id)
-        card.append(element('h3', '', group.name ?? 'Grupo'))
+        const row = element('a', 'group-row')
+        row.href = '#/collections/' + encodeURIComponent(collectionId) + '/groups/' + encodeURIComponent(id)
+        row.append(element('span', 'group-row-name', group.name ?? 'Grupo'))
         const count = countForGroup(id)
-        card.append(element('span', 'group-count', count + (count === 1 ? ' bookmark' : ' bookmarks')))
-        groupsGrid.append(card)
+        row.append(element('span', 'group-count', count + (count === 1 ? ' bookmark' : ' bookmarks')))
+        groupsList.append(row)
       }
-      groupsSection.append(groupsGrid)
+      groupsSection.append(groupsList)
     }
     content.append(groupsSection)
 
