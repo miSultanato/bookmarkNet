@@ -114,7 +114,7 @@ function renderCurrentRoute() {
     renderOnboarding(content, state, (importError) => {
       state.errors = importError ? [`La identidad se ha creado, pero la importación ha fallado: ${importError}. Puedes reintentarlo desde Importar.`] : []
       navigate('#/inbox')
-    })
+    }, { onReload: reloadData })
   } else if (routePath === '#/') {
     if (state.identity) {
       renderHome()
@@ -143,7 +143,7 @@ function renderCurrentRoute() {
     renderBookmark(content, state, bookmarkId, { onReload: reloadData, onDeleted: (collectionId) => navigate(collectionId === null ? '#/inbox' : '#/collections/' + encodeURIComponent(collectionId)) })
     loadDataIfNeeded()
   } else if (routePath === '#/import') {
-    renderImport(content, state)
+    renderImport(content, state, { onReload: reloadData })
   } else if (routePath === '#/settings') {
     renderSettings(content, state, { onReload: reloadData })
     loadDataIfNeeded()

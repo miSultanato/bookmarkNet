@@ -12,7 +12,7 @@ function readFile(file) {
   })
 }
 
-export function render(container, state, onDone) {
+export function render(container, state, onDone, { onReload } = {}) {
   container.replaceChildren()
 
   const section = document.createElement('section')
@@ -84,13 +84,20 @@ export function render(container, state, onDone) {
       state.identity = identity
       if (selectedFile) {
         continueButton.textContent = 'Importando bookmarks…'
+        let importError = null
         try {
           const html = await readFile(selectedFile)
           await importHtml(html)
         } catch (error) {
-          onDone(error instanceof Error ? error.message : String(error))
-          return
+          importError = error instanceof Error ? error.message : String(error)
         }
+        try {
+          await onReload?.()
+        } catch (error) {
+          if (!importError) importError = error instanceof Error ? error.message : String(error)
+        }
+        onDone(importError)
+        return
       }
       onDone()
     } catch (error) {

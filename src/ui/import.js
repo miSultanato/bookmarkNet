@@ -7,7 +7,7 @@ function element(tag, className, text) {
   return node
 }
 
-export function render(container) {
+export function render(container, state, { onReload } = {}) {
   container.replaceChildren()
   const page = element('section', 'import-page')
   page.append(element('h1', '', 'Importar'))
@@ -90,6 +90,7 @@ export function render(container) {
       })
       const result = await importHtml(html)
       const imported = result.imported || {}
+      if (Object.values(imported).some((count) => Number(count) > 0)) await onReload?.()
       status.textContent = `Importados: ${imported.collections ?? 0} colecciones, ${imported.groups ?? 0} grupos, ${imported.bookmarks ?? 0} bookmarks.`
       status.className = 'import-result'
       const errors = Array.isArray(result.errors) ? result.errors : []
