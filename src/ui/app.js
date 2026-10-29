@@ -1,4 +1,5 @@
 import { getIdentity, getCollections, getBookmarks, getInboxBookmarks, getProfile, getConfig } from './api.js'
+import { initSearch } from './search.js'
 import { render as renderOnboarding } from './onboarding.js'
 import { render as renderWelcome } from './welcome.js'
 import { render as renderInbox } from './inbox.js'
@@ -19,6 +20,7 @@ const state = {
   identity: null, collections: [], bookmarks: [], inboxBookmarks: [], profile: {}, config: null,
   settingsNotice: null, collectionsLoading: false, collectionsError: null, inboxError: null, errors: []
 }
+initSearch({ getCollections: () => state.collections })
 let initialized = false
 let dataLoadStarted = false
 let dataReloadPromise = null
