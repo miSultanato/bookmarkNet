@@ -308,3 +308,37 @@ body.welcome-layout {
     padding: 16px;
   }
 }
+
+
+/* Real collection data: explicit empty states and keyboard-accessible bookmark cards. */
+.group-empty, .collection-empty {
+  padding: 16px;
+  border: 1px dashed #d8dde5;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.bookmark[role="link"] {
+  cursor: pointer;
+}
+.bookmark[role="link"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.group-count, .index-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.bookmark-group-select-label {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.bookmark-group-select-label select {
+  flex: 1;
+  width: 100%;
+}
