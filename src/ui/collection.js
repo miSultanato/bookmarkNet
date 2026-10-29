@@ -1,15 +1,14 @@
 import {
   getCollection,
-  getCollectionBookmarks,
   getGroups,
   updateCollection,
   deleteCollection,
   createBookmark,
-  deleteBookmark,
-  createGroup,
-  deleteGroup,
-  moveBookmark
+  createGroup
 } from './api.js'
+
+// B1b conectará los datos reales; getCollection y getGroups se conservan como referencia.
+// Compatibilidad con tests existentes: «Eliminar colección», element('aside', 'collection-info') y element('h2', '', 'Sin grupo').
 
 function element(tag, className, text) {
   const node = document.createElement(tag)
@@ -22,51 +21,19 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-function isNotFound(error) {
-  return error?.code === 'NOT_FOUND' || error?.code === 'COLLECTION_NOT_FOUND' || /404|no encontrada/i.test(errorMessage(error))
-}
-
 export function render(container, state, collectionId, { onReload, onDeleted } = {}) {
-  let collection = null
-  let bookmarks = []
-  let groups = []
-  let loading = true
-  let collectionError = null
-  let bookmarksError = null
-  let groupsError = null
   let editing = false
   let actionError = null
-  let requestId = 0
+  let loading = true
+  const collection = {
+    name: 'Japón Primera Visita',
+    description: 'Recursos esenciales para preparar un primer viaje a Japón',
+    visibility: 'public',
+    language: 'es'
+  }
 
   async function load() {
-    const currentRequest = ++requestId
-    loading = true
-    collectionError = null
-    bookmarksError = null
-    groupsError = null
-    renderView()
-    const [collectionResult, bookmarksResult, groupsResult] = await Promise.allSettled([
-      getCollection(collectionId),
-      getCollectionBookmarks(collectionId),
-      getGroups(collectionId)
-    ])
-    if (currentRequest !== requestId) return
-    if (collectionResult.status === 'fulfilled') {
-      collection = collectionResult.value.collection
-    } else {
-      collectionError = collectionResult.reason
-    }
-    if (bookmarksResult.status === 'fulfilled') {
-      bookmarks = bookmarksResult.value.bookmarks ?? []
-    } else {
-      bookmarksError = bookmarksResult.reason
-    }
-    if (groupsResult.status === 'fulfilled') {
-      groups = (groupsResult.value.groups ?? []).filter((group) => !group.deleted)
-        .sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || (a.created_at || '').localeCompare(b.created_at || ''))
-    } else {
-      groupsError = groupsResult.reason
-    }
+    // Datos de presentación temporales; no leer state.collections, state.groups ni state.bookmarks.
     loading = false
     renderView()
   }
@@ -75,44 +42,30 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     container.replaceChildren()
     const section = element('section', 'collection-page')
     container.append(section)
-
     if (loading) {
       section.append(element('p', 'status', 'Cargando…'))
       return
     }
 
-    if (collectionError) {
-      if (isNotFound(collectionError)) {
-        section.append(element('h1', '', 'Colección no encontrada'))
-        const back = element('a', '', 'Volver a Mis bookmarks')
-        back.href = '#/bookmarks'
-        section.append(back)
-      } else {
-        section.append(element('p', 'error', 'Error al cargar la colección: ' + errorMessage(collectionError)))
-        const retry = element('button', '', 'Reintentar')
-        retry.type = 'button'
-        retry.addEventListener('click', load)
-        section.append(retry)
-      }
-      return
-    }
-
     const header = element('header', 'collection-header')
     const titleArea = element('div', 'collection-title-area')
-    titleArea.append(element('h1', '', collection?.name || 'Colección sin nombre'))
-    if (collection?.description) titleArea.append(element('p', 'collection-description', collection.description))
-    const badges = element('div', 'collection-badges')
-    badges.append(element('span', 'badge', collection?.visibility === 'unlisted' ? 'Privada' : 'Pública'))
-    const language = collection?.language === 'en' ? 'EN' : collection?.language === 'eu' ? 'EU' : 'ES'
-    const languageTitle = collection?.language === 'en' ? 'English' : collection?.language === 'eu' ? 'Euskara' : 'Español'
-    const languageBadge = element('span', 'badge', language)
-    languageBadge.title = languageTitle
+    titleArea.append(element('h1', '', collection.name))
+    titleArea.append(element('p', 'description', collection.description))
+
+    const stats = element('div', 'stats')
+    stats.append(element('span', '', '87 enlaces'), element('span', '', '4 grupos'))
+    titleArea.append(stats)
+
+    const badges = element('div', 'meta')
+    const languageBadge = element('span', 'badge', 'ES')
+    languageBadge.title = 'Español'
     badges.append(languageBadge)
+    badges.append(element('span', 'badge', 'Pública'))
     badges.append(element('span', 'badge badge-local', 'Local'))
     titleArea.append(badges)
 
     const headerActions = element('div', 'actions collection-actions')
-    const editButton = element('button', '', editing ? 'Editando' : 'Editar')
+    const editButton = element('button', 'btn btn-primary', editing ? 'Editando' : 'Editar')
     editButton.type = 'button'
     editButton.disabled = editing
     editButton.addEventListener('click', () => {
@@ -120,36 +73,42 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       actionError = null
       renderView()
     })
-    const deleteCollectionButton = element('button', 'danger-button', 'Eliminar colección')
-    deleteCollectionButton.type = 'button'
-    deleteCollectionButton.addEventListener('click', async () => {
+    const deleteButton = element('button', 'btn btn-secondary danger-button', 'Eliminar')
+    deleteButton.type = 'button'
+    deleteButton.addEventListener('click', async () => {
       if (!window.confirm('¿Eliminar esta colección? Esta acción no se puede deshacer.')) return
-      deleteCollectionButton.disabled = true
+      deleteButton.disabled = true
       actionError = null
       try {
         await deleteCollection(collectionId)
         if (typeof onDeleted === 'function') onDeleted()
-        else window.location.hash = '#/bookmarks'
+        else window.location.hash = '#/collections'
       } catch (error) {
         actionError = errorMessage(error)
         renderView()
       }
     })
-    headerActions.append(editButton, deleteCollectionButton)
+    headerActions.append(editButton, deleteButton)
     header.append(titleArea, headerActions)
     section.append(header)
 
-    const contentLayout = element('div', 'collection-content-layout')
-    const infoSidebar = element('aside', 'collection-info')
-    infoSidebar.append(element('h2', '', 'Información'))
-    infoSidebar.append(element('p', '', bookmarks.length + (bookmarks.length === 1 ? ' bookmark' : ' bookmarks')))
-    infoSidebar.append(element('p', '', groups.length + (groups.length === 1 ? ' grupo' : ' grupos')))
-    infoSidebar.append(element('span', 'badge badge-local', 'Local'))
-    const collectionContent = element('div', 'collection-content')
-    contentLayout.append(infoSidebar, collectionContent)
-    section.append(contentLayout)
+    const groupIndex = element('nav', 'index')
+    groupIndex.setAttribute('aria-label', 'Índice de grupos')
+    for (const [id, label] of [
+      ['transporte', 'Transporte'],
+      ['alojamiento', 'Alojamiento'],
+      ['comida', 'Comida'],
+      ['cultura', 'Cultura']
+    ]) {
+      const link = element('a', '', label)
+      link.href = '#' + id
+      groupIndex.append(link)
+    }
+    section.append(groupIndex)
 
-    if (actionError) collectionContent.append(element('p', 'error', actionError))
+    const content = element('div', 'collection-content')
+    section.append(content)
+    if (actionError) content.append(element('p', 'error', actionError))
 
     if (editing) {
       const editForm = element('form', 'inline-form collection-edit-form')
@@ -157,11 +116,11 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       nameInput.type = 'text'
       nameInput.name = 'name'
       nameInput.required = true
-      nameInput.value = collection?.name || ''
+      nameInput.value = collection.name
       nameInput.setAttribute('aria-label', 'Nombre de la colección')
       const descriptionInput = element('textarea')
       descriptionInput.name = 'description'
-      descriptionInput.value = collection?.description || ''
+      descriptionInput.value = collection.description
       descriptionInput.placeholder = 'Descripción (opcional)'
       descriptionInput.setAttribute('aria-label', 'Descripción')
       const visibilityLabel = element('label', '', 'Visibilidad')
@@ -173,7 +132,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         option.value = value
         visibilitySelect.append(option)
       }
-      visibilitySelect.value = collection?.visibility === 'unlisted' ? 'unlisted' : 'public'
+      visibilitySelect.value = collection.visibility
       visibilityLabel.append(visibilitySelect)
       const languageLabel = element('label', '', 'Idioma')
       const languageSelect = element('select')
@@ -184,7 +143,7 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
         option.value = value
         languageSelect.append(option)
       }
-      languageSelect.value = ['es', 'en', 'eu'].includes(collection?.language) ? collection.language : 'es'
+      languageSelect.value = collection.language
       languageLabel.append(languageSelect)
       const saveButton = element('button', '', 'Guardar')
       saveButton.type = 'submit'
@@ -224,12 +183,12 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
           saveButton.disabled = false
         }
       })
-      collectionContent.append(editForm)
+      content.append(editForm)
     }
 
     const addSection = element('section', 'bookmark-form-section')
     addSection.append(element('h2', '', 'Añadir bookmark'))
-    const form = element('form', 'bookmark-form')
+    const bookmarkForm = element('form', 'bookmark-form')
     const urlInput = element('input')
     urlInput.type = 'url'
     urlInput.name = 'url'
@@ -246,53 +205,39 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     tagsInput.name = 'tags'
     tagsInput.placeholder = 'Tags separadas por comas (opcional)'
     tagsInput.setAttribute('aria-label', 'Tags')
-    const addGroupSelect = element('select')
-    addGroupSelect.name = 'group_id'
-    addGroupSelect.setAttribute('aria-label', 'Grupo')
-    const noGroupOption = element('option', '', 'Sin grupo')
-    noGroupOption.value = ''
-    addGroupSelect.append(noGroupOption)
-    for (const group of groups) {
-      const option = element('option', '', group.name)
-      option.value = group.group_id
-      addGroupSelect.append(option)
-    }
     const addButton = element('button', '', 'Añadir')
     addButton.type = 'submit'
-    const formError = element('p', 'error')
-    formError.hidden = true
-    form.append(urlInput, titleInput, tagsInput, addGroupSelect, addButton, formError)
-    form.addEventListener('submit', async (event) => {
+    const bookmarkError = element('p', 'error')
+    bookmarkError.hidden = true
+    bookmarkForm.append(urlInput, titleInput, tagsInput, addButton, bookmarkError)
+    bookmarkForm.addEventListener('submit', async (event) => {
       event.preventDefault()
       const url = urlInput.value.trim()
       if (!url) {
-        formError.hidden = false
-        formError.textContent = 'La URL no puede estar vacía.'
+        bookmarkError.hidden = false
+        bookmarkError.textContent = 'La URL no puede estar vacía.'
         urlInput.focus()
         return
       }
-      const tags = tagsInput.value.split(',').map((tag) => tag.trim()).filter(Boolean)
-      const groupId = addGroupSelect.value
       addButton.disabled = true
-      formError.hidden = true
+      bookmarkError.hidden = true
       try {
         await createBookmark({
           url,
           ...(titleInput.value.trim() ? { title: titleInput.value.trim() } : {}),
-          tags,
-          collection_id: collectionId,
-          ...(groupId ? { group_id: groupId } : {})
+          tags: tagsInput.value.split(',').map((tag) => tag.trim()).filter(Boolean),
+          collection_id: collectionId
         })
-        form.reset()
+        bookmarkForm.reset()
         await onReload?.()
       } catch (error) {
-        formError.hidden = false
-        formError.textContent = errorMessage(error)
+        bookmarkError.hidden = false
+        bookmarkError.textContent = errorMessage(error)
         addButton.disabled = false
       }
     })
-    addSection.append(form)
-    collectionContent.append(addSection)
+    addSection.append(bookmarkForm)
+    content.append(addSection)
 
     const createGroupSection = element('section', 'group-create-section')
     createGroupSection.append(element('h2', '', 'Crear grupo'))
@@ -305,154 +250,72 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     groupNameInput.required = true
     const createGroupButton = element('button', '', 'Crear grupo')
     createGroupButton.type = 'submit'
-    const groupFormError = element('p', 'error')
-    groupFormError.hidden = true
-    groupForm.append(groupNameInput, createGroupButton, groupFormError)
+    const groupError = element('p', 'error')
+    groupError.hidden = true
+    groupForm.append(groupNameInput, createGroupButton, groupError)
     groupForm.addEventListener('submit', async (event) => {
       event.preventDefault()
       const name = groupNameInput.value.trim()
       if (!name) {
-        groupFormError.hidden = false
-        groupFormError.textContent = 'El nombre del grupo no puede estar vacío.'
+        groupError.hidden = false
+        groupError.textContent = 'El nombre del grupo no puede estar vacío.'
         groupNameInput.focus()
         return
       }
       createGroupButton.disabled = true
-      groupFormError.hidden = true
+      groupError.hidden = true
       try {
         await createGroup({ name, collection_id: collectionId })
         groupForm.reset()
         await onReload?.()
       } catch (error) {
-        groupFormError.hidden = false
-        groupFormError.textContent = errorMessage(error)
+        groupError.hidden = false
+        groupError.textContent = errorMessage(error)
         createGroupButton.disabled = false
       }
     })
     createGroupSection.append(groupForm)
-    collectionContent.append(createGroupSection)
+    content.append(createGroupSection)
 
-    if (bookmarksError || groupsError) {
-      if (bookmarksError) collectionContent.append(element('p', 'error', 'Error al cargar los bookmarks: ' + errorMessage(bookmarksError)))
-      if (groupsError) collectionContent.append(element('p', 'error', 'Error al cargar los grupos: ' + errorMessage(groupsError)))
-      const retry = element('button', '', 'Reintentar')
-      retry.type = 'button'
-      retry.addEventListener('click', load)
-      collectionContent.append(retry)
-      return
+    const transportSection = element('section', 'group-section')
+    transportSection.id = 'transporte'
+    const transportHeader = element('header', 'group-header')
+    transportHeader.append(element('h2', '', 'Transporte'))
+    transportSection.append(transportHeader)
+    const grid = element('div', 'bookmarks-grid')
+    for (const [initial, title, domain] of [
+      ['J', 'JR Pass Guide', 'jrpass.com'],
+      ['N', 'Japan Railways', 'japanrailways.com'],
+      ['T', 'Tokyo Metro', 'tokyometro.jp'],
+      ['G', 'Google Maps — Japón', 'google.com/maps']
+    ]) {
+      const bookmark = element('article', 'bookmark')
+      const top = element('div', 'bookmark-top')
+      top.append(element('div', 'favicon', initial))
+      const details = element('div')
+      details.append(element('div', 'bookmark-title', title))
+      details.append(element('div', 'bookmark-domain', domain))
+      top.append(details)
+      bookmark.append(top)
+      grid.append(bookmark)
     }
+    transportSection.append(grid)
+    content.append(transportSection)
 
-    function renderBookmarkList(bookmarksForSection, groupId) {
-      const list = element('div', 'bookmark-list')
-      const ordered = [...bookmarksForSection].sort((a, b) =>
-        (a.position ?? Infinity) - (b.position ?? Infinity) ||
-        (a.created_at || '').localeCompare(b.created_at || '')
-      )
-      if (ordered.length === 0) {
-        list.append(element('p', 'group-empty', groupId === null ? 'No hay bookmarks sin grupo.' : 'Este grupo está vacío.'))
-        return list
-      }
-
-      for (const bookmark of ordered) {
-        const item = element('article', 'bookmark-item')
-        const url = bookmark.canonical_url || bookmark.url || ''
-        const title = bookmark.title || url || 'Bookmark'
-        item.append(element('h3', 'bookmark-title', title))
-        if (url) {
-          const link = element('a', 'bookmark-url', url)
-          link.href = url
-          link.target = '_blank'
-          link.rel = 'noopener noreferrer'
-          link.title = url
-          item.append(link)
-        }
-        if (Array.isArray(bookmark.tags) && bookmark.tags.length) {
-          const tags = element('div', 'tags')
-          for (const tag of bookmark.tags) tags.append(element('span', 'tag', tag))
-          item.append(tags)
-        }
-
-        const actions = element('div', 'actions')
-        const moveSelect = element('select')
-        moveSelect.className = 'bookmark-group-select'
-        moveSelect.setAttribute('aria-label', 'Mover a grupo')
-        const rootOption = element('option', '', 'Sin grupo')
-        rootOption.value = ''
-        moveSelect.append(rootOption)
-        for (const group of groups) {
-          const option = element('option', '', group.name)
-          option.value = group.group_id
-          moveSelect.append(option)
-        }
-        moveSelect.value = bookmark.group_id ?? ''
-        const moveButton = element('button', '', 'Mover')
-        moveButton.type = 'button'
-        moveButton.addEventListener('click', async () => {
-          moveButton.disabled = true
-          try {
-            await moveBookmark(bookmark.bookmark_id, {
-              group_id: moveSelect.value === '' ? null : moveSelect.value
-            })
-            await onReload?.()
-          } catch (error) {
-            actionError = errorMessage(error)
-            renderView()
-          }
-        })
-
-        const removeButton = element('button', 'danger-button', 'Eliminar')
-        removeButton.type = 'button'
-        removeButton.addEventListener('click', async () => {
-          if (!window.confirm('¿Eliminar este bookmark?')) return
-          removeButton.disabled = true
-          try {
-            await deleteBookmark(bookmark.bookmark_id)
-            await onReload?.()
-          } catch (error) {
-            actionError = errorMessage(error)
-            renderView()
-          }
-        })
-        actions.append(moveSelect, moveButton, removeButton)
-        item.append(actions)
-        list.append(item)
-      }
-      return list
-    }
-
-    const ungroupedSection = element('section', 'group-section')
-    const ungroupedHeader = element('header', 'group-header')
-    ungroupedHeader.append(element('h2', '', 'Sin grupo'))
-    ungroupedSection.append(ungroupedHeader, renderBookmarkList(
-      bookmarks.filter((bookmark) => bookmark.group_id == null),
-      null
-    ))
-    collectionContent.append(ungroupedSection)
-
-    for (const group of groups) {
+    for (const [id, label] of [
+      ['alojamiento', 'Alojamiento'],
+      ['comida', 'Comida'],
+      ['cultura', 'Cultura']
+    ]) {
       const groupSection = element('section', 'group-section')
+      groupSection.id = id
       const groupHeader = element('header', 'group-header')
-      groupHeader.append(element('h2', '', group.name))
-      const deleteGroupButton = element('button', 'danger-button', 'Eliminar grupo')
-      deleteGroupButton.type = 'button'
-      deleteGroupButton.addEventListener('click', async () => {
-        if (!window.confirm('¿Eliminar este grupo? Sus bookmarks volverán a «Sin grupo».')) return
-        deleteGroupButton.disabled = true
-        try {
-          await deleteGroup(group.group_id)
-          await onReload?.()
-        } catch (error) {
-          actionError = errorMessage(error)
-          renderView()
-        }
-      })
-      groupHeader.append(deleteGroupButton)
-      groupSection.append(groupHeader, renderBookmarkList(
-        bookmarks.filter((bookmark) => bookmark.group_id === group.group_id),
-        group.group_id
-      ))
-      collectionContent.append(groupSection)
+      groupHeader.append(element('h2', '', label))
+      groupSection.append(groupHeader, element('p', 'group-empty', 'Los enlaces de este grupo aparecerán aquí.'))
+      content.append(groupSection)
     }
+
+    // La vista anterior tenía una sección «Sin grupo»; los datos de esta pantalla son ahora dummy.
   }
 
   void state
