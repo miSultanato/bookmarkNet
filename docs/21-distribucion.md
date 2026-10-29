@@ -52,7 +52,11 @@ docker run -d \
   ghcr.io/misultanato/lotura:latest
 ```
 
-Abre la UI en [http://localhost:7575](http://localhost:7575). Los datos se guardan en el volumen Docker `lotura-data` y sobreviven al reemplazo o reinicio del contenedor. El contenedor configura `BOOKMARKNET_BIND=0.0.0.0` para aceptar conexiones a través del puerto publicado y `BOOKMARKNET_DATA_DIR=/data` para persistir los datos. No se abre ningún navegador dentro del contenedor.
+El primer número en `-p <puerto-host>:7575` es el puerto en tu máquina. Si usas otro (por ejemplo, `-p 7576:7575`), abre [http://localhost:7576](http://localhost:7576) en el navegador. El contenedor siempre escucha en el puerto 7575 internamente.
+
+Para usar un puerto distinto dentro del contenedor, pasa la variable de entorno `BOOKMARKNET_PORT=8080` y mapea `-p 8080:8080`, por ejemplo: `docker run -d -p 8080:8080 -e BOOKMARKNET_PORT=8080 -v lotura-data:/data ghcr.io/misultanato/lotura:latest`.
+
+Los datos se guardan en el volumen Docker `lotura-data` y sobreviven al reemplazo o reinicio del contenedor. El contenedor configura `BOOKMARKNET_BIND=0.0.0.0` para aceptar conexiones a través del puerto publicado y `BOOKMARKNET_DATA_DIR=/data` para persistir los datos. No se abre ningún navegador dentro del contenedor.
 
 Para otras opciones de configuración, consulta [docs/22-configuracion.md](22-configuracion.md). Si accedes desde otro equipo de la LAN, configura también `BOOKMARKNET_ALLOWED_HOSTS` para permitir el nombre o la IP usados en la cabecera Host.
 

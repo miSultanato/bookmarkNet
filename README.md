@@ -125,10 +125,14 @@ docker build -t lotura .
 Ejecuta el contenedor con el puerto web publicado y un volumen persistente para los datos:
 
 ```bash
-docker run -d -p 7575:7575 -v lotura-data:/data lotura
+docker run -d -p 7576:7575 -v lotura-data:/data lotura
 ```
 
-La UI se abre en [http://localhost:7575](http://localhost:7575). La configuración se pasa por variables de entorno. Consulta [docs/22-configuracion.md](docs/22-configuracion.md) para las opciones.
+El primer número en `-p <puerto-host>:7575` es el puerto en tu máquina. Si usas otro (por ejemplo, `-p 7576:7575`), abre [http://localhost:7576](http://localhost:7576) en el navegador. El contenedor siempre escucha en el puerto 7575 internamente.
+
+Para usar un puerto distinto dentro del contenedor, pasa la variable de entorno `BOOKMARKNET_PORT=8080` y mapea `-p 8080:8080`, por ejemplo: `docker run -d -p 8080:8080 -e BOOKMARKNET_PORT=8080 -v lotura-data:/data lotura`.
+
+La configuración se pasa por variables de entorno. Consulta [docs/22-configuracion.md](docs/22-configuracion.md) para las opciones.
 
 Para generar un release, crea un tag `v*` (por ejemplo, `git tag v0.1.0 && git push origin v0.1.0`). El workflow de GitHub Actions compilará el binario Linux y lo publicará en Releases.
 
