@@ -419,22 +419,26 @@ body.welcome-layout {
 .modal-form-section form { display: grid; gap: 12px; }
 .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .groups-list-section { display: grid; gap: 10px; }
-.groups-list { display: grid; }
+.groups-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
 .group-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-  padding: 14px 10px;
-  border-bottom: 1px solid #e2e5eb;
+  padding: 12px;
+  border: 1px solid #e2e5eb;
+  border-radius: 8px;
   color: var(--fg);
   text-decoration: none;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
-.group-row:first-child { border-top: 1px solid #e2e5eb; }
-.group-row:hover, .group-row:focus-visible { background: #f4f7fb; color: var(--accent); }
+.group-row:hover, .group-row:focus-visible { background: #f4f7fb; border-color: #b9c8df; color: var(--accent); }
 .group-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .group-row-name { min-width: 0; overflow-wrap: anywhere; font-weight: 650; }
 .group-row .group-count { flex: 0 0 auto; }
@@ -450,4 +454,12 @@ body.welcome-layout {
 .group-detail-page .bookmark-title { font-size: 15px; }
 @media (max-width: 540px) {
   .group-detail-page .bookmarks-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+@media (max-width: 900px) {
+  .groups-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  .groups-list { grid-template-columns: minmax(0, 1fr); }
 }
