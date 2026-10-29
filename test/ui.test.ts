@@ -54,8 +54,11 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(index.contentType?.startsWith('text/html; charset=utf-8'), 'index has HTML content type')
     t.ok(index.body.includes('<title>Lotura</title>'), 'index contains the Lotura app title')
     t.ok(index.body.includes('href="/assets/favicon.svg" type="image/svg+xml"'), 'index links the SVG favicon')
-    t.ok(index.body.includes('src="/assets/logo.svg"'), 'sidebar includes the Lotura logo asset')
-    t.ok(index.body.includes('<span>Lotura</span>'), 'sidebar displays the Lotura wordmark')
+    const topbar = index.body.split('<header class="topbar">')[1]?.split('</header>')[0] ?? ''
+    const sidebar = index.body.split('<aside class="sidebar"')[1]?.split('</aside>')[0] ?? ''
+    t.ok(topbar.includes('<a href="#/" class="logo">LOTURA</a>'), 'topbar displays the Lotura wordmark linked to home')
+    t.ok(sidebar.includes('<nav class="nav">'), 'sidebar starts with the navigation')
+    t.ok(!sidebar.includes('/assets/logo.svg') && !sidebar.includes('Lotura'), 'sidebar has no duplicate logo or wordmark')
     t.ok(index.body.includes('class="sidebar"'), 'index includes the navigation sidebar')
     t.ok(index.body.includes('class="main"'), 'index includes the main layout area')
     t.ok(index.body.includes('Mis colecciones'), 'sidebar includes collections navigation')
@@ -78,7 +81,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(style.body.includes(':root'), 'stylesheet contains CSS variables')
     t.ok(style.body.includes('--bg: #f5f6f8'), 'stylesheet uses the MVP0 background')
     t.ok(style.body.includes('width: 240px'), 'stylesheet uses the 240px sidebar')
-    t.ok(style.body.includes('.brand { display: flex; align-items: center; gap: 10px;'), 'stylesheet aligns the sidebar logo and wordmark')
+    t.ok(style.body.includes('.nav { display: flex; flex-direction: column; gap: 10px; }'), 'stylesheet aligns sidebar navigation at the top')
     t.ok(style.body.includes('--bg: #f5f6f8'), 'stylesheet content is served from the generated in-memory bundle')
 
     const app = await request(api.port, '/assets/app.js')
