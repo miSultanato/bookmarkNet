@@ -104,6 +104,15 @@ export function initSearch({ getCollections = () => [] } = {}) {
   })
 
   input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (debounceTimer !== null) clearTimeout(debounceTimer)
+      requestNumber += 1
+      hide()
+      const query = input.value.trim()
+      if (query) window.location.hash = '#/search?q=' + encodeURIComponent(query)
+      return
+    }
     if (event.key !== 'Escape') return
     if (debounceTimer !== null) clearTimeout(debounceTimer)
     requestNumber += 1

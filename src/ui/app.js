@@ -8,6 +8,7 @@ import { render as renderImport } from './import.js'
 import { render as renderCollection } from './collection.js'
 import { render as renderGroup } from './group.js'
 import { render as renderBookmark } from './bookmark.js'
+import { render as renderSearchPage } from './search-page.js'
 import { render as renderSettings } from './settings.js'
 
 const app = document.querySelector('#app')
@@ -108,7 +109,7 @@ function renderCurrentRoute() {
   const knownRoute = routePath === '#/' || routePath === '#/onboarding' ||
     routePath === '#/inbox' || routePath === '#/collections' ||
     routePath === '#/import' || routePath === '#/settings' ||
-    /^#\/collections\/[^/]+$/.test(routePath) || /^#\/collections\/[^/]+\/groups\/[^/]+$/.test(routePath) || /^#\/bookmarks\/[^/]+$/.test(routePath)
+    routePath === '#/search' || /^#\/collections\/[^/]+$/.test(routePath) || /^#\/collections\/[^/]+\/groups\/[^/]+$/.test(routePath) || /^#\/bookmarks\/[^/]+$/.test(routePath)
   if (!knownRoute) { navigate(state.identity ? '#/' : '#/onboarding'); return }
 
   renderHeader(routePath)
@@ -124,6 +125,8 @@ function renderCurrentRoute() {
     } else {
       renderWelcome(content, state, { onStart: () => navigate('#/onboarding') })
     }
+  } else if (routePath === '#/search') {
+    renderSearchPage(content, state, query.get('q') ?? '')
   } else if (routePath === '#/inbox') {
     renderInbox(content, state, { onReload: reloadData })
     loadDataIfNeeded()
