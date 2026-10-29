@@ -177,24 +177,6 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     header.append(titleArea, headerActions)
     section.append(header)
 
-    const groupIndex = element('nav', 'index')
-    groupIndex.setAttribute('aria-label', 'Índice de grupos')
-    function appendIndexItem(id, label, count) {
-      const button = element('button', 'index-item', label)
-      button.type = 'button'
-      button.append(element('span', 'index-count', ' (' + count + ')'))
-      button.addEventListener('click', () => {
-        document.getElementById('grupo-' + id)?.scrollIntoView({ behavior: 'smooth' })
-      })
-      groupIndex.append(button)
-    }
-    for (const group of activeGroups) {
-      const id = groupIdOf(group)
-      appendIndexItem(id, group.name ?? 'Grupo', countForGroup(id))
-    }
-    appendIndexItem('sin-grupo', 'Sin grupo', countForGroup(null))
-    section.append(groupIndex)
-
     const content = element('div', 'collection-content')
     section.append(content)
     if (actionError) content.append(element('p', 'error', actionError))
@@ -421,22 +403,26 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
       parent.append(grid)
     }
 
-    for (const group of activeGroups) {
-      const id = groupIdOf(group)
-      const groupSection = element('section', 'group-section')
-      groupSection.id = 'grupo-' + id
-      const groupHeader = element('header', 'group-header')
-      groupHeader.append(element('h2', '', group.name ?? 'Grupo'))
-      groupHeader.append(element('span', 'group-count', String(countForGroup(id))))
-      groupSection.append(groupHeader)
-      appendBookmarkGrid(groupSection, collectionBookmarks.filter((bookmark) =>
-        isActive(bookmark) && groupIdForBookmark(bookmark) === id
-      ))
-      content.append(groupSection)
+    const groupsSection = element('section', 'groups-list-section')
+    groupsSection.append(element('h2', '', 'Grupos'))
+    if (activeGroups.length === 0) {
+      groupsSection.append(element('p', 'group-empty', 'Todavía no hay grupos. Crea uno arriba.'))
+    } else {
+      const groupsGrid = element('div', 'groups-grid')
+      for (const group of activeGroups) {
+        const id = groupIdOf(group)
+        const card = element('a', 'group-card')
+        card.href = '#/collections/' + encodeURIComponent(collectionId) + '/groups/' + encodeURIComponent(id)
+        card.append(element('h3', '', group.name ?? 'Grupo'))
+        const count = countForGroup(id)
+        card.append(element('span', 'group-count', count + (count === 1 ? ' bookmark' : ' bookmarks')))
+        groupsGrid.append(card)
+      }
+      groupsSection.append(groupsGrid)
     }
+    content.append(groupsSection)
 
     const inboxSection = element('section', 'group-section')
-    inboxSection.id = 'grupo-sin-grupo'
     const inboxHeader = element('header', 'group-header')
     inboxHeader.append(element('h2', '', 'Sin grupo'))
     inboxHeader.append(element('span', 'group-count', String(countForGroup(null))))

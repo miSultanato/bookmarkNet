@@ -5,6 +5,7 @@ import { render as renderInbox } from './inbox.js'
 import { render as renderCollections } from './collections.js'
 import { render as renderImport } from './import.js'
 import { render as renderCollection } from './collection.js'
+import { render as renderGroup } from './group.js'
 import { render as renderBookmark } from './bookmark.js'
 import { render as renderSettings } from './settings.js'
 
@@ -105,7 +106,7 @@ function renderCurrentRoute() {
   const knownRoute = routePath === '#/' || routePath === '#/onboarding' ||
     routePath === '#/inbox' || routePath === '#/collections' ||
     routePath === '#/import' || routePath === '#/settings' ||
-    /^#\/collections\/[^/]+$/.test(routePath) || /^#\/bookmarks\/[^/]+$/.test(routePath)
+    /^#\/collections\/[^/]+$/.test(routePath) || /^#\/collections\/[^/]+\/groups\/[^/]+$/.test(routePath) || /^#\/bookmarks\/[^/]+$/.test(routePath)
   if (!knownRoute) { navigate(state.identity ? '#/' : '#/onboarding'); return }
 
   renderHeader(routePath)
@@ -130,6 +131,12 @@ function renderCurrentRoute() {
   } else if (/^#\/collections\/[^/]+$/.test(routePath)) {
     const collectionId = decodeURIComponent(routePath.slice('#/collections/'.length))
     renderCollection(content, state, collectionId, { onReload: reloadData, onDeleted: () => navigate('#/collections') })
+    loadDataIfNeeded()
+  } else if (/^#\/collections\/[^/]+\/groups\/[^/]+$/.test(routePath)) {
+    const match = routePath.match(/^#\/collections\/([^/]+)\/groups\/([^/]+)$/)
+    const collectionId = decodeURIComponent(match[1])
+    const groupId = decodeURIComponent(match[2])
+    renderGroup(content, state, collectionId, groupId, { onReload: reloadData })
     loadDataIfNeeded()
   } else if (/^#\/bookmarks\/[^/]+$/.test(routePath)) {
     const bookmarkId = decodeURIComponent(routePath.slice('#/bookmarks/'.length))
