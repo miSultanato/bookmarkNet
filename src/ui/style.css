@@ -172,3 +172,58 @@ a { color: var(--accent); }
 
 .import-details .import-errors { margin: 8px 0 0; padding: 0 0 0 20px; border: 0; border-radius: 0; background: transparent; color: var(--muted); }
 .import-details .import-errors li { margin: 0; color: var(--muted); }
+
+
+/* Topbar global */
+.topbar { position: sticky; top: 0; z-index: 20; height: 64px; background: #fff; border-bottom: 1px solid var(--border); }
+.topbar-inner { width: min(100%, 1400px); height: 100%; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.logo { color: #1a1d23; font-size: 24px; font-weight: 800; letter-spacing: -.7px; }
+.search { width: 440px; max-width: 100%; padding: 10px 14px; border: 1px solid #d9dee7; border-radius: 999px; background: #f8fafc; }
+.search:focus { outline: 2px solid #bfdbfe; border-color: var(--accent); }
+
+/* Rediseño de colección */
+.collection-page { width: min(100%, 1400px); margin: 0 auto; gap: 22px; }
+.collection-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 28px; background: #fff; border: 1px solid #e6e8ed; border-radius: 18px; }
+.collection-title-area { min-width: 0; flex: 1 1 520px; }
+.collection-header h1 { margin: 0; color: #171923; font-size: 48px; font-weight: 800; letter-spacing: -1.6px; line-height: 1.08; overflow-wrap: anywhere; }
+.collection-header .description, .collection-header .collection-description { margin: 14px 0 0; color: var(--muted); font-size: 18px; line-height: 1.55; }
+.collection-header .stats, .collection-header .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.collection-header .stats { color: #475467; font-size: 14px; font-weight: 600; }
+.collection-header .stats span + span { padding-left: 10px; border-left: 1px solid #d8dde5; }
+.collection-header .meta { margin-top: 14px; }
+.badge { padding: 6px 12px; border: 0; border-radius: 999px; background: #f0f3f8; color: #475467; font-size: 12px; font-weight: 650; }
+.badge-local { background: #e9f7ef; color: #18794e; }
+.actions, .collection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.collection-actions { flex: 0 0 auto; }
+.btn, .btn-primary, .btn-secondary { padding: 10px 16px; border: 1px solid #d8dde5; border-radius: 10px; background: #fff; color: #252936; font-weight: 650; }
+.btn-primary, .collection-actions button:not(.danger-button) { background: #20242d; color: #fff; border-color: #20242d; }
+.btn-secondary { background: #f4f5f7; }
+.collection-actions .danger-button { background: #fff; color: #b42318; border: 1px solid #f1c7c4; }
+.index { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 0; padding: 18px 4px 20px; border-top: 1px solid #e2e5eb; border-bottom: 1px solid #e2e5eb; }
+.index a { color: #5a6474; font-size: 14px; font-weight: 650; text-decoration: none; transition: color 120ms ease; }
+.index a:hover, .index a:focus-visible { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.collection-content { display: grid; gap: 20px; min-width: 0; }
+.group-section { display: grid; gap: 16px; padding: 4px 0 12px; border: 0; background: transparent; }
+.group-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.group-header h2 { margin: 0; color: #20242d; font-size: 24px; font-weight: 800; letter-spacing: -.4px; }
+.bookmarks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; }
+.bookmark { min-width: 0; padding: 12px; border: 1px solid #e0e4eb; border-radius: 12px; background: #fff; transition: background 140ms ease, border-color 140ms ease, transform 140ms ease; }
+.bookmark:hover { background: #f8fafc; border-color: #b9c8df; }
+.bookmark-top { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.favicon { display: flex; flex: 0 0 26px; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; }
+.bookmark-top > div:last-child { min-width: 0; }
+.bookmark-title { color: #252936; font-size: 16px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.bookmark-domain { margin-top: 3px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .topbar-inner { padding: 0 16px; gap: 16px; }
+  .search { width: 220px; }
+  .bookmarks-grid { grid-template-columns: 1fr; }
+  .collection-header h1 { font-size: 34px; letter-spacing: -.8px; }
+  .collection-header { padding: 22px; }
+}
+@media (max-width: 540px) {
+  .topbar-inner { gap: 10px; }
+  .logo { font-size: 20px; }
+  .search { width: auto; flex: 1; font-size: 13px; }
+  .bookmarks-grid { grid-template-columns: minmax(0, 1fr); }
+}
