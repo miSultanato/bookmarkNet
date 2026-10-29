@@ -36,7 +36,6 @@ try {
 }
 logTiming('http', phaseStart)
 
-console.log(`Lotura escuchando en http://localhost:${api.port} (cargando nodo…)`)
 
 if (config.openBrowserOnStart === true) {
   phaseStart = now()
@@ -56,6 +55,9 @@ try {
     ? 'sin colecciones'
     : String(node.state.collections.size) + (node.state.collections.size === 1 ? ' colección' : ' colecciones')
   console.log(`BookmarkNet v${version}: ${collectionSummary}`)
+  console.log(`Lotura está lista. Puerto interno: ${api.port}`)
+  console.log(`Abre http://localhost:${api.port} en tu navegador.`)
+  console.log(`Si usas Docker, usa el puerto mapeado con -p <puerto-host>:${api.port}.`)
 } catch (error) {
   console.error('No se pudo iniciar el nodo; la API seguirá en NOT_READY:', (error as Error).message)
 }
