@@ -127,6 +127,10 @@ export function render(container, state, collectionId, { onReload, onDeleted } =
     const countForGroup = (id) => collectionBookmarks.filter((bookmark) =>
       groupIdForBookmark(bookmark) === id
     ).length
+    activeGroups.sort((a, b) =>
+      countForGroup(groupIdOf(b)) - countForGroup(groupIdOf(a)) ||
+      String(a.name ?? '').localeCompare(String(b.name ?? ''))
+    )
 
     const header = element('header', 'collection-header')
     const titleArea = element('div', 'collection-title-area')
