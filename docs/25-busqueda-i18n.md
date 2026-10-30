@@ -1,5 +1,7 @@
 # Búsqueda multilingüe (i18n)
 
+> **Estado de implementación (MVP0):** la búsqueda local actual es literal (substring, case-insensitive). No realiza expansión multilingüe ni usa el diccionario de equivalencias. El campo `language` identifica el idioma de la colección, pero no modifica el comportamiento de la búsqueda. La búsqueda multilingüe es una funcionalidad de MVP3+.
+
 ## Objetivo
 
 Búsqueda multilingüe sin traducir el contenido guardado en las colecciones.
