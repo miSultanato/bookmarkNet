@@ -211,3 +211,4 @@ La pantalla **Configuración** muestra la configuración en modo de solo lectura
 | [23-migraciones](docs/23-migraciones.md) | Migraciones de schema |
 | [24-ui-vision](docs/24-ui-vision.md) | Visión y dirección de la UI |
 | [25-busqueda-i18n](docs/25-busqueda-i18n.md) | Búsqueda e internacionalización |
+| [27-trazabilidad](docs/27-trazabilidad.md) | Matriz de estado: qué está implementado y qué es diseño |
