@@ -83,6 +83,8 @@ agregando los `device_core` de todos sus dispositivos.
 Esto no requiere Autobase: cada `device_core` es un
 Hypercore single-writer independiente.
 
+**Estado de implementación (MVP0):** solo existe el `device_core`. El `collection_core` y la replicación entre dispositivos son MVP1+.
+
 ## Publicación y doble log
 
 Antes de publicar, una colección existe solo en los
@@ -104,6 +106,8 @@ colección se escribe en dos sitios:
 - En el `collection_core` (para los seguidores).
 
 Esta **escritura dual** es automática y transparente.
+
+**Estado de implementación (MVP0):** la escritura dual y la publicación P2P no están implementadas. En MVP0, el nodo solo escribe en el `device_core` local. La publicación, la replicación y la escritura dual son funcionalidades de MVP1+.
 
 **Despublicar:** el autor escribe un evento
 `collection_unpublished` en el `collection_core`, espera
