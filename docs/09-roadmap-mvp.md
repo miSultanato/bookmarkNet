@@ -24,7 +24,7 @@ Funcionalidades:
 
 Resultado: «Pocket local».
 
-**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local, binario standalone (`bare-build`), auto-incremento de puerto y `openBrowserOnStart` implementados y testeados.
+**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local (con rediseño y búsqueda), binario standalone (`bare-build`), AppImage, imagen Docker, auto-incremento de puerto y `openBrowserOnStart` implementados y testeados.
 
 ## MVP 1 — Modelo Hypercore
 
