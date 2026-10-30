@@ -305,6 +305,38 @@ test('device_delete_group leaves active bookmarks in their collection root', (t)
   t.is(applyDeviceEvent(deleted, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID })), deleted)
 })
 
+
+test('device_delete_group ignores non-existent groups', (t) => {
+  const empty = emptyDeviceState()
+  const missingGroupId = 'g_0123456789ac'
+
+  t.is(applyDeviceEvent(empty, deviceDeleteGroup({
+    authorId: AUTHOR_ID,
+    groupId: missingGroupId,
+    collectionId: COLLECTION_ID
+  })), empty)
+
+  const stateWithCollection = applyDeviceEvent(emptyDeviceState(), collection())
+  t.is(applyDeviceEvent(stateWithCollection, deviceDeleteGroup({
+    authorId: AUTHOR_ID,
+    groupId: missingGroupId,
+    collectionId: COLLECTION_ID
+  })), stateWithCollection)
+})
+
+test('device_delete_group handles empty groups without side effects on bookmarks', (t) => {
+  const state = applyDeviceEvent(initial(), group(T1))
+  const deletedEmptyGroup = applyDeviceEvent(state, eventOn(
+    deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID }),
+    T2
+  ))
+
+  t.is(deletedEmptyGroup.groups.get(GROUP_ID)?.deleted, true)
+  t.is(deletedEmptyGroup.groups.get(GROUP_ID)?.updatedAt, T2)
+  t.is(deletedEmptyGroup.bookmarks.size, 0)
+})
+
+
 test('foldDeviceEvents folds empty and complete logs in order', (t) => {
   t.alike(foldDeviceEvents([]), emptyDeviceState())
   const state = foldDeviceEvents([
