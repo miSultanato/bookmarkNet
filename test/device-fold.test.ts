@@ -156,6 +156,27 @@ test('device_add_bookmark ignores invalid parents and duplicates; null collectio
   t.is(applyDeviceEvent(deletedGroup, bookmark(BOOKMARK_ID, GROUP_ID)), deletedGroup)
 })
 
+test('regression: device_add_bookmark rejects bookmark when groupId belongs to a different collection', (t) => {
+  const COLLECTION_2 = '01ARZ3NDEKTSV4RRFFQ69G5FAZ'
+  let state = initial(true)
+  state = applyDeviceEvent(state, collection(T1, COLLECTION_2))
+
+  const addEvent = deviceAddBookmark({
+    authorId: AUTHOR_ID,
+    bookmarkId: BOOKMARK_2,
+    collectionId: COLLECTION_2,
+    resourceId: RESOURCE_ID,
+    canonicalUrl: 'https://example.com/other',
+    title: 'Cross Collection Group Bookmark',
+    tags: [],
+    groupId: GROUP_ID
+  })
+  const nextState = applyDeviceEvent(state, addEvent)
+
+  t.is(nextState.bookmarks.has(BOOKMARK_2), false)
+  t.is(nextState, state)
+})
+
 test('device_edit_bookmark handles nulls, empty values, missing and deleted bookmarks', (t) => {
   const empty = emptyDeviceState()
   t.is(applyDeviceEvent(empty, deviceEditBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, changes: { title: 'x' } })), empty)
@@ -276,6 +297,71 @@ test('device_reorder_bookmark materializes by createdAt and bookmarkId, clamps a
   t.is(applyDeviceEvent(emptyDeviceState(), deviceReorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: null, position: 0 })).bookmarks.size, 0)
 })
 
+test('regression: device_reorder_bookmark preserves manual ordering when an unpositioned bookmark is introduced', (t) => {
+  let state = applyDeviceEvent(initial(true), bookmark(BOOKMARK_ID, GROUP_ID, T1))
+  state = applyDeviceEvent(state, bookmark(BOOKMARK_2, GROUP_ID, T1))
+  state = applyDeviceEvent(state, bookmark(BOOKMARK_3, GROUP_ID, T2))
+
+  // Establecer orden manual: C (BOOKMARK_3) en 0, A (BOOKMARK_ID) en 1, B (BOOKMARK_2) en 2
+  state = applyDeviceEvent(state, deviceReorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_3, groupId: GROUP_ID, position: 0 }))
+  state = applyDeviceEvent(state, deviceReorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_ID, groupId: GROUP_ID, position: 1 }))
+
+  t.is(state.bookmarks.get(BOOKMARK_3)?.position, 0)
+  t.is(state.bookmarks.get(BOOKMARK_ID)?.position, 1)
+  t.is(state.bookmarks.get(BOOKMARK_2)?.position, 2)
+
+  // Introducir un nuevo bookmark con position: null
+  const BOOKMARK_4 = '01ARZ3NDEKTSV4RRFFQ69G5FAY'
+  state = applyDeviceEvent(state, bookmark(BOOKMARK_4, GROUP_ID, T3))
+  t.is(state.bookmarks.get(BOOKMARK_4)?.position, null)
+
+  // Ejecutar otro evento de reordenación (mover BOOKMARK_4 a la posición 3)
+  state = applyDeviceEvent(state, deviceReorderBookmark({ authorId: AUTHOR_ID, bookmarkId: BOOKMARK_4, groupId: GROUP_ID, position: 3 }))
+
+  // El orden manual previo (C, A, B) debería conservarse intacto, y D (BOOKMARK_4) ubicarse al final
+  t.is(state.bookmarks.get(BOOKMARK_3)?.position, 0)
+  t.is(state.bookmarks.get(BOOKMARK_ID)?.position, 1)
+  t.is(state.bookmarks.get(BOOKMARK_2)?.position, 2)
+  t.is(state.bookmarks.get(BOOKMARK_4)?.position, 3)
+})
+
+test('regression: device_reorder_bookmark with null groupId strictly isolates root reordering per collection/inbox scope with multiple items', (t) => {
+  const COLLECTION_2 = '01ARZ3NDEKTSV4RRFFQ69G5FAZ'
+  let state = applyDeviceEvent(emptyDeviceState(), collection(T1, COLLECTION_ID))
+  state = applyDeviceEvent(state, collection(T1, COLLECTION_2))
+
+  const BM_INBOX_1 = '01ARZ3NDEKTSV4RRFFQ69G5FA1'
+  const BM_INBOX_2 = '01ARZ3NDEKTSV4RRFFQ69G5FA2'
+  state = applyDeviceEvent(state, bookmark(BM_INBOX_1, null, T1, null))
+  state = applyDeviceEvent(state, bookmark(BM_INBOX_2, null, T2, null))
+
+  const BM_COL_A_1 = '01ARZ3NDEKTSV4RRFFQ69G5FA3'
+  const BM_COL_A_2 = '01ARZ3NDEKTSV4RRFFQ69G5FA4'
+  state = applyDeviceEvent(state, bookmark(BM_COL_A_1, null, T1, COLLECTION_ID))
+  state = applyDeviceEvent(state, bookmark(BM_COL_A_2, null, T2, COLLECTION_ID))
+
+  const BM_COL_B_1 = '01ARZ3NDEKTSV4RRFFQ69G5FA5'
+  const BM_COL_B_2 = '01ARZ3NDEKTSV4RRFFQ69G5FA6'
+  state = applyDeviceEvent(state, bookmark(BM_COL_B_1, null, T1, COLLECTION_2))
+  state = applyDeviceEvent(state, bookmark(BM_COL_B_2, null, T2, COLLECTION_2))
+
+  const reorderEvent = deviceReorderBookmark({
+    authorId: AUTHOR_ID,
+    bookmarkId: BM_COL_A_2,
+    groupId: null,
+    position: 0
+  })
+  const nextState = applyDeviceEvent(state, reorderEvent)
+
+  t.is(nextState.bookmarks.get(BM_COL_A_2)?.position, 0)
+  t.is(nextState.bookmarks.get(BM_COL_A_1)?.position, 1)
+
+  t.is(nextState.bookmarks.get(BM_INBOX_1)?.position, null)
+  t.is(nextState.bookmarks.get(BM_INBOX_2)?.position, null)
+  t.is(nextState.bookmarks.get(BM_COL_B_1)?.position, null)
+  t.is(nextState.bookmarks.get(BM_COL_B_2)?.position, null)
+})
+
 test('device_create_group requires active collection and ignores duplicates', (t) => {
   const empty = emptyDeviceState()
   t.is(applyDeviceEvent(empty, group()), empty)
@@ -305,6 +391,21 @@ test('device_delete_group leaves active bookmarks in their collection root', (t)
   t.is(applyDeviceEvent(deleted, deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID })), deleted)
 })
 
+test('regression: device_delete_group rejects deletion when collectionId does not match group collection', (t) => {
+  const COLLECTION_2 = '01ARZ3NDEKTSV4RRFFQ69G5FAZ'
+  let state = initial(true)
+  state = applyDeviceEvent(state, collection(T1, COLLECTION_2))
+
+  const deleteEvent = deviceDeleteGroup({
+    authorId: AUTHOR_ID,
+    groupId: GROUP_ID,
+    collectionId: COLLECTION_2
+  })
+  const nextState = applyDeviceEvent(state, deleteEvent)
+
+  t.is(nextState.groups.get(GROUP_ID)?.deleted, false)
+  t.is(nextState, state)
+})
 
 test('device_delete_group ignores non-existent groups', (t) => {
   const empty = emptyDeviceState()
@@ -335,7 +436,6 @@ test('device_delete_group handles empty groups without side effects on bookmarks
   t.is(deletedEmptyGroup.groups.get(GROUP_ID)?.updatedAt, T2)
   t.is(deletedEmptyGroup.bookmarks.size, 0)
 })
-
 
 test('foldDeviceEvents folds empty and complete logs in order', (t) => {
   t.alike(foldDeviceEvents([]), emptyDeviceState())

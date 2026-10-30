@@ -146,7 +146,10 @@ function applyAddBookmark(state: DeviceState, event: DeviceAddBookmarkEvent): De
   } else if (!collectionIsActive(state, p.collectionId)) {
     return state
   }
-  if (p.groupId !== null && !groupIsActive(state, p.groupId)) return state
+  if (p.groupId !== null) {
+    const group = state.groups.get(p.groupId)
+    if (!group || group.deleted || group.collectionId !== p.collectionId) return state
+  }
   const bookmark: DeviceBookmarkState = {
     bookmarkId: p.bookmarkId,
     collectionId: p.collectionId,
@@ -218,18 +221,26 @@ function applyReorderBookmark(state: DeviceState, event: DeviceReorderBookmarkEv
   const p = event.payload
   const target = state.bookmarks.get(p.bookmarkId)
   if (!target || target.deleted || target.groupId !== p.groupId) return state
-  const active = [...state.bookmarks.values()].filter((bookmark) => !bookmark.deleted && bookmark.groupId === p.groupId)
-  if (!active.some((bookmark) => bookmark.bookmarkId === p.bookmarkId)) return state
-  if (active.some((bookmark) => bookmark.position === null)) {
-    active.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.bookmarkId.localeCompare(b.bookmarkId))
-    active.forEach((bookmark, index) => { bookmark = { ...bookmark, position: index }; active[index] = bookmark })
-  } else {
-    active.sort((a, b) => (a.position as number) - (b.position as number) || a.bookmarkId.localeCompare(b.bookmarkId))
-  }
+  const allActive = [...state.bookmarks.values()].filter((bookmark) => {
+    if (bookmark.deleted || bookmark.groupId !== p.groupId) return false
+    if (p.groupId === null && bookmark.collectionId !== target.collectionId) return false
+    return true
+  })
+  if (!allActive.some((bookmark) => bookmark.bookmarkId === p.bookmarkId)) return state
+
+  const positioned = allActive.filter((b) => b.position !== null)
+  const unpositioned = allActive.filter((b) => b.position === null)
+
+  positioned.sort((a, b) => (a.position as number) - (b.position as number) || a.bookmarkId.localeCompare(b.bookmarkId))
+  unpositioned.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.bookmarkId.localeCompare(b.bookmarkId))
+
+  const active = [...positioned, ...unpositioned]
+
   const targetIndex = active.findIndex((bookmark) => bookmark.bookmarkId === p.bookmarkId)
   const [moving] = active.splice(targetIndex, 1)
   const destination = Math.min(p.position, active.length)
   active.splice(destination, 0, moving)
+
   const bookmarks = new Map(state.bookmarks)
   active.forEach((bookmark, position) => {
     const updated = bookmark.bookmarkId === p.bookmarkId
@@ -255,6 +266,7 @@ function applyCreateGroup(state: DeviceState, event: DeviceCreateGroupEvent): De
 function applyDeleteGroup(state: DeviceState, event: DeviceDeleteGroupEvent): DeviceState {
   const current = state.groups.get(event.payload.groupId)
   if (!current || current.deleted) return state
+  if (current.collectionId !== event.payload.collectionId) return state
   const groups = new Map(state.groups)
   groups.set(current.groupId, { ...current, deleted: true, updatedAt: event.created_at })
   let bookmarks = state.bookmarks
