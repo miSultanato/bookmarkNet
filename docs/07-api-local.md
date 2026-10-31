@@ -244,7 +244,7 @@ La tabla distingue el estado implementado en el código de la fase prevista para
 | DELETE | `/api/v1/groups/:id` | implementado | MVP0 | Elimina un grupo mediante `device_delete_group`. |
 | POST | `/api/v1/groups/:id/move` | implementado | MVP0 | Mueve al grupo un bookmark de la misma colección. |
 | GET | `/api/v1/collections` | implementado | MVP0 | Listado local de colecciones. |
-| POST | `/api/v1/collections` | implementado | MVP0 | Crea la colección local en `device_core`; no publica ni crea todavía un `collection_core`. |
+| POST | `/api/v1/collections` | implementado | MVP0 | Crea la colección local en `device_core` y, en MVP1, su `collection_core` en el mismo flujo (`device_create_collection`), con génesis `visibility: "unlisted"` (ADR-015). No publica; el anuncio del topic corresponde a MVP2. |
 | GET | `/api/v1/collections/:id` | implementado | MVP0 | Consulta una colección local. |
 | PATCH | `/api/v1/collections/:id` | implementado | MVP0 | Actualiza una colección mediante `device_update_collection`. |
 | DELETE | `/api/v1/collections/:id` | implementado | MVP0 | Elimina una colección mediante `device_delete_collection`. |
