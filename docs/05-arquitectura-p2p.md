@@ -50,7 +50,7 @@ collection_keypair = derive(
 - `user_master_key` se genera con `crypto.randomBytes(32)` en la primera ejecución.
 - `collection_keypair` se deriva de `user_master_key` mediante **HKDF-SHA256** con la info `"bookmarknet:collection:" + collection_uuid`.
 - El resultado (32 bytes) se usa como seed de Ed25519.
-- La `user_master_key` se almacena en `dataDir/identity.bmn` en claro, protegida por los permisos `0700` del directorio de datos. El cifrado con contraseña se aplica solo al exportar (`POST /identity/export`) y al importar (`POST /identity/import`). El `device_core` se abre con una clave derivada de la `user_master_key` (que está en `identity.bmn`), no con una clave que esté dentro del `device_core`; así se evita la dependencia circular.
+- La `user_master_key` se almacena en `dataDir/identity.bmn` en claro, protegida por los permisos `0700` del directorio de datos. El cifrado con contraseña se aplica solo al exportar (`POST /identity/export`) y al importar (`POST /identity/import`). En MVP0 y MVP1, el `device_core` se abre con la ruta local existente, sin derivar una clave de la identidad. ADR-014 (`docs/14-adrs.md`) decide que en MVP2 se derivará un par Ed25519 por dispositivo mediante HKDF-SHA256 con separación de dominio `bookmarknet:device:` + `node_id`, y que `device_core` se abrirá con ese `keyPair`. En MVP1 solo se persiste `node_id`.
 - La derivación es determinista: el mismo `user_master_key` + `collection_uuid` produce siempre el mismo `collection_keypair`.
 
 Donde `collection_uuid` es un ULID generado al crear la
@@ -70,8 +70,10 @@ Esto garantiza que:
 Además de los `collection_core` (uno por colección), cada
 dispositivo tiene su propio `device_core`:
 
-- Single-writer, firmado con una clave derivada de la
-  clave maestra del usuario + el `node_id`.
+- Single-writer. En MVP0 y MVP1 se abre con la ruta local existente,
+  sin derivar una clave. En MVP2 se abrirá con un `keyPair` derivado
+  mediante HKDF-SHA256 (`bookmarknet:device:` + `node_id`), según
+  ADR-014.
 - Contiene los borradores locales de las colecciones
   propias y los metadatos del usuario.
 - Todos los dispositivos del mismo usuario se descubren
@@ -83,7 +85,7 @@ agregando los `device_core` de todos sus dispositivos.
 Esto no requiere Autobase: cada `device_core` es un
 Hypercore single-writer independiente.
 
-**Estado de implementación (MVP0):** solo existe el `device_core`. El `collection_core` y la replicación entre dispositivos son MVP1+.
+**Estado de implementación (MVP0):** solo existe el `device_core`. La persistencia local de `collection_core` (un Hypercore por colección, sin publicación) es MVP1. La publicación, la replicación entre dispositivos y la escritura dual son MVP2.
 
 ## Publicación y doble log
 
@@ -107,7 +109,7 @@ colección se escribe en dos sitios:
 
 Esta **escritura dual** es automática y transparente.
 
-**Estado de implementación (MVP0):** la escritura dual y la publicación P2P no están implementadas. En MVP0, el nodo solo escribe en el `device_core` local. La publicación, la replicación y la escritura dual son funcionalidades de MVP1+.
+**Estado de implementación (MVP0):** la escritura dual y la publicación P2P no están implementadas. En MVP0, el nodo solo escribe en el `device_core` local. La publicación, la replicación y la escritura dual son funcionalidades de MVP2.
 
 **Despublicar:** el autor escribe un evento
 `collection_unpublished` en el `collection_core`, espera
@@ -130,7 +132,7 @@ crear un `collection_core` nuevo con un nuevo
 
 ## Nodos offline
 
-Los nodos offline son normales. Un portátil puede estar apagado el 80 % del tiempo. Requisito mínimo: al menos un nodo con la colección debe seguir online.
+Los nodos offline son normales. Un portátil puede estar apagado el 80 % del tiempo. Requisito mínimo: al menos un nodo con la colección debe seguir online. Estado de implementación: la replicación entre dispositivos y los estados de sincronización son MVP2.
 
 Si todos desaparecen, la colección queda temporalmente inaccesible. Cuando uno vuelve y anuncia el topic, reaparece.
 
