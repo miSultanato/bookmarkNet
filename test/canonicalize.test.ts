@@ -166,3 +166,48 @@ test('canonicalizeUrlOrNull matches canonicalizeUrl for valid inputs', (t) => {
     t.is(canonicalizeUrlOrNull(input), canonicalizeUrl(input), input)
   }
 })
+
+// --- Nuevos tests basados en el análisis de Cherry para segmentos "." y ".." ---
+
+test('1. Normalización de segmentos "."', (t) => {
+  t.is(canonicalizeUrl('https://example.com/a/./b'), 'https://example.com/a/b')
+  t.is(canonicalizeUrl('https://example.com/./a/b'), 'https://example.com/a/b')
+  t.is(canonicalizeUrl('https://example.com/a/b/.'), 'https://example.com/a/b/')
+})
+
+test('2. Normalización de segmentos ".."', (t) => {
+  t.is(canonicalizeUrl('https://example.com/a/b/../c'), 'https://example.com/a/c')
+  t.is(canonicalizeUrl('https://example.com/a/b/../../c'), 'https://example.com/c')
+  t.is(canonicalizeUrl('https://example.com/a/../'), 'https://example.com/')
+})
+
+test('3. Igualdad de canonical_url entre rutas equivalentes con "." y ".."', (t) => {
+  const url1 = canonicalizeUrl('https://example.com/a/b/../c')
+  const url2 = canonicalizeUrl('https://example.com/a/./c')
+  t.is(url1, url2)
+})
+
+test('4. Igualdad de resource_id entre rutas equivalentes con "." y ".."', (t) => {
+  const urlWithDotDot = canonicalizeUrl('https://example.com/a/b/../c')
+  const urlWithDot = canonicalizeUrl('https://example.com/a/./c')
+  const canonicalUrl = 'https://example.com/a/c'
+
+  const expectedResourceId = resourceIdFromCanonicalUrl(canonicalUrl)
+
+  t.is(urlWithDotDot, canonicalUrl)
+  t.is(urlWithDot, canonicalUrl)
+  t.is(resourceIdFromCanonicalUrl(urlWithDotDot), expectedResourceId)
+  t.is(resourceIdFromCanonicalUrl(urlWithDot), expectedResourceId)
+})
+
+test('5. Idempotencia con segmentos dot-path', (t) => {
+  const inputs = [
+    'https://example.com/a/./b/../c',
+    'https://example.com/a/b/../../c',
+    'https://example.com/foo/bar/./baz/../'
+  ]
+  for (const input of inputs) {
+    const once = canonicalizeUrl(input)
+    t.is(canonicalizeUrl(once), once, input)
+  }
+})
