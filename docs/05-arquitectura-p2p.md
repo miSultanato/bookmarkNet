@@ -57,7 +57,7 @@ Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
 editable; el UUID no.
 
-> **Nota sobre identificadores:** el `collection_uuid` es un ULID y constituye el identificador local de la colección en el `device_core` (ver `docs/03-identidad.md`). Ese mismo ULID es la entrada para derivar la `collection_keypair`, pero **no** es el `collection_id` público del `collection_core`. Al publicar, `collection_id` pasa a ser la clave pública Ed25519 derivada, codificada como 64 caracteres hexadecimales en minúsculas y sin prefijo (`collectionIdFromPublicKey(publicKey)`). Por tanto, el ULID local se conserva como `collection_uuid` y nombre/ruta local; el identificador público del génesis y la clave pública `core.key` son el hexadecimal derivado. No se cambia el ULID almacenado en `device_core` ni se migra su tipo: son dos identificadores distintos con funciones distintas.
+> **Nota sobre identificadores:** el `collection_uuid` es un ULID y constituye el identificador local de la colección en el `device_core` (ver `docs/03-identidad.md`). Ese mismo ULID es la entrada para derivar la `collection_keypair`, pero **no** es el `collection_id` público del `collection_core`. Al crear el `collection_core` en MVP1, `collection_id` queda establecido como la clave pública Ed25519 derivada, codificada como 64 caracteres hexadecimales en minúsculas y sin prefijo (`collectionIdFromPublicKey(publicKey)`), y se incluye en el `collection_genesis`. La publicación posterior no cambia ese identificador: anuncia el topic derivado de la misma clave pública. Por tanto, el ULID local se conserva como `collection_uuid` y nombre/ruta local; el identificador público del génesis y la clave pública `core.key` son el hexadecimal derivado. No se cambia el ULID almacenado en `device_core` ni se migra su tipo: son dos identificadores distintos con funciones distintas.
 
 Esto garantiza que:
 
@@ -89,19 +89,20 @@ Hypercore single-writer independiente.
 
 ## Publicación y doble log
 
-Antes de publicar, una colección existe solo en los
-`device_core` del usuario. Al publicar:
+Desde MVP1, al crear una colección en el `device_core` mediante el
+flujo `device_create_collection`, se crea también su `collection_core`
+(single-writer, con `collection_keypair` derivado mediante el
+`collection_uuid` estable de la colección). Su primer bloque es el
+`collection_genesis`, con `visibility: "unlisted"` mientras la colección
+no esté publicada. La creación y persistencia local del core no anuncian
+el topic ni activan la replicación.
 
-1. Se crea un `collection_core` nuevo (single-writer,
-   con `collection_keypair` derivado mediante el
-   `collection_uuid` estable de la colección).
-2. Se crea y escribe en él el `collection_genesis`, seguido
-   de los eventos necesarios para reconstruir el estado actual.
-3. El `collection_core` se anuncia en un topic derivado
+Al publicar (MVP2):
+
+1. Se anuncia el topic del `collection_core` ya existente, derivado
    de su clave pública.
-
-A partir de ese momento, cada modificación de la
-colección se escribe en dos sitios:
+2. Se activa la escritura dual: cada modificación de la colección se
+   escribe en dos sitios:
 
 - En el `device_core` del dispositivo que la hace (para
   la vista local).
@@ -117,9 +118,11 @@ un tiempo razonable a que los peers lo repliquen, y deja
 de anunciar el topic. Los seguidores conservan lo
 replicado y reciben el aviso.
 
-**No existe "republicar".** Publicar de nuevo significa
-crear un `collection_core` nuevo con un nuevo
-`collection_id`.
+**Despublicar y volver a publicar:** la colección conserva el mismo
+`collection_core` y el mismo `collection_id`. El `collection_genesis`
+es inmutable y no se reescribe. Al volver a publicar (MVP2), se anuncia de
+nuevo el topic de ese mismo core y se reanudan la escritura dual y la
+replicación.
 
 **Escritura dual y fallos:**
 
