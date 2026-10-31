@@ -89,13 +89,27 @@ test('startNode returns null identity when none is stored', async (t) => {
   }
 })
 
-test('startNode close resolves without throwing', async (t) => {
-  const dataDir = DATA_DIR + '-close'
+test('startNode devuelve un Node con swarm', async (t) => {
+  const dataDir = DATA_DIR + '-swarm'
   await fs.rm(dataDir, { recursive: true, force: true })
-  const node = await startNode({ ...defaultConfig(), dataDir })
+
   try {
+    const node = await startNode({ ...defaultConfig(), dataDir })
+    t.ok(node.swarm !== null, 'node tiene un swarm')
     await node.close()
-    t.pass('close resolves without throwing')
+  } finally {
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('startNode close cierra el swarm sin lanzar', async (t) => {
+  const dataDir = DATA_DIR + '-close-swarm'
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const node = await startNode({ ...defaultConfig(), dataDir })
+    await node.close()
+    t.pass('close resuelve sin lanzar')
   } finally {
     await fs.rm(dataDir, { recursive: true, force: true })
   }
