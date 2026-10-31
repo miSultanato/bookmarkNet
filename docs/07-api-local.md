@@ -92,11 +92,13 @@ GET    /collections/:id/status      # {peers, last_sync, state}
 
 El campo \`language\` indica el idioma principal de la colección. Se usa para la búsqueda multilingüe (ver [docs/25-busqueda-i18n.md](25-busqueda-i18n.md)) y para mostrar un badge de idioma en la UI.
 
-**Nota:** \`POST /collections\` crea un borrador local en
-el \`device_core\` mediante un evento \`device_create_collection\`. NO genera
-\`collection_genesis\`. El \`collection_genesis\` se crea al publicar la colección
-(creación del \`collection_core\`, MVP1+). Ver
-[docs/02-modelo-datos.md](02-modelo-datos.md).
+**Nota:** \`POST /collections\` crea la colección local en el \`device_core\`
+mediante un evento \`device_create_collection\`. En MVP1, ese mismo flujo crea
+también su \`collection_core\` e inicializa el log con \`collection_genesis\` y
+\`visibility: "unlisted"\` mientras la colección no esté publicada. Publicar no
+crea el core: en MVP2 se anuncia su topic y se habilitan la escritura dual y la
+replicación. Ver ADR-015 en [docs/14-adrs.md](14-adrs.md) y
+[docs/05-arquitectura-p2p.md](05-arquitectura-p2p.md).
 
 ## Descubrimiento
 
@@ -186,9 +188,11 @@ En MVP0, las operaciones que modifican el estado local generan eventos
 | \`POST /groups\` | \`device_create_group\` |
 | \`DELETE /groups/:id\` | \`device_delete_group\` |
 
-La publicación y duplicación de colecciones mediante \`collection_genesis\`
-pertenecen al modelo \`collection_core\` (MVP1+); no forman parte del flujo
-de escritura local implementado en MVP0.
+La creación del \`collection_core\` y su \`collection_genesis\` pertenece a MVP1:
+se produce al crear la colección en \`device_core\`, dentro del flujo
+\`device_create_collection\`, con \`visibility: "unlisted"\` (ADR-015). La
+publicación, la duplicación y la escritura dual son capacidades de MVP2; no
+forman parte del flujo de escritura local implementado en MVP0.
 
 Las operaciones de lectura (GET) no escriben eventos.
 
@@ -217,7 +221,7 @@ el estado en memoria mediante \`applyDeviceEvent\`. Si falla la persistencia,
 el estado en memoria no se actualiza.
 
 **Importante:** \`src/events.ts\` y \`src/fold.ts\` implementan el modelo del
-\`collection_core\` (MVP1+). No se usan en MVP0. No mezcles ambos modelos.
+\`collection_core\` (MVP1). No se usan en MVP0. No mezcles ambos modelos.
 
 ## Estado de implementación por endpoint
 
