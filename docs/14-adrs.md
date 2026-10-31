@@ -694,6 +694,69 @@ Es necesario separar dos ámbitos: la identidad portable, que pertenece al usuar
 
 - **Guardar la lista de dispositivos en `dataDir/devices.json`.** Descartada. En MVP2 habría que migrar ese archivo a `device_core` para poder replicar la lista entre dispositivos. Mantener desde MVP1 el estado en `device_core` evita introducir esa deuda técnica.
 
+## ADR-019: Backup y pérdida de datos en MVP1
+
+**Fecha:** 2026-10-31  
+**Estado:** Aceptado
+
+### Contexto
+
+En MVP0 no existe un backup completo del dispositivo. El archivo `identity.bmn` contiene únicamente la identidad portable del usuario (`user_master_key`, `public_key` y perfil): no contiene bookmarks ni colecciones. Por tanto, si el usuario pierde el dispositivo, pierde los bookmarks y las colecciones no publicadas que solo existían localmente.
+
+MVP1 introduce la persistencia de un `collection_core` por colección (ADR-015), mantiene el `device_core` y persiste un `node_id` propio del dispositivo (ADR-017). Esto aumenta los datos que deben preservarse y permite distinguir la identidad portable del estado local que debe recuperarse. Hay que decidir qué incluye cada backup, cómo se genera, cómo se restaura y qué ocurre ante la pérdida del dispositivo.
+
+La recuperación de identidad mediante QR o frase larga es un mecanismo independiente del backup: permite recuperar la identidad portable en un dispositivo nuevo, pero no sustituye la copia de los datos locales.
+
+### Decisión
+
+1. **Backup de identidad.** Incluye `identity.bmn` —`user_master_key`, `public_key` y perfil— y la lista de dispositivos conocidos. Esta lista se obtiene del `device_core` mediante el evento `device_add_device`; si todavía no existe o está vacía, el backup incluye una lista vacía. No incluye `node_id`, `device_core` ni configuración del dispositivo. El archivo de identidad se cifra con contraseña.
+
+2. **Backup de colecciones.** Incluye todos los `collection_core` locales, estén publicados o no, y el `device_core`. No incluye `identity.bmn`, que pertenece al backup de identidad. Ambos conjuntos se empaquetan en un único archivo; el formato concreto (por ejemplo, `tar.gz`) se decidirá durante la implementación.
+
+3. **Generación de backups.** Se admiten dos modalidades:
+   - **Manual:** el usuario solicita el backup mediante `POST /backup`.
+   - **Automática:** se genera periódicamente en `dataDir/backups/`. El intervalo se fijará en la implementación; el valor predeterminado será de 24 horas.
+
+4. **Restauración.** `POST /restore` ofrece dos modos:
+   - **«Restaurar todo»:** restaura la identidad, las colecciones y la lista de dispositivos. Conforme a ADR-017, genera un `node_id` nuevo; nunca restaura el identificador del dispositivo de origen.
+   - **«Restaurar solo colecciones»:** restaura los `collection_core` y el `device_core` sin modificar `identity.bmn` y sin regenerar `node_id`.
+
+5. **Recuperación de identidad por QR o frase larga.** Al crear la identidad se genera un mecanismo de recuperación que se muestra una sola vez al usuario. No forma parte del backup. En MVP1 permite recuperar únicamente la identidad portable en un dispositivo nuevo, sin necesitar un backup completo. El mecanismo concreto —por ejemplo, BIP39 con una frase de 12 o 24 palabras, o un QR con la clave cifrada— se decidirá durante la implementación. Este mecanismo es distinto del QR temporal del flujo de añadir dispositivo.
+
+6. **Política de pérdida de datos.**
+   - Si el usuario pierde su único dispositivo y no había publicado sus colecciones, pierde los bookmarks y las colecciones locales; solo puede recuperar la identidad mediante el QR o la frase de recuperación.
+   - Si había publicado colecciones, podrá recuperarlas desde peers cuando exista replicación en MVP2, o desde un backup si dispone de él.
+   - La política y sus límites deben explicarse en el README y en la UI.
+
+### Consecuencias
+
+- **Ventajas:**
+  - El usuario puede recuperar su identidad y sus colecciones si pierde el dispositivo, siempre que disponga del mecanismo de recuperación y/o de los backups correspondientes.
+  - El backup automático reduce el riesgo de pérdida de los cambios recientes.
+  - Separar el backup de identidad del de colecciones permite restaurar solo los datos necesarios y mantener independiente la identidad portable.
+
+- **Costes:**
+  - Hay que implementar `POST /backup` y `POST /restore`, incluidos los dos modos de restauración.
+  - Hay que gestionar la tarea periódica, el espacio en disco y la rotación de backups automáticos.
+  - Hay que documentar la política de pérdida de datos en el README y en la UI.
+
+- **Riesgos y mitigaciones:**
+  - Sin backup, la pérdida del dispositivo implica perder los bookmarks y colecciones no publicados. La mitigación es ofrecer backup manual y automático y explicar sus límites.
+  - Un backup corrupto puede impedir la restauración. Se mitigará mediante verificación de integridad antes de aceptar el backup y antes de completar la restauración.
+  - Si el backup se genera o almacena en un dispositivo comprometido, un atacante podría acceder a los datos. Los backups exportados deberán cifrarse con contraseña; se recomienda además mantener rotación de copias para reducir el impacto de corrupción o pérdida de una versión.
+
+**Implementación: pendiente (MVP1).** El evento `device_add_device` (necesario para el backup de identidad) se añadirá al contrato de `device_core` en una tarea posterior de esta misma fase.
+
+### Alternativas consideradas
+
+- **No hacer backup en MVP1.** Descartada: el usuario perdería los datos locales al perder el dispositivo, lo que perjudicaría la confianza en el producto.
+- **Hacer backup solo de identidad.** Descartada: permitiría recuperar la identidad, pero no las colecciones ni los bookmarks no publicados.
+- **Hacer backup solo de colecciones.** Descartada: no recuperaría la identidad; el usuario tendría que recuperarla por QR o frase, que es un mecanismo independiente.
+- **Usar backup en la nube.** Descartada: contradice el principio local-first y la ausencia de servidores centrales.
+- **Incluir `node_id` en el backup.** Descartada: contradice ADR-017; la restauración de un backup completo regenera el identificador.
+- **Conservar `node_id` al restaurar en MVP1.** Descartada: permitirlo podría clonar un dispositivo. ADR-017 reserva la recuperación del mismo identificador para MVP2, cuando pueda detectarse duplicación.
+- **Incluir el QR o la frase de recuperación en el backup.** Descartada: son un mecanismo independiente para recuperar la identidad, se generan al crearla y se muestran una sola vez; no son parte de una copia de seguridad.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
