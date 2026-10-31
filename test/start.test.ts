@@ -95,7 +95,7 @@ test('startNode devuelve un Node con swarm', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    const node = await startNode({ ...defaultConfig(), dataDir }, { ...defaultConfig(), dataDir })
+    const node = await startNode({ ...defaultConfig(), dataDir })
     t.ok(node.swarm !== null, 'node tiene un swarm')
     await node.close()
   } finally {
@@ -108,7 +108,7 @@ test('startNode close cierra el swarm sin lanzar', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    const node = await startNode({ ...defaultConfig(), dataDir }, { ...defaultConfig(), dataDir })
+    const node = await startNode({ ...defaultConfig(), dataDir })
     await node.close()
     t.pass('close resuelve sin lanzar')
   } finally {
