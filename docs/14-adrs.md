@@ -469,6 +469,60 @@ La decisión de producto ya está tomada: se adopta la opción C del diagnóstic
 - **Opción C — Derivación independiente por dispositivo, implementada en MVP2.**  
   **Aceptada.** Es la opción que mantiene una clave single-writer distinta por dispositivo, reutiliza el patrón HKDF-SHA256 de `collection_core` y permite preparar `node_id` en MVP1 sin cambiar todavía el arranque ni el almacenamiento actual de `device_core`.
 
+## ADR-015: Creación de `collection_core` en MVP1
+
+**Fecha:** 2026-10-31  
+**Estado:** Aceptado
+
+### Contexto
+
+MVP1 introduce la persistencia local de `collection_core`: cada colección tendrá su propio Hypercore, almacenado localmente y sin publicación ni replicación en red. En MVP0, el `collection_core` existe únicamente como modelo de dominio —tipos, constructores de eventos y fold en `src/events.ts` y `src/fold.ts`—, pero todavía no se abre ni se persiste.
+
+El contrato actual de MVP0 guarda las colecciones en `device_core`. Al incorporar un log independiente por colección hay que fijar cuatro aspectos relacionados: cuándo se crea ese log, qué evento lo inicializa, qué ocurre con las colecciones creadas bajo el modelo de MVP0 y cómo se relacionan el identificador local de la colección y su identificador público.
+
+La decisión debe mantener separadas la persistencia local y la publicación. Crear un `collection_core` no implica anunciarlo, compartirlo ni replicarlo: esas capacidades pertenecen a MVP2.
+
+### Decisión
+
+1. **Creación junto con la colección local.** El `collection_core` se crea cuando se crea la colección en `device_core`, como parte del flujo asociado al evento `device_create_collection`. No se espera a que el usuario publique la colección. Desde MVP1, cada colección nueva dispone de su propio Hypercore local.
+
+2. **Génesis para colecciones no publicadas.** Al crear una colección que todavía no está publicada, el primer evento de su `collection_core` es un `collection_genesis` con `visibility: "unlisted"`. No se añade un campo `status: "draft"`: `visibility` ya expresa que la colección no se ofrece públicamente. La diferencia entre una colección no publicada y una publicada es de red —si se anuncia o no el topic—, no de estructura del log ni de existencia del core. La creación y persistencia local del core no anuncian el topic.
+
+3. **Sin migración de colecciones de MVP0.** No se migran ni se convierten automáticamente las colecciones existentes de MVP0. Conforme a la autorización temporal de ADR-014, mientras no haya usuarios reales se permite resetear los datos locales al pasar de MVP0 a MVP1 y empezar de cero. Las colecciones creadas desde MVP1 se crean ya con su `collection_core`. Si se conservan datos antiguos, esas colecciones permanecen en `device_core` y no reciben un `collection_core` asociado por migración.
+
+4. **Identificadores y mapeo local-público.**
+   - `collection_uuid` es el ULID local y estable de la colección. En el `device_core` se conserva como identificador local.
+   - El génesis del `collection_core` incluye ese mismo valor en el campo `local_collection_id`, de tipo ULID y con carácter informativo.
+   - El `collection_id` público del génesis es la clave pública Ed25519 de la colección, codificada en hexadecimal y sin prefijo, de acuerdo con el contrato de identificadores vigente.
+   - El `device_core` mantiene el mapeo `local_collection_id` → `collection_id`. Cuando necesita abrir el `collection_core`, resuelve primero el identificador público a partir del ULID local. `local_collection_id` no sustituye al `collection_id` público ni cambia su definición.
+
+5. **Génesis obligatorio.** Un `collection_core` no puede existir sin génesis. El primer evento del log es siempre `collection_genesis` (bloque 0); un core vacío no constituye una colección válida. El génesis conserva el contrato de campos y firma definido en los documentos de schema e identificadores; `local_collection_id` añade la referencia local informativa y no redefine la identidad pública de la colección.
+
+**Implementación: pendiente (MVP1).**
+
+### Consecuencias
+
+- **Ventajas:**
+  - Hay un único modelo estructural: todo `collection_core` válido tiene un génesis desde el momento de su creación.
+  - La colección queda preparada para publicarse en MVP2 sin cambiar la estructura del log ni crear entonces el core desde cero; la publicación podrá anunciar el topic y activar las capacidades de red previstas para esa fase.
+  - El `device_core` puede resolver sin ambigüedad qué `collection_core` corresponde a cada colección local mediante el mapeo entre `local_collection_id` y `collection_id`.
+
+- **Costes:**
+  - El génesis de una colección todavía no publicada ocupa espacio local. Si el usuario la publica más adelante, ese mismo log será el que se anuncie y replique; no se anuncia antes de la publicación.
+  - `local_collection_id` duplica el `collection_uuid` que ya guarda el `device_core`. La redundancia es deliberada: permite relacionar el identificador local con el identificador público contenido en el génesis.
+
+- **Riesgos y consideraciones:**
+  - El génesis es el primer bloque de un log append-only y no se reescribe. Si el usuario publica una colección y después la despublica, el génesis ya está escrito y conserva el valor de `visibility` que tuviera al crearse (por ejemplo, `"unlisted"` para el borrador o `"public"` si ese fue el valor fijado para el génesis en el flujo de publicación). La despublicación posterior se representa mediante `collection_unpublished` y el cese del anuncio del topic; no elimina ni modifica el génesis. Véase «Despublicar» en `docs/05-arquitectura-p2p.md`.
+  - La política de no migración deja deliberadamente sin `collection_core` a las colecciones antiguas que se conserven. La aplicación deberá distinguirlas de las colecciones nuevas creadas bajo el contrato de MVP1; no debe inferir que la ausencia del core es un estado válido para una colección nueva.
+
+### Alternativas consideradas
+
+- **Crear el `collection_core` al publicar.** Descartada. Obliga a construir y poblar el log en el momento de publicar, y deja a la colección sin `collection_core` durante todo el tiempo anterior. No satisface el objetivo de MVP1 de persistir localmente un Hypercore por colección desde su creación.
+
+- **Añadir `status: "draft"` al génesis.** Descartada. `visibility: "unlisted"` ya representa que una colección no se ofrece públicamente. Un campo adicional duplicaría esa distinción, ampliaría el schema y obligaría a mantener compatibilidad o migraciones sin aportar una diferencia estructural necesaria.
+
+- **Migrar las colecciones existentes de MVP0.** Descartada. ADR-014 permite el reset de los datos locales durante esta transición mientras no haya usuarios reales. Una migración eager de todas las colecciones antiguas añadiría trabajo y complejidad que no se justifican en esta fase.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
