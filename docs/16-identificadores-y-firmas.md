@@ -46,6 +46,12 @@ Colección (collection_keypair)
 Hypercore de la colección
 ```
 
+La clave de `device_core` no se deriva todavía en MVP0 ni en MVP1.
+ADR-014 (docs/14-adrs.md) decide que en MVP2 se derivará un par
+Ed25519 por dispositivo mediante HKDF-SHA256 con separación de
+dominio `bookmarknet:device:` + `node_id`. En MVP1 solo se persiste
+`node_id`; la apertura actual de `device_core` no cambia.
+
 ### Por qué dos niveles
 
 Hypercore nativo es **single-writer**: cada core está firmado por
@@ -119,6 +125,11 @@ sha256(
   (migrated_from ?? "")
 )
 ```
+
+La concatenación usa el separador explícito `\x00` (null byte)
+entre cada campo, en el orden indicado. No se usa `||` literal. Ver
+`docs/15-schema-eventos.md`, sección «Separador de concatenación en
+la firma».
 
 **Importante:** la firma incluye `author_id` y
 `author_public_key`. Esto vincula criptográficamente la

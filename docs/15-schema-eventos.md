@@ -556,7 +556,8 @@ Los bookmarks eliminados mantienen su `position` (o `null`) pero no cuentan para
 | Validaciones de campos | Implementadas |
 | Firma del génesis (`signature_by_owner`) | Implementada |
 | Fold de eventos (`src/fold.ts`) | Implementado |
-| Persistencia de `collection_core` | Pendiente (MVP1+) |
-| Replicación P2P | Pendiente (MVP1+) |
+| Persistencia de `collection_core` | Pendiente (MVP1) |
+| Persistencia de `node_id` | Pendiente (MVP1; ver ADR-014) |
+| Replicación P2P | Pendiente (MVP2) |
 
 **Nota:** en MVP0, los eventos que se usan realmente son los de `device_core` (ver `docs/03`). El modelo de `collection_core` está implementado a nivel de tipos, constructores y fold, pero no hay persistencia ni red.
