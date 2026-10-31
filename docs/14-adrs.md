@@ -640,6 +640,60 @@ El `node_id` será una entrada de la derivación de la clave del dispositivo pre
 
 - **Conservar `node_id` al restaurar un backup en MVP1.** Descartada. Permitirlo podría clonar un dispositivo y producir dos instalaciones con la misma identidad de dispositivo. Se evaluará en MVP2, cuando la red permita detectar duplicados y se pueda ofrecer una recuperación explícita del mismo dispositivo.
 
+## ADR-018: Separación entre identidad portable y estado del dispositivo
+
+**Fecha:** 2026-10-31  
+**Estado:** Aceptado
+
+### Contexto
+
+ADR-014 decidió que cada dispositivo tendrá su propio par de claves Ed25519, derivado de `user_master_key` y `node_id` mediante HKDF-SHA256 con separación de dominio `bookmarknet:device:` + `node_id`. Esa derivación se implementará en MVP2. ADR-017 concretó que `node_id` se persiste desde MVP1 en un archivo local independiente y definió su ciclo de vida.
+
+La identidad portable del usuario se representa mediante `identity.bmn`: contiene la clave maestra del usuario (`user_master_key`), su clave pública (`public_key`) y su perfil (`displayName`, `bio`, `avatar`). Hasta ahora no estaba suficientemente delimitado qué datos formaban parte de ese archivo, qué debía exportarse e importarse mediante la API ni dónde debía residir la lista de dispositivos conocidos.
+
+Es necesario separar dos ámbitos: la identidad portable, que pertenece al usuario y puede trasladarse entre instalaciones, y el estado del dispositivo, que pertenece a una instalación concreta. El identificador `node_id`, el `device_core` y la configuración local no deben viajar al importar la identidad en otro dispositivo.
+
+### Decisión
+
+1. **Contenido de `identity.bmn`.** El archivo contiene exclusivamente la identidad portable del usuario: `user_master_key` (32 bytes), `public_key` y el perfil (`displayName`, `bio`, `avatar`). No contiene `node_id`, datos de `device_core` ni configuración del dispositivo.
+
+2. **Exportación de identidad.** `POST /api/v1/identity/export` exporta únicamente `identity.bmn`,  cifrado con la contraseña proporcionada. No incluye `node_id`, `device_core` ni configuración. La exportación es de identidad, no un backup completo del dispositivo.
+
+3. **Importación de identidad.** `POST /api/v1/identity/import` importa únicamente `identity.bmn`.  El dispositivo importador genera su propio `node_id` conforme a ADR-017; nunca se importa el `node_id` del dispositivo de origen. Tampoco se importan su `device_core` ni su configuración.
+
+4. **Ubicación de la lista de dispositivos.** La lista de dispositivos conocidos pertenece al estado local de `device_core`,  no a `identity.bmn`.  Se representará mediante un nuevo evento `device_add_device`, que se añadirá al contrato de eventos de `device_core` en el paso 8 de esta fase (corrección de `docs/03-identidad.md` y ADR-013). En MVP1 la lista es local: cada dispositivo conoce los dispositivos que se le han añadido, pero la lista no se replica. La replicación corresponde a MVP2.
+
+5. **Estado inicial de un dispositivo importador.** Un dispositivo nuevo que importa una identidad existente obtiene su propio `node_id` y comienza con la lista de dispositivos vacía. Una eventual opción para importar manualmente esa lista queda fuera de MVP1 y solo se considerará si se define expresamente en el futuro.
+
+**Implementación: pendiente (MVP1). El evento `device_add_device` se añadirá al contrato de `device_core` en una tarea posterior de esta misma fase.**
+
+### Consecuencias
+
+- **Ventajas:**
+  - Separa de forma explícita la identidad portable del usuario y el estado propio de cada dispositivo.
+  - Importar una identidad en un dispositivo nuevo no copia el `node_id`, el `device_core` ni la configuración de la instalación de origen.
+  - La lista de dispositivos queda en el log local de `device_core`; en MVP2 podrá replicarse entre dispositivos sin cambiar el modelo de propiedad de esos datos.
+
+- **Costes:**
+  - Hay que añadir el evento `device_add_device` al contrato de `device_core`, junto con su payload y comportamiento de fold. Se hará en el paso 8 de esta fase, no en este ADR.
+  - En MVP1 la lista de dispositivos es local y no se replica. Esta limitación puede confundir al usuario y deberá explicarse en la UI y en el README.
+
+- **Riesgos y consideraciones:**
+  - Al importar una identidad en un dispositivo nuevo, su lista de dispositivos empieza vacía; no refleja automáticamente los dispositivos conocidos por las otras instalaciones. En MVP2, la replicación permitirá unificar esa información.
+  - En MVP1 no se puede recuperar el mismo dispositivo importando una identidad: la importación genera un `node_id` nuevo y clonar el identificador no está permitido. En MVP2 se ofrecerá la opción de «conservar node_id» con detección de duplicados, conforme a ADR-017.
+
+### Alternativas consideradas
+
+- **Incluir `node_id` en `identity.bmn`.** Descartada. Importar la identidad copiaría el identificador del dispositivo de origen, contradiciendo la separación entre identidad portable y dispositivo establecida por ADR-014 y concretada por ADR-017.
+
+- **Incluir la lista de dispositivos en `identity.bmn`.** Descartada. La lista es estado del dispositivo, no identidad portable. Además, al importar el archivo en una instalación nueva podría quedar desactualizada y no representaría necesariamente el estado local de esa instalación.
+
+- **Incluir la configuración en `identity.bmn`.** Descartada. La configuración (por ejemplo, opciones de red, puerto o preferencias locales) pertenece al dispositivo y no debe trasladarse automáticamente junto con la identidad del usuario.
+
+- **Exportar también `node_id` y `device_core` mediante `POST /api/v1/identity/export`.** Descartada. Ese endpoint exporta identidad, no datos del dispositivo. El alcance y formato de un backup completo del dispositivo se tratarán por separado en ADR-019.
+
+- **Guardar la lista de dispositivos en `dataDir/devices.json`.** Descartada. En MVP2 habría que migrar ese archivo a `device_core` para poder replicar la lista entre dispositivos. Mantener desde MVP1 el estado en `device_core` evita introducir esa deuda técnica.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
