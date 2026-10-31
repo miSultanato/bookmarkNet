@@ -4,6 +4,7 @@ import test from 'brittle'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface Response {
   statusCode: number
@@ -46,7 +47,7 @@ test('local UI static assets are served safely alongside the API', async (t) => 
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
 
     const index = await request(api.port, '/')
