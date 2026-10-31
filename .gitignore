@@ -33,3 +33,4 @@ src/ui/assets.generated.js
 
 # Binario standalone generado por bare-build
 build/
+.aider*
