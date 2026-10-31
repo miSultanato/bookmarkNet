@@ -5,6 +5,7 @@ import { utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface HttpResult {
   status: number
@@ -56,7 +57,7 @@ test('HTML import requires an identity and validates html', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
   try {
     const config = { ...defaultConfig(), dataDir, port: 0, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
 
     const noIdentity = await request(api.port, IMPORT_PATH, { html: '<DL></DL>' })
@@ -87,7 +88,7 @@ test('HTML import rejects request bodies larger than 5 MB', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
   try {
     const config = { ...defaultConfig(), dataDir, port: 0, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const identity = await request(api.port, '/api/v1/identity/create', {})
     t.is(identity.status, 201, 'identity is created before oversized import')
@@ -110,7 +111,7 @@ test('HTML import maps bookmarks, collections and nested folders and persists st
   await fs.rm(dataDir, { recursive: true, force: true })
   try {
     const config = { ...defaultConfig(), dataDir, port: 0, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
 
     const identity = await request(api.port, '/api/v1/identity/create', {})
@@ -206,7 +207,7 @@ test('HTML import maps bookmarks, collections and nested folders and persists st
     await node.close()
     node = null
 
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.ok(node.state.collections.get(savedCollectionId as string), 'collection survives node restart')
     t.ok(node.state.groups.get(savedGroupId as string), 'group survives node restart')
     t.ok([...node.state.bookmarks.values()].some((bookmark) => bookmark.canonicalUrl === 'https://example.com/snow'), 'bookmark survives node restart')
