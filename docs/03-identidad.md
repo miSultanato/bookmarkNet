@@ -100,7 +100,7 @@ El `device_core` contiene:
 
 ### Tipos de evento del `device_core`
 
-El `device_core` es un log single-writer local. Sus eventos son distintos de los del `collection_core` (`docs/15-schema-eventos.md`): el `device_core` contiene borradores locales, no colecciones publicadas. Los 11 eventos son:
+El `device_core` es un log single-writer local. Sus eventos son distintos de los del `collection_core` (`docs/15-schema-eventos.md`): el `device_core` contiene borradores locales, no colecciones publicadas. Los 12 eventos son:
 
 1. `device_metadata`: perfil del usuario (nombre, bio, avatar). Reemplaza el perfil completo (no hace merge).
 2. `device_create_collection`: crea una colección local (borrador).
@@ -113,6 +113,7 @@ El `device_core` es un log single-writer local. Sus eventos son distintos de los
 9. `device_reorder_bookmark`: cambia la posición de un bookmark dentro de un grupo.
 10. `device_create_group`: crea un grupo en una colección local.
 11. `device_delete_group`: marca un grupo como eliminado (sus bookmarks vuelven a la raíz de su colección).
+12. `device_add_device`: añade un dispositivo a la lista de dispositivos conocidos del `device_core`. En MVP1, la lista es local; la replicación es MVP2.
 
 Todos los eventos comparten los campos comunes de `docs/15`: `schema_version: 1`, `event_id` (ULID), `event_type`, `author_id` (el `user_id` del dueño del dispositivo), `created_at` (ISO8601), `payload`.
 
@@ -196,6 +197,14 @@ interface DeviceDeleteGroupPayload {
   groupId: string
   collectionId: string
 }
+
+interface DeviceAddDevicePayload {
+  nodeId: string          // "n_" + 16 hex
+  publicKey?: string      // "pk_user_" + hex; opcional en MVP1,
+                          // obligatorio en MVP2 (clave derivada
+                          // del dispositivo)
+  addedAt: string         // ISO8601
+}
 ```
 
 **Inbox global vs Inbox de colección:** el Inbox global contiene bookmarks con `collectionId: null` y `groupId: null`. No pertenecen a ninguna colección. El Inbox de colección (también llamado raíz de la colección) contiene bookmarks con `collectionId: "c_..."` y `groupId: null`: pertenecen a esa colección, pero no a un grupo. Son conceptos distintos y la UI los muestra de forma distinta.
@@ -229,6 +238,7 @@ interface DeviceState {
   collections: Map<string, DeviceCollectionState>  // collection_id -> estado
   bookmarks: Map<string, DeviceBookmarkState>      // bookmark_id -> estado
   groups: Map<string, DeviceGroupState>            // group_id -> estado
+  devices: Map<string, DeviceEntryState>            // node_id -> estado
 }
 
 interface DeviceCollectionState {
@@ -267,11 +277,18 @@ interface DeviceGroupState {
   createdAt: string
   updatedAt?: string
 }
+
+interface DeviceEntryState {
+  nodeId: string
+  publicKey?: string
+  addedAt: string
+}
 ```
 
 #### Reglas de fold
 
 - **`device_metadata`:** reemplaza `state.profile` con el payload. Campos ausentes se eliminan.
+- **`device_add_device`:** si el `nodeId` ya existe en la lista de dispositivos conocidos, ignora (idempotencia). Si no existe, lo añade a la lista. El fold nunca lanza error.
 - **`device_create_collection`:** crea la colección si no existe. Si existe, ignora. Asigna `language` desde el payload; si falta en un evento mal formado, usa `'es'`. El constructor garantiza el valor por defecto `'es'`.
 - **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`). Asigna `language` si está presente; si no, conserva el valor actual.
 - **`device_delete_collection`:** si no existe, ignora. Marca `deleted: true`. Sus bookmarks y grupos también se marcan como eliminados (soft delete en cascada, definitivo: no se "resucitan" si la colección se vuelve a crear con el mismo `collectionId`; se crea una colección nueva).
