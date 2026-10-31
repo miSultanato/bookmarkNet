@@ -138,3 +138,21 @@ test('Node.apply persists events before updating state', async (t) => {
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
+
+test('node.close() is idempotent when called concurrently', async (t) => {
+  const dataDir = DATA_DIR + '-concurrent-close'
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const node = await startNode({ ...defaultConfig(), dataDir })
+    const closePromise1 = node.close()
+    const closePromise2 = node.close()
+
+    t.is(closePromise1, closePromise2, 'both close calls return the same promise instance')
+
+    await Promise.all([closePromise1, closePromise2])
+    t.pass('both close calls resolve without errors')
+  } finally {
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
