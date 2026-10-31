@@ -45,6 +45,8 @@ Resultado: «Pocket local».
   ```
 - Preparado para replicarse.
 
+**Decisiones asociadas:** ADR-014 (`docs/14-adrs.md`) decide que en MVP1 se persiste un `node_id` estable por dispositivo, sin cambiar la apertura actual de `device_core` ni el orden de arranque. La derivación de la clave de dispositivo y la apertura con `keyPair` quedan para MVP2.
+
 ## MVP 2 — Multidispositivo + compartición directa
 
 ### Seguir vs duplicar
@@ -82,6 +84,8 @@ Demo de validación:
 
 **Importante:** el primer momento mágico no es sincronizar el portátil con el NAS, sino encontrar una colección hecha por otra persona y añadirla a la biblioteca.
 
+**Decisiones asociadas:** ADR-014 (`docs/14-adrs.md`) decide que en MVP2 se deriva un par Ed25519 por dispositivo mediante HKDF-SHA256 (`bookmarknet:device:` + `node_id`), se abre `device_core` con ese `keyPair`, y se cambia el orden de arranque (identidad y `node_id` antes de abrir `device_core`).
+
 **Publicación y despublicación:**
 
 - Publicar una colección crea un `collection_core` con el estado actual.
@@ -95,6 +99,8 @@ Demo de validación:
 - `announce(topic)` al publicar.
 - Caché local de peers conocidos.
 - Búsqueda enriquecida: `collection_count` **local** por resource ("aparece en N colecciones locales").
+
+**Frontera con MVP2:** MVP2 incluye compartición directa por enlace `bmn://<collection_id>` y NAT traversal básico vía Hyperswarm, sin discovery automático. MVP3 añade descubrimiento por topic vía DHT y caché local de peers conocidos. Compartir una colección conocida no es lo mismo que explorar colecciones desconocidas.
 
 ## MVP 4 — Seed pack completo
 

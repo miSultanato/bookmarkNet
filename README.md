@@ -27,7 +27,7 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 ## Estado
 
-MVP en diseño. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
+MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. Próximo hito: MVP1 (persistencia local por colección). Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
 ## Requisitos
 
@@ -53,7 +53,7 @@ Desde la raíz del repositorio, ejecuta:
 bare src/main.ts
 ```
 
-El nodo sirve la interfaz web en [http://localhost:7575](http://localhost:7575). Abre esa dirección en el navegador. El puerto por defecto es `7575`; el auto-incremento si está ocupado está pendiente de implementación.
+El nodo sirve la interfaz web en [http://localhost:7575](http://localhost:7575). Abre esa dirección en el navegador. El puerto por defecto es `7575`. Si está ocupado, el nodo intenta los siguientes (`7576`, `7577`...) hasta encontrar uno libre, con un máximo de 100 intentos.
 
 ### Binario standalone
 
@@ -153,7 +153,7 @@ Dentro encontrarás, según el uso y la configuración:
 - `config.json`, si se crea para personalizar la configuración.
 - `logs/`, con los logs del nodo.
 
-**Importante:** el archivo de identidad en disco no está cifrado. Protege tu cuenta de usuario y el acceso al directorio de datos. La exportación cifrada de identidad mediante `POST /api/v1/identity/export` todavía no está implementada.
+**Importante:** el archivo de identidad en disco no está cifrado. Protege tu cuenta de usuario y el acceso al directorio de datos. La exportación cifrada de identidad está implementada mediante `POST /api/v1/identity/export` (cifrada con contraseña) e importación mediante `POST /api/v1/identity/import`.
 
 ## Configuración
 
@@ -171,7 +171,7 @@ Valores por defecto:
 
 - Puerto: `7575`.
 - `logLevel`: `info`.
-- `openBrowserOnStart`: `true` en la configuración; la apertura automática del navegador está pendiente de implementación.
+- `openBrowserOnStart`: si es `true`, el nodo abre el navegador automáticamente al arrancar.
 - `allowedHosts`: `localhost`, `127.0.0.1` y `[::1]`.
 - `bind`: `127.0.0.1` (solo loopback).
 
