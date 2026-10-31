@@ -7,7 +7,6 @@ import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
-import type { Swarm } from '../p2p/swarm.ts'
 import { startSwarm } from '../p2p/swarm.ts'
 
 export type NodeIdentity = ReturnType<typeof identityToApi>
@@ -22,17 +21,21 @@ const logTiming = (phase: string, start: number): void => {
   console.log(`[timing] ${phase}: ${Math.round(now() - start)}ms`)
 }
 
+export interface SwarmLike {
+  close(): Promise<void>
+}
+
 export interface Node {
   config: Config
   core: Hypercore
   state: DeviceState
   identity: NodeIdentity | null
-  swarm: Swarm
+  swarm: SwarmLike
   apply(event: DeviceEvent): Promise<void>
   close(): Promise<void>
 }
 
-export async function startNode(config: Config): Promise<Node> {
+export async function startNode(config: Config, options?: { swarm?: SwarmLike }): Promise<Node> {
   const releasePidLock = await acquirePidLock(config.dataDir)
 
   let core: Hypercore | null = null
@@ -55,7 +58,7 @@ export async function startNode(config: Config): Promise<Node> {
     logTiming('node:fold', foldStart)
 
     const swarmStart = now()
-    swarm = await startSwarm(TEST_TOPIC, (socket) => {
+    swarm = options?.swarm ?? await startSwarm(TEST_TOPIC, (socket) => {
       console.log('peer connected')
     })
     logTiming('node:swarm', swarmStart)
