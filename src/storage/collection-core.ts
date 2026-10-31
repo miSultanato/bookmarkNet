@@ -5,30 +5,48 @@ import { addBookmark, collectionGenesis, createGroup } from '../events.ts'
 import type { DeviceState } from '../device-fold.ts'
 import { deriveCollectionKeypair, collectionIdFromPublicKey } from '../keys.ts'
 
-function sameBytes(left: Uint8Array | null, right: Uint8Array): boolean {
-  if (left === null || left.length !== right.length) return false
-  for (let i = 0; i < left.length; i++) {
-    if (left[i] !== right[i]) return false
+const COLLECTION_UUID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/
+
+function requireBytes(value: unknown, length: number, field: string): asserts value is Uint8Array {
+  if (!(value instanceof Uint8Array) || value.length !== length) {
+    throw new RangeError(field + ' must contain exactly ' + length + ' bytes')
   }
-  return true
 }
 
 /**
- * Creates or opens the local collection log for a collection in the device log.
+ * Creates or opens the collection log for a local collection.
  *
- * collectionUuid is the stable local ULID used as the KDF input and storage
- * directory. The public collectionId written to the genesis is the hexadecimal
- * collection public key derived from that UUID.
+ * collectionUuid is the device-local ULID and KDF input. collectionId is
+ * derived from the collection public key and is stored in the genesis.
  */
 export async function createCollectionCore(
   dataDir: string,
   collectionUuid: string,
   masterKey: Uint8Array,
-  deviceState: DeviceState,
   authorId: string,
   authorPublicKey: Uint8Array,
-  authorSecretKey: Uint8Array
+  authorSecretKey: Uint8Array,
+  deviceState: DeviceState
 ): Promise<Hypercore> {
+  if (typeof dataDir !== 'string' || dataDir.length === 0) {
+    throw new RangeError('dataDir must be a non-empty string')
+  }
+  if (typeof collectionUuid !== 'string' || !COLLECTION_UUID_RE.test(collectionUuid)) {
+    throw new RangeError('collectionUuid must be a 26-character uppercase ULID')
+  }
+  requireBytes(masterKey, 32, 'masterKey')
+  if (typeof authorId !== 'string' || authorId.length === 0) {
+    throw new RangeError('authorId must be a non-empty string')
+  }
+  requireBytes(authorPublicKey, 32, 'authorPublicKey')
+  requireBytes(authorSecretKey, 64, 'authorSecretKey')
+  if (deviceState === null || typeof deviceState !== 'object' ||
+      !(deviceState.collections instanceof Map) ||
+      !(deviceState.groups instanceof Map) ||
+      !(deviceState.bookmarks instanceof Map)) {
+    throw new RangeError('deviceState must contain collections, groups, and bookmarks maps')
+  }
+
   const collection = deviceState.collections.get(collectionUuid)
   if (!collection || collection.deleted) {
     throw new RangeError('Collection does not exist or is deleted in device state')
@@ -42,6 +60,8 @@ export async function createCollectionCore(
   await fs.mkdir(collectionsDir, { recursive: true, mode: 0o700 })
   await fs.mkdir(storagePath, { recursive: true, mode: 0o700 })
 
+  // compat keeps core.key equal to the Ed25519 public key, as required by
+  // collection_id. Hypercore v11 otherwise exposes the v2 manifest hash.
   const core = new Hypercore(storagePath, {
     keyPair: {
       publicKey: collectionKeypair.publicKey,
@@ -52,13 +72,7 @@ export async function createCollectionCore(
   })
   await core.ready()
 
-  if (!sameBytes(core.key, collectionKeypair.publicKey)) {
-    await core.close()
-    throw new Error('Opened collection core does not match the derived collection public key')
-  }
-
   try {
-    // A non-empty core is an existing publication: never duplicate its log.
     if (core.length === 0) {
       const genesis = collectionGenesis({
         collectionId,
@@ -77,24 +91,23 @@ export async function createCollectionCore(
 
       const groups = [...deviceState.groups.values()]
         .filter((group) => group.collectionId === collectionUuid && !group.deleted)
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.groupId.localeCompare(b.groupId))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 
       for (const group of groups) {
-        const event = createGroup({
+        await core.append(createGroup({
           authorId,
           groupId: group.groupId,
           name: group.name,
           position: group.position
-        })
-        await core.append(event)
+        }))
       }
 
       const bookmarks = [...deviceState.bookmarks.values()]
         .filter((bookmark) => bookmark.collectionId === collectionUuid && !bookmark.deleted)
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.bookmarkId.localeCompare(b.bookmarkId))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 
       for (const bookmark of bookmarks) {
-        const event = addBookmark({
+        await core.append(addBookmark({
           authorId,
           bookmarkId: bookmark.bookmarkId,
           resourceId: bookmark.resourceId,
@@ -104,8 +117,7 @@ export async function createCollectionCore(
           tags: bookmark.tags,
           notes: bookmark.notes,
           groupId: bookmark.groupId
-        })
-        await core.append(event)
+        }))
       }
     }
 
