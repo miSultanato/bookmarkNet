@@ -4,6 +4,7 @@ import test from 'brittle'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 const DATA_DIR = './tmp-test-api'
 
@@ -47,7 +48,7 @@ function request(port: number, path: string, method = 'GET', headers: Record<str
 test('local API health, identity routes and request security checks', async (t) => {
   await fs.rm(DATA_DIR, { recursive: true, force: true })
   const config = { ...defaultConfig(), dataDir: DATA_DIR, port: 0, bind: '127.0.0.1' }
-  const node = await startNode(config)
+  const node = await startNode(config, { swarm: createFakeSwarm() })
   let api: Awaited<ReturnType<typeof createServer>> | null = null
 
   try {
@@ -138,7 +139,7 @@ test('API serves the UI while the node loads and becomes ready after setNode', a
     t.is(index.status, 200, 'UI is served while node is loading')
     t.ok(typeof index.body === 'string' && index.body.includes('<title>Lotura</title>'), 'root response contains UI HTML')
 
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api.setNode(node)
     const readyIdentity = await request(api.port, '/api/v1/identity')
     t.is(readyIdentity.status, 200, 'identity returns 200 after setNode')
