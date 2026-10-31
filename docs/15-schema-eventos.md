@@ -104,14 +104,14 @@ colección no es válida.
 
 ```text
 sha256(
-  collection_id ||
-  collection_public_key ||
-  author_id ||
-  author_public_key ||
-  name ||
-  visibility ||
-  language ||
-  (forked_from ?? "") ||
+  collection_id + "\x00" +
+  collection_public_key + "\x00" +
+  author_id + "\x00" +
+  author_public_key + "\x00" +
+  name + "\x00" +
+  visibility + "\x00" +
+  language + "\x00" +
+  (forked_from ?? "") + "\x00" +
   (migrated_from ?? "")
 )
 ```
