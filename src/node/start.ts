@@ -39,7 +39,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
   const releasePidLock = await acquirePidLock(config.dataDir)
 
   let core: Hypercore | null = null
-  let swarm: Swarm | null = null
+  let swarm: SwarmLike | null = null
   let state: DeviceState | null = null
   let identity: NodeIdentity | null = null
   let closePromise: Promise<void> | null = null
