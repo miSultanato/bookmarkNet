@@ -370,7 +370,7 @@ El `device_core` contiene los borradores locales de las colecciones del usuario.
 
 ### Decisión
 
-El `device_core` define los siguientes once eventos:
+El `device_core` define los siguientes doce eventos:
 
 - `device_metadata`: reemplaza el perfil del usuario (nombre, bio, avatar).
 - `device_create_collection`: crea una colección local en estado borrador.
@@ -383,6 +383,7 @@ El `device_core` define los siguientes once eventos:
 - `device_reorder_bookmark`: cambia la posición de un bookmark dentro de un grupo.
 - `device_create_group`: crea un grupo en una colección local.
 - `device_delete_group`: elimina un grupo y devuelve sus bookmarks a la raíz de la colección.
+- `device_add_device`: añade un dispositivo a la lista local de dispositivos conocidos del `device_core`; la replicación de esa lista corresponde a MVP2.
 
 Ver `docs/03-identidad.md` para el detalle de payloads y las reglas del fold.
 
@@ -398,6 +399,8 @@ Ver `docs/03-identidad.md` para el detalle de payloads y las reglas del fold.
 ### Corrección (2026-10-31)
 
 Se sustituye la lista de cuatro tipos genéricos por los once eventos concretos `device_*`. `docs/03` es la especificación vigente de payloads y fold; ADR-013 había quedado en un nivel de abstracción que no reflejaba el contrato real.
+
+Se añade `device_add_device` al contrato de eventos de `device_core`, que pasa de once a doce eventos. ADR-018 decidió que la lista de dispositivos conocidos reside en `device_core`, y ADR-019 la necesita para el backup de identidad; el evento no figuraba en el contrato original de este ADR.
 
 ## ADR-014: Derivación de la clave de `device_core`
 
