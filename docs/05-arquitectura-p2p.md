@@ -57,7 +57,7 @@ Donde `collection_uuid` es un ULID generado al crear la
 colección. **No es el nombre visible.** El nombre es
 editable; el UUID no.
 
-> **Nota:** el `collection_uuid` es el `collectionId` local del `device_core` (ver `docs/03-identidad.md`). En MVP0, el `device_core` usa ese ULID como identificador local de la colección. Al publicar (MVP2), se usa el mismo ULID para derivar la `collection_keypair`. No hay cambio de tipo ni migración entre MVP0 y MVP2.
+> **Nota sobre identificadores:** el `collection_uuid` es un ULID y constituye el identificador local de la colección en el `device_core` (ver `docs/03-identidad.md`). Ese mismo ULID es la entrada para derivar la `collection_keypair`, pero **no** es el `collection_id` público del `collection_core`. Al publicar, `collection_id` pasa a ser la clave pública Ed25519 derivada, codificada como 64 caracteres hexadecimales en minúsculas y sin prefijo (`collectionIdFromPublicKey(publicKey)`). Por tanto, el ULID local se conserva como `collection_uuid` y nombre/ruta local; el identificador público del génesis y la clave pública `core.key` son el hexadecimal derivado. No se cambia el ULID almacenado en `device_core` ni se migra su tipo: son dos identificadores distintos con funciones distintas.
 
 Esto garantiza que:
 
