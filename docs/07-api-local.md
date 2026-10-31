@@ -11,12 +11,32 @@ Toda operación pasa por una API local en \`localhost\`. La Web UI y la extensi�
 \`\`\`http
 GET  /identity
 POST /identity/create
-POST /identity/import        # multipart: identity.bmn + password
-POST /identity/export        # body: {password} → identity.bmn
+POST /identity/import        # JSON: {identity_blob, password}
+POST /identity/export        # JSON: {password} → objeto identity_blob
 POST /identity/device/add    # → {qr, code}
 POST /identity/device/join   # body: {code}
 GET  /identity/devices
 \`\`\`
+
+
+**Exportar identidad — `POST /identity/export`:** recibe un body JSON `{ "password": "..." }` y devuelve el objeto de exportación directamente como JSON, con `Content-Type: application/json; charset=utf-8`. No descarga un archivo `identity.bmn`. El objeto contiene `version`, `salt`, `nonce`, los parámetros de Argon2 (`opslimit`, `memlimit`, `alg`) y `ciphertext`.
+
+**Importar identidad — `POST /identity/import`:** recibe `Content-Type: application/json` y un body con `identity_blob` (el objeto devuelto por export) y `password`. No utiliza multipart ni recibe un archivo separado. Ejemplo de estructura:
+
+```json
+{
+  "identity_blob": {
+    "version": 1,
+    "salt": "...",
+    "nonce": "...",
+    "opslimit": 2,
+    "memlimit": 67108864,
+    "alg": 2,
+    "ciphertext": "..."
+  },
+  "password": "..."
+}
+```
 
 ## Bookmarks
 
@@ -198,3 +218,47 @@ el estado en memoria no se actualiza.
 
 **Importante:** \`src/events.ts\` y \`src/fold.ts\` implementan el modelo del
 \`collection_core\` (MVP1+). No se usan en MVP0. No mezcles ambos modelos.
+
+## Estado de implementación por endpoint
+
+La tabla distingue el estado implementado en el código de la fase prevista para cada endpoint. La matriz de referencia es [docs/27-trazabilidad.md](27-trazabilidad.md); las funcionalidades aún no implementadas se clasifican según esa matriz y el roadmap.
+
+| Método | Ruta | Estado | Fase | Notas |
+|---|---|---|---|---|
+| GET | `/api/v1/identity` | implementado | MVP0 | Consulta la identidad local. |
+| POST | `/api/v1/identity/create` | implementado | MVP0 | Creación de identidad local. |
+| POST | `/api/v1/identity/import` | implementado | MVP0 | Importación JSON cifrada; funcionalidad Export/Import de identidad de docs/27. |
+| POST | `/api/v1/identity/export` | implementado | MVP0 | Exportación JSON cifrada; funcionalidad Export/Import de identidad de docs/27. |
+| POST | `/api/v1/identity/device/add` | futuro | MVP2 | Corresponde a «Multidispositivo (añadir dispositivo, replicar entre dispositivos propios)» de docs/27. |
+| POST | `/api/v1/identity/device/join` | futuro | MVP2 | Corresponde a «Multidispositivo (añadir dispositivo, replicar entre dispositivos propios)» de docs/27. |
+| GET | `/api/v1/identity/devices` | futuro | MVP2 | Corresponde a «Multidispositivo (añadir dispositivo, replicar entre dispositivos propios)» de docs/27. |
+| GET | `/api/v1/bookmarks` | implementado | MVP0 | Listado y filtros locales; API local de docs/27. |
+| POST | `/api/v1/bookmarks` | implementado | MVP0 | Crea un bookmark en `device_core`. |
+| GET | `/api/v1/bookmarks/:id` | implementado | MVP0 | Consulta un bookmark local. |
+| PATCH | `/api/v1/bookmarks/:id` | implementado | MVP0 | Edita un bookmark mediante eventos de `device_core`. |
+| DELETE | `/api/v1/bookmarks/:id` | implementado | MVP0 | Elimina un bookmark mediante eventos de `device_core`. |
+| POST | `/api/v1/bookmarks/:id/reorder` | implementado | MVP0 | Reordena un bookmark mediante `device_reorder_bookmark`. |
+| POST | `/api/v1/bookmarks/:id/move` | implementado | MVP0 | Mueve un bookmark entre Inbox, colecciones y grupos. |
+| GET | `/api/v1/groups` | implementado | MVP0 | Listado local, opcionalmente filtrado por colección. |
+| POST | `/api/v1/groups` | implementado | MVP0 | Crea un grupo mediante `device_create_group`. |
+| DELETE | `/api/v1/groups/:id` | implementado | MVP0 | Elimina un grupo mediante `device_delete_group`. |
+| POST | `/api/v1/groups/:id/move` | implementado | MVP0 | Mueve al grupo un bookmark de la misma colección. |
+| GET | `/api/v1/collections` | implementado | MVP0 | Listado local de colecciones. |
+| POST | `/api/v1/collections` | implementado | MVP0 | Crea la colección local en `device_core`; no publica ni crea todavía un `collection_core`. |
+| GET | `/api/v1/collections/:id` | implementado | MVP0 | Consulta una colección local. |
+| PATCH | `/api/v1/collections/:id` | implementado | MVP0 | Actualiza una colección mediante `device_update_collection`. |
+| DELETE | `/api/v1/collections/:id` | implementado | MVP0 | Elimina una colección mediante `device_delete_collection`. |
+| POST | `/api/v1/collections/:id/publish` | futuro | MVP2 | Corresponde a «Publicación / Escritura dual» de docs/27, pendiente MVP2. |
+| POST | `/api/v1/collections/:id/duplicate` | futuro | MVP2 | Corresponde a «Duplicar colección» de docs/27, pendiente MVP2. |
+| POST | `/api/v1/collections/:id/follow` | futuro | MVP2 | Corresponde a «Seguir colección por enlace» de docs/27, pendiente MVP2. |
+| POST | `/api/v1/collections/:id/unfollow` | futuro | MVP2 | Corresponde a «Seguir colección por enlace» de docs/27, pendiente MVP2. |
+| GET | `/api/v1/collections/:id/status` | futuro | MVP2 | Corresponde a «Replicación P2P» de docs/27 y al estado de sincronización previsto en el roadmap MVP2. |
+| GET | `/api/v1/discover/featured` | futuro | MVP3+ | Sin correspondencia directa en docs/27; la fase (MVP2 o MVP3+) queda pendiente de confirmar cuando se detalle el contrato de descubrimiento en `docs/06-descubrimiento.md`. |
+| GET | `/api/v1/discover/trending` | futuro | MVP3+ | Sin correspondencia directa en docs/27; la fase (MVP2 o MVP3+) queda pendiente de confirmar cuando se detalle el contrato de descubrimiento en `docs/06-descubrimiento.md`. |
+| GET | `/api/v1/discover/most_duplicated` | futuro | MVP3+ | Sin correspondencia directa en docs/27; la fase (MVP2 o MVP3+) queda pendiente de confirmar cuando se detalle el contrato de descubrimiento en `docs/06-descubrimiento.md`. |
+| GET | `/api/v1/discover/new` | futuro | MVP3+ | Sin correspondencia directa en docs/27; la fase (MVP2 o MVP3+) queda pendiente de confirmar cuando se detalle el contrato de descubrimiento en `docs/06-descubrimiento.md`. |
+| GET | `/api/v1/discover/search` | futuro | MVP3+ | Sin correspondencia directa en docs/27; la fase (MVP2 o MVP3+) queda pendiente de confirmar cuando se detalle el contrato de descubrimiento en `docs/06-descubrimiento.md`. |
+| GET | `/api/v1/search` | implementado | MVP0 | Búsqueda local; funcionalidad Búsqueda local de docs/27. |
+| PATCH | `/api/v1/profile` | implementado | MVP0 | Actualiza metadatos locales mediante `device_metadata`. |
+
+**Resumen:** 35 endpoints: 22 implementados, 0 parciales y 13 futuros (8 de MVP2 y 5 de MVP3+). No se incluyen endpoints futuros de MVP1, como `POST /backup` o `POST /restore`.
