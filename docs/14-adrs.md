@@ -42,6 +42,8 @@ BookmarkNet necesita un stack P2P para replicar colecciones de bookmarks entre n
 
 Usar Hypercore + Hyperswarm + Hyperbee + Corestore como stack P2P base.
 
+Estado por fases: Hypercore y Hyperswarm se usan desde MVP0. Hyperbee se utilizará como backend de la vista materializada en MVP1 (véase ADR-016). Corestore queda fuera de MVP1; su adopción se evaluará en una fase posterior si la gestión de múltiples Hypercores lo requiere.
+
 ### Consecuencias
 
 - **Ventajas:** modelo de log append-only encaja con eventos; Hyperswarm resuelve NAT traversal sin infraestructura propia; Hyperbee da índices locales; ecosistema activo.
@@ -53,6 +55,10 @@ Usar Hypercore + Hyperswarm + Hyperbee + Corestore como stack P2P base.
 - **Willow Protocol:** interesante a futuro, menos maduro, sin discovery DHT integrado.
 - **Veilid:** orientado a anonimato, no a replicación de datos estructurados.
 - **Earthstar:** peers undiscoverable by default, sin discovery.
+
+### Corrección (2026-10-31)
+
+Se aclara el estado real de Hyperbee y Corestore respecto a la decisión original: Hyperbee no estaba instalado ni en uso, y Corestore queda fuera de MVP1. ADR-016 concreta el uso de Hyperbee como backend de la vista materializada en MVP1.
 
 ## ADR-002: Bare + TypeScript como runtime
 
@@ -522,6 +528,55 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 - **Añadir `status: "draft"` al génesis.** Descartada. `visibility: "unlisted"` ya representa que una colección no se ofrece públicamente. Un campo adicional duplicaría esa distinción, ampliaría el schema y obligaría a mantener compatibilidad o migraciones sin aportar una diferencia estructural necesaria.
 
 - **Migrar las colecciones existentes de MVP0.** Descartada. ADR-014 permite el reset de los datos locales durante esta transición mientras no haya usuarios reales. Una migración eager de todas las colecciones antiguas añadiría trabajo y complejidad que no se justifican en esta fase.
+
+## ADR-016: Vista materializada con Hyperbee en MVP1
+
+**Fecha:** 2026-10-31  
+**Estado:** Aceptado
+
+### Contexto
+
+MVP1 incorpora la persistencia de `collection_core` por colección y mantiene el `device_core` como log local del dispositivo. Sin una vista materializada persistida, el nodo tendría que reconstruir el estado recorriendo los logs en cada arranque, con un coste creciente a medida que aumenta el número de eventos y colecciones.
+
+ADR-001 decidió incorporar Hyperbee al stack, pero el componente no estaba instalado ni se utilizaba. Por su parte, `docs/23-migraciones.md` contempla Hyperbee, SQLite o un archivo como posibles backends de la vista materializada, mientras que `docs/26-limitaciones-conocidas.md` recoge Hyperbee como mejora prevista. Es necesario fijar el backend y el alcance de las vistas, así como sus reglas de actualización, reconstrucción y migración de esquema.
+
+### Decisión
+
+1. **Backend: Hyperbee.** La vista materializada se persistirá con Hyperbee. Se descartan SQLite y un archivo JSON.
+
+2. **Vistas materializadas en MVP1.** Se mantendrá una vista del estado del `device_core` (perfil, colecciones, bookmarks y grupos) y una vista del estado de cada `collection_core` (metadatos, bookmarks y grupos). Los índices de búsqueda por título, tag y URL canónica son una extensión prevista si el tiempo lo permite, pero no son obligatorios en MVP1.
+
+3. **Actualización y coherencia.** Al arrancar, se comprobará si la vista materializada está al día respecto al log, tomando como referencia el último evento procesado. Si la vista está desfasada, se reconstruirá. Durante la sesión, la vista se actualizará con cada evento nuevo.
+
+4. **Reconstrucción por fases.** En MVP1, la reconstrucción se hará mediante replay completo desde el log de Hypercore. En MVP2, se incorporará snapshot y replay únicamente de los eventos posteriores al snapshot.
+
+5. **Migración de esquema.** Se aplicará migración lazy al arrancar: si cambia el esquema de la vista materializada, se reconstruirá con el nuevo esquema a partir del log. La política general de migraciones se define en `docs/23-migraciones.md`.
+
+6. **Corestore fuera de MVP1.** En MVP1 se gestionarán los cores directamente con Hypercore. Corestore se evaluará en una fase posterior si la gestión de múltiples Hypercores lo requiere.
+
+**Implementación: pendiente (MVP1).**
+
+### Consecuencias
+
+- **Ventajas:**
+  - En un arranque normal, la carga de la vista evita recorrer todos los eventos y permite un coste O(1) respecto al número de eventos; las consultas indexadas tienen un coste O(log n).
+  - La coherencia entre log y vista se recupera comprobando el último evento procesado y reconstruyendo cuando la vista queda desfasada.
+  - La migración lazy permite adaptar automáticamente la vista al esquema vigente sin intervención manual del usuario.
+
+- **Costes:**
+  - Hay que gestionar la coherencia entre el log y la vista. Si la vista se corrompe, deberá reconstruirse desde el log.
+  - Se necesitan tests específicos de reconstrucción y de migración lazy.
+  - Hyperbee añade una nueva dependencia a `package.json`.
+
+- **Riesgos y mitigaciones:**
+  - Si la vista materializada se corrompe y la reconstrucción falla, el arranque puede fallar. La mitigación es reconstruirla desde el log de Hypercore, que sigue siendo la fuente de verdad.
+
+### Alternativas consideradas
+
+- **SQLite:** descartada. Añade una dependencia nativa que no encaja con el stack Hyper* ni con el runtime Bare.
+- **Archivo JSON:** descartado. Sin índices, resulta lento con muchas colecciones y no escala bien para las consultas previstas.
+- **Posponer Hyperbee a MVP2:** descartada. Mantendría un arranque lento con muchas colecciones y obligaría a migrar en MVP2 la vista desde un archivo JSON a Hyperbee, añadiendo trabajo.
+- **Corestore en MVP1:** descartada. Aunque gestiona múltiples Hypercores, en MVP1 el número de cores es pequeño y pueden gestionarse directamente con Hypercore. Su adopción se evaluará en una fase posterior si resulta necesaria.
 
 ## Documentos relacionados
 
