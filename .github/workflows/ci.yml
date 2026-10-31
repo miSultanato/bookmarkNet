@@ -24,4 +24,10 @@ jobs:
         run: npm install -g bare-runtime
       - run: npm ci
 
-      - run: npm test
+      - name: Run unit tests on pull requests
+        if: github.event_name == 'pull_request'
+        run: npm run test:unit
+
+      - name: Run all tests on main
+        if: github.event_name == 'push'
+        run: npm test
