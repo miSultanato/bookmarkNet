@@ -83,9 +83,13 @@ Si se pierden todos los dispositivos pero se conserva `identity.bmn`:
 ## Sincronización multidispositivo
 
 Cada dispositivo del mismo usuario tiene su propio
-`device_core`: un Hypercore single-writer firmado con una
-clave derivada de la clave maestra del usuario y el
-`node_id` del dispositivo.
+`device_core`: un Hypercore single-writer. En MVP0 y MVP1,
+`device_core` se abre con la ruta local existente, sin derivar una
+clave de la identidad. ADR-014 (`docs/14-adrs.md`) decide que en MVP2
+se derivará un par Ed25519 por dispositivo mediante HKDF-SHA256 con
+separación de dominio `bookmarknet:device:` + `node_id`, y que
+`device_core` se abrirá con ese `keyPair`. En MVP1 solo se persiste
+`node_id`; la apertura actual no cambia.
 
 El `device_core` contiene:
 - Las colecciones propias que ese dispositivo ha creado.
@@ -283,6 +287,10 @@ interface DeviceGroupState {
 Todos los dispositivos del mismo usuario se unen a un topic
 derivado del `user_id` y replican los `device_core` de los
 demás (solo lectura para los ajenos).
+
+Estado de implementación: la replicación entre dispositivos es
+MVP2. En MVP0 y MVP1 solo existe el `device_core` local del
+dispositivo.
 
 La vista unificada del usuario (qué colecciones tiene,
 cuál es su perfil actual) se construye **localmente**
