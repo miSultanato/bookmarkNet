@@ -578,6 +578,68 @@ ADR-001 decidió incorporar Hyperbee al stack, pero el componente no estaba inst
 - **Posponer Hyperbee a MVP2:** descartada. Mantendría un arranque lento con muchas colecciones y obligaría a migrar en MVP2 la vista desde un archivo JSON a Hyperbee, añadiendo trabajo.
 - **Corestore en MVP1:** descartada. Aunque gestiona múltiples Hypercores, en MVP1 el número de cores es pequeño y pueden gestionarse directamente con Hypercore. Su adopción se evaluará en una fase posterior si resulta necesaria.
 
+## ADR-017: Persistencia y ciclo de vida de `node_id` en MVP1
+
+**Fecha:** 2026-10-31  
+**Estado:** Aceptado
+
+### Contexto
+
+ADR-014 decidió que en MVP1 se persiste un `node_id` estable por dispositivo, sin cambiar la apertura actual de `device_core`. La derivación de la clave Ed25519 del dispositivo queda aplazada a MVP2.
+
+El formato del identificador ya está definido en `docs/16-identificadores-y-firmas.md`: `"n_" + random(8 bytes).hex()`. Esto produce un identificador con el prefijo `n_` seguido de 16 caracteres hexadecimales. Sin embargo, no se había concretado dónde se guarda, cómo se valida, qué ocurre durante una reinstalación o al restaurar un backup, ni cuál es su relación con `device_core`.
+
+El `node_id` será una entrada de la derivación de la clave del dispositivo prevista para MVP2: HKDF-SHA256 con separación de dominio `"bookmarknet:device:" + node_id`, aplicada a `user_master_key` (ADR-014). Por tanto, debe persistirse de forma estable desde MVP1, aunque todavía no intervenga en la apertura de `device_core`.
+
+### Decisión
+
+1. **Ubicación independiente.** El `node_id` se guarda en `dataDir/node_id`, en un archivo propio. Se mantiene separado de `identity.bmn`, para que exportar o importar la identidad del usuario no copie el identificador del dispositivo, y separado de `config.json`, para que borrar o regenerar la configuración no lo elimine.
+
+2. **Formato de texto.** El archivo contiene una única línea de texto plano con el formato `n_` seguido de 16 caracteres hexadecimales y un salto de línea final: `n_xxxxxxxxxxxxxxxx\n`. No se utiliza JSON ni formato binario. Los 16 caracteres hexadecimales representan los 8 bytes aleatorios definidos por `docs/16-identificadores-y-firmas.md`.
+
+3. **Validación y corrupción.** Al cargar el archivo se valida el formato completo: prefijo `n_`, longitud exacta y únicamente caracteres hexadecimales después del prefijo, además del salto de línea final. Si el archivo no existe o su contenido no cumple el formato, se genera y persiste un `node_id` nuevo. Un identificador ausente o corrupto no debe impedir el arranque.
+
+4. **Reinstalación.** Una reinstalación normal conserva el `node_id`: el instalador no elimina `dataDir`. Si el usuario quiere registrar un dispositivo nuevo, puede borrar manualmente `dataDir/node_id`; al siguiente arranque se generará otro. Una opción específica en la configuración para registrar un dispositivo nuevo se reserva para MVP2.
+
+5. **Restauración de backup.** En MVP1, restaurar un backup regenera siempre el `node_id`, incluso si se restaura en el mismo dispositivo. No se permite clonar el identificador de un dispositivo mediante la restauración. La opción de conservar el `node_id` para recuperar el mismo dispositivo se implementará en MVP2, cuando exista red y sea posible detectar identificadores duplicados.
+
+6. **Separación de `device_core`.** El `node_id` vive fuera de `device_core`, en `dataDir/node_id`. No se almacena como evento ni como dato dentro del core. En MVP1, su carga y persistencia no cambian la apertura actual de `device_core`; la relación con la derivación de su clave se aplicará en MVP2 conforme a ADR-014.
+
+**Implementación: pendiente (MVP1).**
+
+### Consecuencias
+
+- **Ventajas:**
+  - El `node_id` es estable desde MVP1 y sobrevive a reinicios y reinstalaciones normales.
+  - Al estar separado de `identity.bmn`, importar una identidad en otro dispositivo no copia el identificador del dispositivo original.
+  - Al estar separado de `config.json`, borrar o regenerar la configuración no elimina accidentalmente la identidad local del dispositivo.
+  - La validación es robusta: un archivo ausente o corrupto se resuelve regenerando el identificador, en lugar de bloquear el arranque.
+  - MVP2 podrá utilizar el identificador persistido en la derivación HKDF-SHA256 prevista por ADR-014 sin introducir entonces una migración de almacenamiento.
+
+- **Costes:**
+  - Se añade un archivo más a `dataDir` y hay que gestionar su lectura, validación, creación y persistencia.
+  - La aplicación debe tratar explícitamente el caso de un `node_id` corrupto y generar uno nuevo.
+  - La restauración de un backup regenera el `node_id`; este comportamiento puede sorprender al usuario y deberá explicarse en la UI y en el README.
+
+- **Riesgos y consideraciones:**
+  - Si el usuario borra `dataDir/node_id`, el siguiente arranque genera otro identificador. No es grave en MVP1, porque el identificador aún no determina la clave de `device_core`; en MVP2 cambiará la identidad criptográfica del dispositivo.
+  - Si el usuario restaura un backup en el mismo dispositivo, también se regenera el `node_id`. No es grave en MVP1; en MVP2 deberá ofrecerse una opción explícita de «conservar node_id» para recuperar el mismo dispositivo.
+  - La política de regeneración evita que una restauración cree dos instalaciones con el mismo identificador. La detección de duplicados en red y la recuperación controlada del identificador original quedan para MVP2.
+
+### Alternativas consideradas
+
+- **Guardar `node_id` en `identity.bmn`.** Descartada. La identidad es portable entre dispositivos; incluir el identificador local haría que importar una identidad copiase también el `node_id`, contradiciendo la separación establecida por ADR-014.
+
+- **Guardar `node_id` en `config.json`.** Descartada. Borrar o regenerar la configuración eliminaría también el identificador del dispositivo, aunque este deba conservarse de forma independiente.
+
+- **Guardar `node_id` dentro de `device_core`.** Descartada. `device_core` es single-writer y el identificador debe existir antes de abrirlo para poder derivar su clave en MVP2. Almacenarlo dentro del propio core introduciría una dependencia circular.
+
+- **Usar JSON o formato binario.** Descartados. Un archivo de texto plano con un prefijo y una longitud fija es más simple, legible y suficiente para un identificador de 8 bytes.
+
+- **Fallar el arranque si `node_id` está corrupto.** Descartada. En MVP1 el identificador no es crítico para abrir `device_core`; regenerarlo es más robusto y evita que una corrupción local impida iniciar la aplicación.
+
+- **Conservar `node_id` al restaurar un backup en MVP1.** Descartada. Permitirlo podría clonar un dispositivo y producir dos instalaciones con la misma identidad de dispositivo. Se evaluará en MVP2, cuando la red permita detectar duplicados y se pueda ofrecer una recuperación explícita del mismo dispositivo.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
