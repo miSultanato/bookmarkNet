@@ -7,8 +7,12 @@ import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
+import type { Swarm } from '../p2p/swarm.ts'
+import { startSwarm } from '../p2p/swarm.ts'
 
 export type NodeIdentity = ReturnType<typeof identityToApi>
+
+const TEST_TOPIC = Buffer.from('lotura-test-topic')
 
 // Usa performance.now() monotónico cuando Bare lo ofrece; Date.now() es el fallback.
 const now = (): number => typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -23,6 +27,7 @@ export interface Node {
   core: Hypercore
   state: DeviceState
   identity: NodeIdentity | null
+  swarm: Swarm
   apply(event: DeviceEvent): Promise<void>
   close(): Promise<void>
 }
@@ -30,49 +35,91 @@ export interface Node {
 export async function startNode(config: Config): Promise<Node> {
   const releasePidLock = await acquirePidLock(config.dataDir)
 
+  let core: Hypercore | null = null
+  let swarm: Swarm | null = null
+  let state: DeviceState | null = null
+  let identity: NodeIdentity | null = null
+  let closePromise: Promise<void> | null = null
+
   try {
     const openStart = now()
-    const core = await openDeviceCore(config.dataDir)
+    core = await openDeviceCore(config.dataDir)
     logTiming('node:open', openStart)
-    try {
-      const readStart = now()
-      const events = await readAllEvents(core)
-      logTiming('node:read', readStart)
 
-      const foldStart = now()
-      let state = foldDeviceEvents(events)
-      logTiming('node:fold', foldStart)
+    const readStart = now()
+    const events = await readAllEvents(core)
+    logTiming('node:read', readStart)
 
-      const identityStart = now()
-      const stored = await loadIdentity(config.dataDir)
-      const identity = stored ? identityToApi(stored) : null
-      logTiming('node:identity', identityStart)
+    const foldStart = now()
+    state = foldDeviceEvents(events)
+    logTiming('node:fold', foldStart)
 
-      return {
-        config,
-        core,
-        get state() {
-          return state
-        },
-        identity,
-        async apply(event: DeviceEvent): Promise<void> {
-          await appendEvent(core, event)
-          state = applyDeviceEvent(state, event)
-        },
-        close: async () => {
-          try {
-            await closeDeviceCore(core)
-          } finally {
-            await releasePidLock()
-          }
+    const swarmStart = now()
+    swarm = await startSwarm(TEST_TOPIC, (socket) => {
+      console.log('peer connected')
+    })
+    logTiming('node:swarm', swarmStart)
+
+    const identityStart = now()
+    const stored = await loadIdentity(config.dataDir)
+    identity = stored ? identityToApi(stored) : null
+    logTiming('node:identity', identityStart)
+
+    // Comprobamos que todas las inicializaciones hayan tenido éxito.
+    if (core === null || swarm === null || state === null) {
+      throw new Error('Inicialización fallida: recursos no disponibles')
+    }
+
+    // Capturamos referencias no-null para usarlas en el objeto devuelto.
+    const openedCore = core
+    const openedSwarm = swarm
+    let currentState = state
+
+    // No iniciamos la limpieza aquí; se inicia en la primera llamada a close().
+    return {
+      config,
+      core: openedCore,
+      swarm: openedSwarm,
+      get state() {
+        return currentState
+      },
+      identity,
+      async apply(event: DeviceEvent): Promise<void> {
+        await appendEvent(openedCore, event)
+        currentState = applyDeviceEvent(currentState, event)
+      },
+      close: (): Promise<void> => {
+        if (closePromise === null) {
+          closePromise = (async () => {
+            try {
+              await openedSwarm.close()
+            } finally {
+              try {
+                await closeDeviceCore(openedCore)
+              } finally {
+                await releasePidLock()
+              }
+            }
+          })()
         }
-      }
-    } catch (error) {
-      await closeDeviceCore(core)
-      throw error
+        return closePromise
+      },
     }
   } catch (error) {
-    await releasePidLock()
+    // Si falló la inicialización, limpiamos los recursos en este orden: swarm, core, lock.
+    try {
+      if (swarm !== null) {
+        await swarm.close()
+      }
+    } finally {
+      try {
+        if (core !== null) {
+          await closeDeviceCore(core)
+        }
+      } finally {
+        await releasePidLock()
+      }
+    }
     throw error
   }
 }
