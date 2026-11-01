@@ -27,7 +27,8 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Importación HTML | `docs/19-onboarding.md` | `src/import/netscape.ts`, `src/api/import.ts` | `test/netscape.test.ts`, `test/import-api.test.ts` | Implementado |
 | Configuración | `docs/22-configuracion.md` | `src/node/config.ts` | `test/config.test.ts` | Implementado |
 | UI Web (pantallas) | `docs/13-ui-ux.md`, `docs/24-ui-vision.md` | `src/ui/*.js`, `src/ui/style.css` | `test/ui.test.ts` | Implementado |
-| Empaquetado standalone (Linux) | `docs/21-distribucion.md` | `bare-build --standalone`, `src/main.ts` | Validación manual del binario y flujo UI | Validado manualmente en Linux (MVP1) |\n| Empaquetado AppImage/Docker | `docs/21-distribucion.md` | `Dockerfile`, `.github/workflows/release.yml`, `.github/workflows/docker-publish.yml` | — | Pendiente de validar (MVP2) |
+| Empaquetado standalone (Linux) | `docs/21-distribucion.md` | `bare-build --standalone`, `src/main.ts` | Validación manual del binario y flujo UI | Validado manualmente en Linux (MVP1) |
+| Empaquetado AppImage/Docker | `docs/21-distribucion.md` | `Dockerfile`, `.github/workflows/release.yml`, `.github/workflows/docker-publish.yml` | — | Pendiente de validar (MVP2) |
 | CI (tests en push) | — | `.github/workflows/ci.yml` | — | Implementado |
 | Replicación P2P (`bmn://`) | `docs/05-arquitectura-p2p.md`, `docs/06-descubrimiento.md` | — | — | Pendiente (MVP2) |
 | Publicación / Escritura dual | `docs/05-arquitectura-p2p.md` | — | — | Pendiente (MVP2) |
