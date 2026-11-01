@@ -130,7 +130,8 @@ test('local UI static assets are served safely alongside the API', async (t) => 
     t.ok(apiModule.body.includes('/api/v1/identity/recovery/import'), 'API helper imports an identity from a recovery phrase')
     t.ok(apiModule.body.includes('/api/v1/backup'), 'API helper creates encrypted backups')
     t.ok(apiModule.body.includes('/api/v1/restore'), 'API helper requests backup restoration')
-    t.ok(apiModule.body.includes('backupPath') && apiModule.body.includes('collections-only'), 'API helper uses the restore payload expected by the backend')
+    t.ok(apiModule.body.includes('backupPath') && apiModule.body.includes('password'), 'API helper uses backupPath and password for restore')
+    t.ok(apiModule.body.includes('/api/v1/restore'), 'API helper calls the restore endpoint')
 
     const settings = await request(api.port, '/assets/settings.js')
     t.is(settings.statusCode, 200, 'settings module is served')
