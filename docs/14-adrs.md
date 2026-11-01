@@ -777,6 +777,16 @@ La recuperación de identidad mediante QR o frase larga es un mecanismo independ
 - **Conservar `node_id` al restaurar en MVP1.** Descartada: permitirlo podría clonar un dispositivo. ADR-017 reserva la recuperación del mismo identificador para MVP2, cuando pueda detectarse duplicación.
 - **Incluir el QR o la frase de recuperación en el backup.** Descartada: son un mecanismo independiente para recuperar la identidad, se generan al crearla y se muestran una sola vez; no son parte de una copia de seguridad.
 
+### Corrección (2026-11-01)
+
+La implementación de la parte 1/3 y de la parte 2/3 completa el backup de MVP1:
+
+- El backup manual está disponible mediante `POST /api/v1/backup`, cifrado con contraseña. La restauración se realiza mediante `POST /api/v1/restore` y admite los modos `all` y `collections-only`.
+- El backup automático se genera en `dataDir/backups/` con un intervalo configurable mediante `config.backupIntervalMs`, cuyo valor predeterminado es 24 horas. Se cifra con XChaCha20-Poly1305 usando una clave derivada de `user_master_key` mediante HKDF-SHA256 y el dominio `bookmarknet:backup:`.
+- El temporizador del backup automático se limpia en `node.close()`; si hay una escritura en curso, se espera a que termine antes de cerrar los recursos del nodo.
+- La lista de dispositivos continúa siendo un placeholder vacío (`[]`) hasta que se implemente el evento `device_add_device`. Esta tarea no modifica el contrato ni el fold de `device_core`.
+- La recuperación por QR o frase larga sigue pendiente y no forma parte de esta implementación (1.4.3).
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
