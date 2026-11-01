@@ -1,4 +1,7 @@
 import type Hypercore from 'hypercore'
+import sodium from 'sodium-native'
+import fs from 'bare-fs'
+import { join } from 'bare-path'
 import type { HTTPServer } from 'bare-http1'
 import type { Config } from './config.ts'
 import { acquirePidLock } from './pid-lock.ts'
@@ -18,7 +21,8 @@ import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import { foldEvents } from '../fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
-import { fromHex } from '../ids.ts'
+import { createBackupWithKey, restoreBackup } from '../backup/backup.ts'
+import { fromHex, utf8Bytes } from '../ids.ts'
 import { userKeypairFromMasterKey } from '../identity.ts'
 import { closeCollectionCore, createCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
 import { startSwarm } from '../p2p/swarm.ts'
@@ -33,6 +37,42 @@ const now = (): number => typeof performance !== 'undefined' && typeof performan
   : Date.now()
 const logTiming = (phase: string, start: number): void => {
   console.log(`[timing] ${phase}: ${Math.round(now() - start)}ms`)
+}
+
+function hmacSha256(key: Uint8Array, message: Uint8Array): Uint8Array {
+  const blockSize = 64
+  const normalizedKey = new Uint8Array(blockSize)
+  normalizedKey.set(key)
+  const innerPad = new Uint8Array(blockSize)
+  const outerPad = new Uint8Array(blockSize)
+  for (let i = 0; i < blockSize; i++) {
+    innerPad[i] = normalizedKey[i] ^ 0x36
+    outerPad[i] = normalizedKey[i] ^ 0x5c
+  }
+  const innerInput = new Uint8Array(innerPad.length + message.length)
+  innerInput.set(innerPad)
+  innerInput.set(message, innerPad.length)
+  const innerDigest = new Uint8Array(32)
+  sodium.crypto_hash_sha256(innerDigest, innerInput)
+  const outerInput = new Uint8Array(outerPad.length + innerDigest.length)
+  outerInput.set(outerPad)
+  outerInput.set(innerDigest, outerPad.length)
+  const output = new Uint8Array(32)
+  sodium.crypto_hash_sha256(output, outerInput)
+  return output
+}
+
+function deriveBackupKey(masterKey: Uint8Array): Uint8Array {
+  if (!(masterKey instanceof Uint8Array) || masterKey.length !== 32) {
+    throw new RangeError('user_master_key debe contener exactamente 32 bytes')
+  }
+  const salt = new Uint8Array(32)
+  const prk = hmacSha256(salt, masterKey)
+  const info = utf8Bytes('bookmarknet:backup:')
+  const expandInput = new Uint8Array(info.length + 1)
+  expandInput.set(info)
+  expandInput[info.length] = 1
+  return hmacSha256(prk, expandInput)
 }
 
 export interface SwarmLike {
@@ -51,6 +91,42 @@ export interface Node {
   close(): Promise<void>
 }
 
+async function processPendingRestore(dataDir: string): Promise<void> {
+  const pendingPath = join(dataDir, 'restore-pending.json')
+  try {
+    await fs.stat(pendingPath)
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ENOENT') return
+    console.error('No se pudo comprobar si hay una restauración pendiente:', error)
+    return
+  }
+
+  try {
+    const raw = await fs.readFile(pendingPath, 'utf8')
+    const pending = JSON.parse(raw) as unknown
+    if (pending === null || typeof pending !== 'object' || Array.isArray(pending)) {
+      throw new RangeError('El archivo de restauración pendiente no contiene un objeto válido')
+    }
+    const request = pending as Record<string, unknown>
+    if (typeof request.backupPath !== 'string' || request.backupPath.length === 0 ||
+        typeof request.password !== 'string' || request.password.length === 0 ||
+        (request.mode !== 'all' && request.mode !== 'collections-only') ||
+        typeof request.requestedAt !== 'string') {
+      throw new RangeError('El archivo de restauración pendiente contiene campos inválidos')
+    }
+    await restoreBackup(dataDir, request.backupPath, request.password, request.mode)
+    console.log('Restauración pendiente completada:', request.backupPath)
+  } catch (error) {
+    console.error('No se pudo completar la restauración pendiente; el arranque continuará con los datos actuales:', error)
+  } finally {
+    try {
+      await fs.rm(pendingPath, { force: true })
+    } catch (error) {
+      console.error('No se pudo borrar restore-pending.json:', error)
+    }
+  }
+}
+
 export async function startNode(config: Config, options?: { swarm?: SwarmLike }): Promise<Node> {
   const releasePidLock = await acquirePidLock(config.dataDir)
 
@@ -60,9 +136,12 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
   let swarm: SwarmLike | null = null
   let state: DeviceState | null = null
   let identity: NodeIdentity | null = null
+  let timerId: ReturnType<typeof setInterval> | null = null
+  let backupInProgress: Promise<void> | null = null
   let closePromise: Promise<void> | null = null
 
   try {
+    await processPendingRestore(config.dataDir)
     nodeId = await loadOrCreateNodeId(config.dataDir)
 
     const openStart = now()
@@ -97,6 +176,24 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     const stored = await loadIdentity(config.dataDir)
     identity = stored ? identityToApi(stored) : null
     logTiming('node:identity', identityStart)
+
+    if (stored !== null) {
+      const backupKey = deriveBackupKey(fromHex(stored.private_key))
+      const backupIntervalMs = config.backupIntervalMs ?? 24 * 60 * 60 * 1000
+      timerId = setInterval(() => {
+        if (backupInProgress !== null) return
+        backupInProgress = (async () => {
+          try {
+            const backupPath = await createBackupWithKey(config.dataDir, backupKey)
+            console.log('Backup automático creado:', backupPath)
+          } catch (error) {
+            console.error('No se pudo crear el backup automático:', error)
+          } finally {
+            backupInProgress = null
+          }
+        })()
+      }, backupIntervalMs)
+    }
 
     // Comprobamos que todas las inicializaciones hayan tenido éxito.
     if (nodeId === null || core === null || view === null || swarm === null || state === null) {
@@ -184,6 +281,12 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
       close: (): Promise<void> => {
         if (closePromise === null) {
           closePromise = (async () => {
+            if (timerId !== null) {
+              clearInterval(timerId)
+              timerId = null
+            }
+            const pendingBackup = backupInProgress
+            if (pendingBackup !== null) await pendingBackup
             try {
               await openedSwarm.close()
             } finally {
@@ -203,6 +306,12 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
       },
     }
   } catch (error) {
+    if (timerId !== null) {
+      clearInterval(timerId)
+      timerId = null
+    }
+    const pendingBackup = backupInProgress
+    if (pendingBackup !== null) await pendingBackup
     // Si falló la inicialización, limpiamos los recursos en este orden: swarm, vista, core y lock.
     try {
       if (swarm !== null) {

@@ -1,7 +1,10 @@
 import http from 'bare-http1'
+import fs from 'bare-fs'
+import { join } from 'bare-path'
 import { assets } from '../ui/assets.generated.js'
 import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
+import { createBackup } from '../backup/backup.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleExportIdentity, handleGetIdentity, handleImportIdentity } from './identity.ts'
@@ -30,6 +33,10 @@ interface MatchedRoute {
   path: string
   query: Record<string, string>
   params: Record<string, string>
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function matchRoute(url: string | undefined): MatchedRoute {
@@ -555,6 +562,74 @@ export async function createServer(config: Config, initialNode: Node | null, lis
     }
 
     try {
+      if (method === 'POST' &&
+          (route.path === '/api/v1/backup' || route.path === '/api/v1/restore')) {
+        let body: unknown
+        try {
+          body = await readJsonBody(req)
+        } catch (err) {
+          sendBodyReadError(res, err, req)
+          return
+        }
+
+        if (!isRecord(body) || typeof body.password !== 'string' || body.password.length === 0) {
+          sendJson(res, 400, errorBody('INVALID_PASSWORD', 'password debe ser un string no vacío'))
+          return
+        }
+
+        try {
+          if (route.path === '/api/v1/backup') {
+            const path = await createBackup({ dataDir: node!.config.dataDir, password: body.password })
+            const stat = await fs.stat(path)
+            sendJson(res, 200, {
+              path,
+              createdAt: new Date().toISOString(),
+              size: stat.size
+            })
+            return
+          }
+
+          if (typeof body.backupPath !== 'string' || body.backupPath.length === 0) {
+            sendJson(res, 400, errorBody('INVALID_BACKUP_PATH', 'backupPath debe ser una ruta no vacía'))
+            return
+          }
+          if (body.mode !== 'all' && body.mode !== 'collections-only') {
+            sendJson(res, 400, errorBody('INVALID_MODE', 'mode debe ser all o collections-only'))
+            return
+          }
+          try {
+            await fs.stat(body.backupPath)
+          } catch (error) {
+            if ((error as { code?: string }).code === 'ENOENT') {
+              sendJson(res, 400, errorBody('BACKUP_NOT_FOUND', 'No se encontró el archivo de backup'))
+              return
+            }
+            throw error
+          }
+          const pendingPath = join(node!.config.dataDir, 'restore-pending.json')
+          const pending = {
+            backupPath: body.backupPath,
+            password: body.password,
+            mode: body.mode,
+            requestedAt: new Date().toISOString()
+          }
+          await fs.writeFile(pendingPath, JSON.stringify(pending), { mode: 0o600 })
+          await fs.chmod(pendingPath, 0o600)
+          sendJson(res, 200, {
+            status: 'pending',
+            message: 'Reinicia el nodo para completar la restauración'
+          })
+          return
+        } catch (error) {
+          console.error('No se pudo completar la operación de backup:', error)
+          const status = error instanceof RangeError ? 400 : 500
+          sendJson(res, status, errorBody(
+            status === 400 ? 'INVALID_BACKUP' : 'INTERNAL',
+            status === 400 ? (error as Error).message : 'Error interno del servidor'
+          ))
+          return
+        }
+      }
       if (method === 'GET' && route.path === '/api/v1/search') {
         const result = await handleSearch(node!, { q: route.query.q })
         sendJson(res, result.status, result.body)

@@ -342,3 +342,31 @@ test('startNode persists and reuses node_id across restarts', async (t) => {
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
+
+
+test('startNode creates automatic backups and clears the timer on close', async (t) => {
+  const dataDir = DATA_DIR + '-auto-backup'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    await createIdentity(dataDir)
+    const config = { ...defaultConfig(), dataDir, backupIntervalMs: 100 }
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    await new Promise<void>((resolve) => setTimeout(resolve, 250))
+
+    const backupDir = dataDir + '/backups'
+    const backups = await fs.readdir(backupDir)
+    t.ok(backups.some((name: string) => name.endsWith('.bmn')), 'automatic backup is created after the configured interval')
+
+    await node.close()
+    node = null
+    const countAfterClose = (await fs.readdir(backupDir)).length
+    await new Promise<void>((resolve) => setTimeout(resolve, 200))
+    const countAfterWait = (await fs.readdir(backupDir)).length
+    t.is(countAfterWait, countAfterClose, 'no further backups are created after node.close')
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})

@@ -10,6 +10,7 @@ export interface Config {
   openBrowserOnStart: boolean
   allowedHosts: string[]
   bind: string
+  backupIntervalMs?: number
 }
 
 type JsonConfig = {
@@ -19,6 +20,7 @@ type JsonConfig = {
   open_browser_on_start?: unknown
   allowed_hosts?: unknown
   bind?: unknown
+  backup_interval_ms?: unknown
 }
 
 function expandHome(path: string): string {
@@ -39,7 +41,8 @@ export function defaultConfig(): Config {
     logLevel: 'info',
     openBrowserOnStart: true,
     allowedHosts: ['localhost', '127.0.0.1', '[::1]'],
-    bind: '127.0.0.1'
+    bind: '127.0.0.1',
+    backupIntervalMs: 24 * 60 * 60 * 1000
   }
 }
 
@@ -72,6 +75,14 @@ function validPort(value: unknown, source: string): number {
     throw new RangeError(`${source} must be a positive integer port`)
   }
   return port
+}
+
+function validBackupInterval(value: unknown, fallback: number): number {
+  if (value === undefined) return fallback
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    throw new RangeError('backup_interval_ms debe ser un entero positivo')
+  }
+  return value
 }
 
 function stringValue(value: unknown, fallback: string): string {
@@ -138,6 +149,7 @@ export function loadConfig(configPath?: string): Config {
     logLevel,
     openBrowserOnStart,
     allowedHosts,
-    bind: env.BOOKMARKNET_BIND ?? stringValue(effectiveJson.bind, defaults.bind)
+    bind: env.BOOKMARKNET_BIND ?? stringValue(effectiveJson.bind, defaults.bind),
+    backupIntervalMs: validBackupInterval(effectiveJson.backup_interval_ms, defaults.backupIntervalMs ?? 24 * 60 * 60 * 1000)
   }
 }
