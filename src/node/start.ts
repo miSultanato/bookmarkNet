@@ -4,6 +4,14 @@ import type { Config } from './config.ts'
 import { acquirePidLock } from './pid-lock.ts'
 import { loadOrCreateNodeId } from './node-id.ts'
 import { appendEvent, closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
+import {
+  closeMaterializedView,
+  getLastProcessedEvent,
+  openMaterializedView,
+  setDeviceState,
+  setLastProcessedEvent
+} from '../storage/materialized-view.ts'
+import type { MaterializedViewHandle } from '../storage/materialized-view.ts'
 import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
@@ -32,6 +40,7 @@ export interface SwarmLike {
 export interface Node {
   config: Config
   core: Hypercore
+  view: MaterializedViewHandle
   state: DeviceState
   identity: NodeIdentity | null
   nodeId: string
@@ -45,6 +54,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
 
   let nodeId: string | null = null
   let core: Hypercore | null = null
+  let view: MaterializedViewHandle | null = null
   let swarm: SwarmLike | null = null
   let state: DeviceState | null = null
   let identity: NodeIdentity | null = null
@@ -64,6 +74,16 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     const foldStart = now()
     state = foldDeviceEvents(events)
     logTiming('node:fold', foldStart)
+
+    const viewStart = now()
+    view = await openMaterializedView(config.dataDir)
+    const lastProcessed = await getLastProcessedEvent(view, 'device')
+    const lastEventIndex = core.length - 1
+    if (lastProcessed !== lastEventIndex) {
+      await setDeviceState(view, state)
+      await setLastProcessedEvent(view, 'device', lastEventIndex)
+    }
+    logTiming('node:view', viewStart)
 
     const swarmStart = now()
     swarm = options?.swarm ?? await startSwarm(TEST_TOPIC, (socket) => {
@@ -128,6 +148,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
 
     // Capturamos referencias no-null para usarlas en el objeto devuelto.
     const openedCore = core
+    const openedView = view
     const openedSwarm = swarm
     const openedNodeId = nodeId
     let currentState = state
@@ -136,6 +157,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     return {
       config,
       core: openedCore,
+      view: openedView,
       swarm: openedSwarm,
       nodeId: openedNodeId,
       get state() {
@@ -143,8 +165,10 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
       },
       identity,
       async apply(event: DeviceEvent): Promise<void> {
-        await appendEvent(openedCore, event)
+        const eventIndex = await appendEvent(openedCore, event)
         currentState = applyDeviceEvent(currentState, event)
+        await setDeviceState(openedView, currentState)
+        await setLastProcessedEvent(openedView, 'device', eventIndex)
       },
       close: (): Promise<void> => {
         if (closePromise === null) {
@@ -153,9 +177,13 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
               await openedSwarm.close()
             } finally {
               try {
-                await closeDeviceCore(openedCore)
+                await closeMaterializedView(openedView)
               } finally {
-                await releasePidLock()
+                try {
+                  await closeDeviceCore(openedCore)
+                } finally {
+                  await releasePidLock()
+                }
               }
             }
           })()
@@ -164,18 +192,24 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
       },
     }
   } catch (error) {
-    // Si falló la inicialización, limpiamos los recursos en este orden: swarm, core, lock.
+    // Si falló la inicialización, limpiamos los recursos en este orden: swarm, vista, core y lock.
     try {
       if (swarm !== null) {
         await swarm.close()
       }
     } finally {
       try {
-        if (core !== null) {
-          await closeDeviceCore(core)
+        if (view !== null) {
+          await closeMaterializedView(view)
         }
       } finally {
-        await releasePidLock()
+        try {
+          if (core !== null) {
+            await closeDeviceCore(core)
+          }
+        } finally {
+          await releasePidLock()
+        }
       }
     }
     throw error
