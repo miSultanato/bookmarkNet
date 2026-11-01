@@ -324,16 +324,7 @@ async function removeIfExists(path: string): Promise<void> {
  * Crea un backup cifrado de la identidad (si existe), device_core y
  * collection_core. El formato combina una cabecera versionada y un TAR USTAR.
  */
-export async function createBackup(options: CreateBackupOptions): Promise<string> {
-  if (options === null || typeof options !== 'object' ||
-      typeof options.dataDir !== 'string' || options.dataDir.length === 0) {
-    throw new RangeError('dataDir debe ser una ruta no vacía')
-  }
-  if (typeof options.password !== 'string' || options.password.length === 0) {
-    throw new RangeError('La contraseña del backup no puede estar vacía')
-  }
-
-  const dataDir = options.dataDir
+async function createArchive(dataDir: string): Promise<Uint8Array> {
   const entries: TarEntry[] = []
   if (await exists(join(dataDir, 'identity.bmn'))) {
     entries.push({ path: 'identity.bmn', type: 'file', data: new Uint8Array(await fs.readFile(join(dataDir, 'identity.bmn'))) })
@@ -351,7 +342,10 @@ export async function createBackup(options: CreateBackupOptions): Promise<string
     type: 'file',
     data: encodeUtf8(JSON.stringify(manifest))
   })
-  const encrypted = encryptArchive(createTar(entries), options.password)
+  return createTar(entries)
+}
+
+async function writeBackupFile(dataDir: string, encrypted: Uint8Array): Promise<string> {
   const backupsDir = join(dataDir, 'backups')
   await fs.mkdir(backupsDir, { recursive: true, mode: 0o700 })
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -359,6 +353,45 @@ export async function createBackup(options: CreateBackupOptions): Promise<string
   await fs.writeFile(backupPath, encrypted, { mode: 0o600 })
   await fs.chmod(backupPath, 0o600)
   return backupPath
+}
+
+/** Crea un backup cifrado con contraseña mediante Argon2id y XChaCha20-Poly1305. */
+export async function createBackup(options: CreateBackupOptions): Promise<string> {
+  if (options === null || typeof options !== 'object' ||
+      typeof options.dataDir !== 'string' || options.dataDir.length === 0) {
+    throw new RangeError('dataDir debe ser una ruta no vacía')
+  }
+  if (typeof options.password !== 'string' || options.password.length === 0) {
+    throw new RangeError('La contraseña del backup no puede estar vacía')
+  }
+  const archive = await createArchive(options.dataDir)
+  return writeBackupFile(options.dataDir, encryptArchive(archive, options.password))
+}
+
+/**
+ * Crea un backup automático cifrado con una clave de 32 bytes derivada del
+ * user_master_key mediante HKDF-SHA256 (dominio bookmarknet:backup:).
+ */
+export async function createBackupWithKey(dataDir: string, key: Uint8Array): Promise<string> {
+  if (typeof dataDir !== 'string' || dataDir.length === 0) {
+    throw new RangeError('dataDir debe ser una ruta no vacía')
+  }
+  if (!(key instanceof Uint8Array) || key.length !== sodium.crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
+    throw new RangeError('La clave del backup debe contener exactamente 32 bytes')
+  }
+  const archive = await createArchive(dataDir)
+  const salt = new Uint8Array(sodium.crypto_pwhash_SALTBYTES)
+  sodium.randombytes_buf(salt)
+  const nonce = new Uint8Array(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)
+  sodium.randombytes_buf(nonce)
+  const header = new Uint8Array(HEADER_BYTES)
+  header.set(MAGIC, 0)
+  header[MAGIC.length] = FORMAT_VERSION
+  header.set(salt, MAGIC.length + 1)
+  header.set(nonce, MAGIC.length + 1 + salt.length)
+  const ciphertext = new Uint8Array(archive.length + sodium.crypto_aead_xchacha20poly1305_ietf_ABYTES)
+  sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(ciphertext, archive, header, null, nonce, key)
+  return writeBackupFile(dataDir, concat([header, ciphertext]))
 }
 
 /**
