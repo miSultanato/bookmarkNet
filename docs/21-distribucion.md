@@ -12,6 +12,19 @@ Este documento define cómo se empaqueta, publica e instala BookmarkNet.
 
 Ambos formatos contienen el mismo core Bare + UI web local. El binario arranca el servidor web y (opcionalmente) abre el navegador. El contenedor Docker expone el puerto de la API local.
 
+## Estado de validación (MVP1)
+
+**Empaquetado validado en MVP1:** binario standalone generado con `bare-build --standalone`, probado en Linux.
+
+Funcionalidades validadas en el binario:
+- Onboarding.
+- Creación de identidad y generación de la frase de recuperación BIP39.
+- Creación de colecciones y bookmarks.
+- Backup y restore.
+- Recuperación de identidad mediante frase BIP39.
+
+**Pendiente de validar en MVP2:** distribución mediante AppImage y Docker. Que existan workflows o instrucciones de construcción para esos formatos no implica que sus artefactos y sus respectivos flujos de instalación y ejecución estén validados.
+
 ## Publicación
 
 - **Binarios nativos:** se publican en **GitHub Releases**. Cada release incluye los binarios por plataforma, el hash SHA-256 de cada uno, y las notas de versión.
