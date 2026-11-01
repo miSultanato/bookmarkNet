@@ -638,3 +638,24 @@ body.welcome-layout {
   .search-page-header h1 { font-size: 1.45rem; }
   .search-group-row { grid-template-columns: 1fr; gap: 6px; }
 }
+
+
+/* Recuperación de identidad y operaciones de backup. */
+.recovery-screen { max-width: 48rem; }
+.recovery-help { padding: 12px 14px; border-left: 3px solid var(--accent); background: #f1f5f9; }
+.recovery-words { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 0; list-style: none; counter-reset: recovery; }
+.recovery-word { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; }
+.recovery-word-number { color: var(--muted); font-size: .8rem; min-width: 1.4rem; text-align: right; }
+.recovery-word-value { font-weight: 600; overflow-wrap: anywhere; }
+.recovery-confirm { display: flex; align-items: center; gap: 10px; margin: 12px 0; color: var(--fg); }
+.recovery-confirm input { width: auto; min-width: auto; }
+.recovery-import label { display: grid; gap: 8px; }
+.recovery-phrase-input { width: 100%; resize: vertical; }
+.backup-section { gap: 18px; }
+.backup-form, .restore-form { display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
+.backup-form h3, .restore-form h3 { margin: 0; font-size: 1rem; }
+.backup-form label, .restore-form label { display: grid; gap: 6px; }
+.backup-form button, .restore-form button { justify-self: start; }
+@media (max-width: 540px) {
+  .recovery-words { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
