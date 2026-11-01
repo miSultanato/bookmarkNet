@@ -28,6 +28,38 @@ export async function createIdentity() {
   })
 }
 
+export async function getRecoveryPhrase() {
+  return request('/api/v1/identity/recovery/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  })
+}
+
+export async function importRecoveryPhrase(phrase) {
+  return request('/api/v1/identity/recovery/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phrase })
+  })
+}
+
+export async function createBackup(password) {
+  return request('/api/v1/backup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+}
+
+export async function restoreBackup({ backupPath, password, mode }) {
+  return request('/api/v1/restore', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ backupPath, password, mode })
+  })
+}
+
 export async function getCollections() {
   return request('/api/v1/collections')
 }
