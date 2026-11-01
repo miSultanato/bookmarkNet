@@ -2,6 +2,7 @@ import type Hypercore from 'hypercore'
 import type { HTTPServer } from 'bare-http1'
 import type { Config } from './config.ts'
 import { acquirePidLock } from './pid-lock.ts'
+import { loadOrCreateNodeId } from './node-id.ts'
 import { appendEvent, closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
 import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
@@ -30,6 +31,7 @@ export interface Node {
   core: Hypercore
   state: DeviceState
   identity: NodeIdentity | null
+  nodeId: string
   swarm: SwarmLike
   apply(event: DeviceEvent): Promise<void>
   close(): Promise<void>
@@ -38,6 +40,7 @@ export interface Node {
 export async function startNode(config: Config, options?: { swarm?: SwarmLike }): Promise<Node> {
   const releasePidLock = await acquirePidLock(config.dataDir)
 
+  let nodeId: string | null = null
   let core: Hypercore | null = null
   let swarm: SwarmLike | null = null
   let state: DeviceState | null = null
@@ -45,6 +48,8 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
   let closePromise: Promise<void> | null = null
 
   try {
+    nodeId = await loadOrCreateNodeId(config.dataDir)
+
     const openStart = now()
     core = await openDeviceCore(config.dataDir)
     logTiming('node:open', openStart)
@@ -76,6 +81,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     // Capturamos referencias no-null para usarlas en el objeto devuelto.
     const openedCore = core
     const openedSwarm = swarm
+    const openedNodeId = nodeId
     let currentState = state
 
     // No iniciamos la limpieza aquí; se inicia en la primera llamada a close().
@@ -83,6 +89,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
       config,
       core: openedCore,
       swarm: openedSwarm,
+      nodeId: openedNodeId,
       get state() {
         return currentState
       },
