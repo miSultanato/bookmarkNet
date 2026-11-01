@@ -9,8 +9,8 @@ echo "=== INTEGRATION ==="
 npm run test:integration 2>&1 | tee /tmp/bookmarknet-integration.log
 
 echo ""
-UNIT=$(grep -oP '# tests = \K[0-9]+' /tmp/bookmarknet-unit.log | tail -1 || true)
-INTEG=$(grep -oP '# tests = \K[0-9]+' /tmp/bookmarknet-integration.log | tail -1 || true)
+UNIT=$(sed -n 's/^# tests = \([0-9]*\)\/.*/\1/p' /tmp/bookmarknet-unit.log | tail -1 || true)
+INTEG=$(sed -n 's/^# tests = \([0-9]*\)\/.*/\1/p' /tmp/bookmarknet-integration.log | tail -1 || true)
 
 if [[ -z "$UNIT" || -z "$INTEG" ]]; then
   echo "Error: no se pudo extraer el total de tests de Brittle." >&2
