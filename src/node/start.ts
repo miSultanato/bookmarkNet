@@ -74,7 +74,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     logTiming('node:identity', identityStart)
 
     // Comprobamos que todas las inicializaciones hayan tenido éxito.
-    if (core === null || swarm === null || state === null) {
+    if (nodeId === null || core === null || swarm === null || state === null) {
       throw new Error('Inicialización fallida: recursos no disponibles')
     }
 
