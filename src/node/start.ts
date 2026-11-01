@@ -76,8 +76,13 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     identity = stored ? identityToApi(stored) : null
     logTiming('node:identity', identityStart)
 
+    // Comprobamos que todas las inicializaciones hayan tenido éxito.
+    if (nodeId === null || core === null || swarm === null || state === null) {
+      throw new Error('Inicialización fallida: recursos no disponibles')
+    }
+
     // Inicializamos los collection_core locales sin anunciar ni publicar sus topics.
-    if (stored !== null && state !== null) {
+    if (stored !== null) {
       const masterKey = fromHex(stored.private_key)
       const authorKeypair = userKeypairFromMasterKey(masterKey)
       const authorId = identity?.user_id
@@ -111,11 +116,6 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
       }
     } else if (state !== null && [...state.collections.values()].some((collection) => !collection.deleted)) {
       console.error('No se pueden inicializar los collection_core: no hay una identidad local disponible')
-    }
-
-    // Comprobamos que todas las inicializaciones hayan tenido éxito.
-    if (nodeId === null || core === null || swarm === null || state === null) {
-      throw new Error('Inicialización fallida: recursos no disponibles')
     }
 
     // Capturamos referencias no-null para usarlas en el objeto devuelto.
