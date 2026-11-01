@@ -10,7 +10,7 @@ import { readAllEvents } from '../storage/device-core.ts'
 import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
-import { handleCreateIdentity, handleExportIdentity, handleGetIdentity, handleImportIdentity } from './identity.ts'
+import { handleCreateIdentity, handleExportIdentity, handleGenerateRecoveryPhrase, handleGetIdentity, handleImportIdentity, handleImportRecoveryPhrase, handleValidateRecoveryPhrase } from './identity.ts'
 import { handleGetProfile, handleUpdateProfile } from './profile.ts'
 import { handleGetConfig } from './config.ts'
 import { handleImportHtml } from './import.ts'
@@ -555,6 +555,35 @@ export async function createServer(config: Config, initialNode: Node | null, lis
       sendJson(res, result.status, result.body)
       return
     }
+    if (method === 'POST' && route.path === '/api/v1/identity/recovery/generate') {
+      const result = await handleGenerateRecoveryPhrase(config.dataDir)
+      sendJson(res, result.status, result.body)
+      return
+    }
+    if (method === 'POST' &&
+        (route.path === '/api/v1/identity/recovery/validate' ||
+         route.path === '/api/v1/identity/recovery/import')) {
+      let body: unknown
+      try {
+        body = await readJsonBody(req)
+      } catch (err) {
+        sendBodyReadError(res, err, req)
+        return
+      }
+      if (route.path === '/api/v1/identity/recovery/validate') {
+        const result = handleValidateRecoveryPhrase(body)
+        sendJson(res, result.status, result.body)
+        return
+      }
+      const result = await handleImportRecoveryPhrase(config.dataDir, body)
+      if (result.status === 201) {
+        const identity = (result.body as { identity: NonNullable<Node['identity']> }).identity
+        node!.identity = identity
+      }
+      sendJson(res, result.status, result.body)
+      return
+    }
+
     if (method === 'POST' && route.path === '/api/v1/identity/create') {
       const result = await handleCreateIdentity(config.dataDir)
       if (result.status === 201) {
