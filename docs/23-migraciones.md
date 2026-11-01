@@ -30,10 +30,16 @@ migrate_add_bookmark(bloque, target_version):
 
 ## Migración de la vista materializada
 
-- Siempre automática y transparente. Al arrancar, el nodo lee los bloques del log, aplica las migraciones al vuelo, y guarda la vista materializada en la versión actual.
-- Persistida en disco. La vista materializada se guarda en un índice local (Hyperbee, SQLite o archivo). No se recalcula en cada arranque.
-- Solo se recalcula cuando llegan bloques nuevos o cuando la vista no existe.
-- El usuario no hace nada. No sabe que ha habido una migración.
+La vista materializada está implementada en MVP1 sobre **Hyperbee** (ADR-016), persistida en el directorio local de datos. Se mantienen vistas independientes:
+
+- Una vista del estado de `device_core` (perfil, colecciones, bookmarks y grupos).
+- Una vista por cada `collection_core` (metadatos, bookmarks y grupos), reconstruida exclusivamente desde los eventos de ese core.
+
+Al arrancar, el nodo lee los eventos y pliega cada log para obtener el estado actual. Después compara el último índice procesado de cada vista con la longitud de su log correspondiente (`core.length - 1`). Si no coinciden —incluido el caso en que la vista todavía no existe—, persiste el estado plegado y el nuevo índice de sincronización. Si coinciden, conserva la vista persistida. En esta implementación MVP1, la vista aún no sustituye la lectura y el fold completos durante el arranque.
+
+En MVP1, la vista de `collection_core` refleja únicamente el génesis y los bookmarks/grupos iniciales escritos al crear ese core. Los cambios posteriores se guardan solo en `device_core`; no se proyectan sobre la vista de colección ni existe escritura dual. La escritura dual y la actualización coordinada de ambos logs corresponden a MVP2.
+
+La migración de esquema de la vista sigue siendo automática: cuando se introduzca un cambio incompatible en su formato, deberá reconstruirse desde el log aplicando las migraciones necesarias.
 
 ## Migración de colecciones no publicadas
 
