@@ -31,7 +31,7 @@ MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista
 
 ## Validación
 
-**MVP1 completado y validado en Linux (binario standalone).** La suite completa pasa: **278/278 tests (226 unitarios + 52 de integración)**. El binario se generó con `bare-build --standalone` y se probó el flujo completo desde la UI: onboarding, creación de identidad, frase BIP39, creación de colección y bookmarks, backup, restore y recuperación de identidad. La validación de los formatos AppImage y Docker queda pendiente para MVP2.
+**MVP1 completado y validado en Linux (binario standalone y AppImage).** La suite completa pasa: **278/278 tests (226 unitarios + 52 de integración)**. El binario standalone se generó con `bare-build --standalone`; ambos empaquetados se probaron en Linux y sirven la UI con el flujo completo: onboarding, creación de identidad, frase BIP39, creación de colección y bookmarks, backup, restore y recuperación de identidad. La validación de Docker queda pendiente para MVP2.
 
 ## Backups
 
