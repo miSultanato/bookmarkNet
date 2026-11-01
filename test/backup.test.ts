@@ -95,6 +95,16 @@ async function readCollectionEventsFromDisk(dataDir: string, masterKey: Uint8Arr
   }
 }
 
+async function readBackupData(dataDir: string, masterKey: Uint8Array) {
+  const deviceEvents = await readDeviceEvents(dataDir)
+  const collectionEvents = await readCollectionEventsFromDisk(dataDir, masterKey)
+  return {
+    deviceEvents,
+    collectionEvents: new Map([[COLLECTION_UUID, collectionEvents]]),
+    collections: [COLLECTION_UUID]
+  }
+}
+
 async function prepareDataDir(
   dataDir: string,
   marker: string,
@@ -169,7 +179,7 @@ test('createBackup serializes device and collection events with private permissi
   const dataDir = join(ROOT, 'source')
   try {
     const prepared = await prepareDataDir(dataDir, 'source')
-    const backupPath = await createBackup({ dataDir, password: PASSWORD })
+    const backupPath = await createBackup({ dataDir, password: PASSWORD, ...await readBackupData(dataDir, prepared.masterKey) })
     const bytes = new Uint8Array(await fs.readFile(backupPath))
     const stat = await fs.stat(backupPath)
     t.is(ascii(bytes.subarray(0, MAGIC.length)), MAGIC, 'backup starts with the format magic')
@@ -200,10 +210,10 @@ test('createBackupWithKey uses the event archive format', async (t) => {
   await fs.rm(ROOT, { recursive: true, force: true })
   const dataDir = join(ROOT, 'source-key')
   try {
-    await prepareDataDir(dataDir, 'key')
+    const prepared = await prepareDataDir(dataDir, 'key')
     const key = new Uint8Array(32)
     sodium.randombytes_buf(key)
-    const backupPath = await createBackupWithKey(dataDir, key)
+    const backupPath = await createBackupWithKey(dataDir, key, await readBackupData(dataDir, prepared.masterKey))
     const bytes = new Uint8Array(await fs.readFile(backupPath))
     t.is(bytes[ MAGIC.length ], 2, 'automatic backup uses format version 2')
     t.is(bytes.length > HEADER_BYTES, true, 'automatic backup contains encrypted data')
@@ -218,7 +228,7 @@ test('restoreBackup all rebuilds cores from events and regenerates node_id', asy
   const target = join(ROOT, 'target')
   try {
     const sourceState = await prepareDataDir(source, 'source')
-    const backupPath = await createBackup({ dataDir: source, password: PASSWORD })
+    const backupPath = await createBackup({ dataDir: source, password: PASSWORD, ...await readBackupData(source, sourceState.masterKey) })
     const targetState = await prepareDataDir(target, 'target')
 
     await restoreBackup(target, backupPath, PASSWORD, 'all')
@@ -247,7 +257,7 @@ test('restoreBackup collections-only rebuilds cores and preserves identity and n
   const target = join(ROOT, 'target')
   try {
     const sourceState = await prepareDataDir(source, 'source')
-    const backupPath = await createBackup({ dataDir: source, password: PASSWORD })
+    const backupPath = await createBackup({ dataDir: source, password: PASSWORD, ...await readBackupData(source, sourceState.masterKey) })
     const targetState = await prepareDataDir(target, 'target', sourceState.identity)
 
     await restoreBackup(target, backupPath, PASSWORD, 'collections-only')
@@ -267,8 +277,8 @@ test('restoreBackup rejects an incorrect password without changing current data'
   const source = join(ROOT, 'source')
   const target = join(ROOT, 'target')
   try {
-    await prepareDataDir(source, 'source')
-    const backupPath = await createBackup({ dataDir: source, password: PASSWORD })
+    const sourceState = await prepareDataDir(source, 'source')
+    const backupPath = await createBackup({ dataDir: source, password: PASSWORD, ...await readBackupData(source, sourceState.masterKey) })
     const targetState = await prepareDataDir(target, 'target')
     let error: unknown = null
     try {
@@ -289,8 +299,8 @@ test('restoreBackup rejects a corrupt backup without changing current data', asy
   const target = join(ROOT, 'target')
   const corruptPath = join(ROOT, 'corrupt.bmn')
   try {
-    await prepareDataDir(source, 'source')
-    const backupPath = await createBackup({ dataDir: source, password: PASSWORD })
+    const sourceState = await prepareDataDir(source, 'source')
+    const backupPath = await createBackup({ dataDir: source, password: PASSWORD, ...await readBackupData(source, sourceState.masterKey) })
     const bytes = new Uint8Array(await fs.readFile(backupPath))
     bytes[bytes.length - 1] ^= 0xff
     await fs.writeFile(corruptPath, bytes)
@@ -313,8 +323,8 @@ test('restoreBackup collections-only rejects an identity that does not own the a
   const source = join(ROOT, 'source')
   const target = join(ROOT, 'target')
   try {
-    await prepareDataDir(source, 'source')
-    const backupPath = await createBackup({ dataDir: source, password: PASSWORD })
+    const sourceState = await prepareDataDir(source, 'source')
+    const backupPath = await createBackup({ dataDir: source, password: PASSWORD, ...await readBackupData(source, sourceState.masterKey) })
     const targetState = await prepareDataDir(target, 'target')
     let error: unknown = null
     try {
