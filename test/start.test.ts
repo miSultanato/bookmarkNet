@@ -1,13 +1,14 @@
 import fs from 'bare-fs'
 import test from 'brittle'
-import { deviceMetadata } from '../src/device-events.ts'
+import { deviceCreateCollection, deviceMetadata } from '../src/device-events.ts'
 import { userKeypairFromMasterKey } from '../src/identity.ts'
 import { createIdentity, identityToApi } from '../src/identity/store.ts'
-import { userIdFromPublicKey } from '../src/ids.ts'
+import { fromHex, userIdFromPublicKey } from '../src/ids.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
 import { createFakeSwarm } from './helpers/fake-swarm.ts'
 import { appendEvent } from '../src/storage/device-core.ts'
+import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../src/storage/collection-core.ts'
 
 const DATA_DIR = './tmp-test-start'
 
@@ -55,6 +56,43 @@ test('startNode folds persisted device events after restart', async (t) => {
   } finally {
     if (node !== null) await node.close()
     await fs.rm(DATA_DIR, { recursive: true, force: true })
+  }
+})
+
+test('startNode creates collection_core for persisted local collections', async (t) => {
+  const dataDir = DATA_DIR + '-collection-core'
+  const collectionId = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), dataDir }
+    const storedIdentity = await createIdentity(dataDir)
+    const expectedIdentity = identityToApi(storedIdentity)
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    await node.apply(deviceCreateCollection({
+      authorId: expectedIdentity.user_id,
+      collectionId,
+      name: 'Colección persistida',
+      visibility: 'public',
+      language: 'es'
+    }))
+    await node.close()
+    node = null
+
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    const collectionCore = await openExistingCollectionCore(dataDir, collectionId, fromHex(storedIdentity.private_key))
+    try {
+      const events = await readCollectionEvents(collectionCore)
+      t.is(events[0]?.event_type, 'collection_genesis', 'startup creates the collection genesis')
+      const genesis = events[0]
+      t.is(genesis?.event_type === 'collection_genesis' ? genesis.payload.visibility : null, 'unlisted', 'startup creates an unlisted genesis')
+    } finally {
+      await closeCollectionCore(collectionCore)
+    }
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
 
