@@ -5,6 +5,7 @@ import { utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface Response {
   statusCode: number
@@ -55,7 +56,7 @@ test('groups API creates, lists, filters and soft-deletes groups', async (t) => 
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
 
     const empty = await request(api.port, 'GET', '/api/v1/groups')
@@ -139,7 +140,7 @@ test('group creation and deletion require an identity', async (t) => {
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const created = await request(api.port, 'POST', '/api/v1/groups', {
       name: 'Sin identidad',
@@ -165,7 +166,7 @@ test('group created through API persists after restarting the node', async (t) =
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Persistencia de grupos')
     const created = await request(api.port, 'POST', '/api/v1/groups', {
@@ -180,7 +181,7 @@ test('group created through API persists after restarting the node', async (t) =
     await node.close()
     node = null
 
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     const persisted = node.state.groups.get(groupId)
     t.ok(persisted, 'group exists after reopening node')
     t.is(persisted?.name, 'Persistente', 'group name was restored')
@@ -202,7 +203,7 @@ test('groups API moves bookmarks and validates group and collection', async (t) 
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Mover bookmarks')
     const otherCollection = await request(api.port, 'POST', '/api/v1/collections', { name: 'Otra colección' })
@@ -259,7 +260,7 @@ test('moving bookmarks requires an identity', async (t) => {
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const response = await request(api.port, 'POST', '/api/v1/groups/g_000000000000/move', { bookmark_id: '01ARZ3NDEKTSV4RRFFQ69G5FAV' })
     t.is(response.statusCode, 401, 'move without identity returns 401')
@@ -279,7 +280,7 @@ test('moving a bookmark persists after restarting the node', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Persistencia de move')
     const group = await request(api.port, 'POST', '/api/v1/groups', { name: 'Persistente', collection_id: collectionId })
@@ -297,7 +298,7 @@ test('moving a bookmark persists after restarting the node', async (t) => {
     api = null
     await node.close()
     node = null
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.state.bookmarks.get(bookmarkId)?.groupId, groupId, 'new groupId is restored after restart')
   } finally {
     if (api !== null) await api.close()

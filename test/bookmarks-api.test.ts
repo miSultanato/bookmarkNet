@@ -6,6 +6,7 @@ import { resourceIdFromCanonicalUrl, utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface Response {
   statusCode: number
@@ -60,7 +61,7 @@ test('bookmarks API creates, lists, filters and fetches local bookmarks', async 
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Colección principal')
     const otherCollectionId = (await request(api.port, 'POST', '/api/v1/collections', { name: 'Otra colección' })).body.collection.collection_id as string
@@ -195,7 +196,7 @@ test('bookmark move endpoint handles Inbox, collections and groups', async (t) =
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Destino')
     const otherCollectionResponse = await request(api.port, 'POST', '/api/v1/collections', { name: 'Otra colección' })
@@ -257,7 +258,7 @@ test('bookmark move requires an identity', async (t) => {
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const response = await request(api.port, 'POST', '/api/v1/bookmarks/01ARZ3NDEKTSV4RRFFQ69G5FAV/move', { collection_id: null })
     t.is(response.statusCode, 401, 'move without identity returns 401')
@@ -277,7 +278,7 @@ test('bookmark move persists after restarting the node', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Persistencia move')
     const otherCollection = await request(api.port, 'POST', '/api/v1/collections', { name: 'Colección destino' })
@@ -295,7 +296,7 @@ test('bookmark move persists after restarting the node', async (t) => {
     api = null
     await node.close()
     node = null
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     const persisted = node.state.bookmarks.get(bookmarkId)
     t.is(persisted?.collectionId, targetCollectionId, 'target collection is restored after restart')
     t.is(persisted?.groupId, null, 'group is restored as null after restart')
@@ -314,7 +315,7 @@ test('bookmark writes require an identity', async (t) => {
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const response = await request(api.port, 'POST', '/api/v1/bookmarks', {
       url: 'https://example.com/', collection_id: 'does-not-matter'
@@ -336,7 +337,7 @@ test('bookmark created through API persists after restarting the node', async (t
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Persistencia')
     const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
@@ -353,7 +354,7 @@ test('bookmark created through API persists after restarting the node', async (t
     await node.close()
     node = null
 
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     const persisted = node.state.bookmarks.get(bookmarkId)
     t.ok(persisted, 'bookmark exists after reopening node')
     t.is(persisted?.title, 'Persistente', 'bookmark title was restored')
@@ -376,7 +377,7 @@ test('bookmark PATCH and DELETE endpoints validate changes and soft-delete', asy
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'PATCH y DELETE')
     const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
@@ -451,7 +452,7 @@ test('bookmark PATCH and DELETE require an identity', async (t) => {
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const id = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
     const patched = await request(api.port, 'PATCH', '/api/v1/bookmarks/' + id, { title: 'Sin identidad' })
@@ -475,7 +476,7 @@ test('bookmark PATCH changes persist after restarting the node', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Persistencia PATCH')
     const created = await request(api.port, 'POST', '/api/v1/bookmarks', {
@@ -492,7 +493,7 @@ test('bookmark PATCH changes persist after restarting the node', async (t) => {
     api = null
     await node.close()
     node = null
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.state.bookmarks.get(id)?.title, 'Título persistido', 'updated title is restored from the device log')
   } finally {
     if (api !== null) await api.close()
@@ -510,7 +511,7 @@ test('bookmark reorder endpoint validates group and position and materializes or
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Reorder')
     const group1 = await request(api.port, 'POST', '/api/v1/groups', { name: 'Primero', collection_id: collectionId })
@@ -576,7 +577,7 @@ test('bookmark reorder requires an identity', async (t) => {
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const response = await request(api.port, 'POST', '/api/v1/bookmarks/01ARZ3NDEKTSV4RRFFQ69G5FAV/reorder', {
       group_id: null, position: 0
@@ -598,7 +599,7 @@ test('bookmark reorder persists after restarting the node', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
     const collectionId = await createIdentityAndCollection(api.port, 'Persistencia reorder')
     const group = await request(api.port, 'POST', '/api/v1/groups', { name: 'Orden', collection_id: collectionId })
@@ -619,7 +620,7 @@ test('bookmark reorder persists after restarting the node', async (t) => {
     api = null
     await node.close()
     node = null
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.state.bookmarks.get(bookmarkId)?.position, 0, 'position is restored after restart')
   } finally {
     if (api !== null) await api.close()

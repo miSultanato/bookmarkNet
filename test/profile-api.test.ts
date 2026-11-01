@@ -5,6 +5,7 @@ import { utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface Response { statusCode: number; body: any }
 
@@ -43,7 +44,7 @@ test('profile API requires identity and supports merge, clear and persistence', 
 
   try {
     const config = { ...defaultConfig(), port: 0, dataDir, bind: '127.0.0.1' }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
 
     const noIdentity = await request(api.port, 'GET', '/api/v1/profile')
@@ -97,7 +98,7 @@ test('profile API requires identity and supports merge, clear and persistence', 
     await node.close()
     node = null
 
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.identity !== null, true, 'identity is restored after reopening node')
     t.alike(node.state.profile, { bio: 'Rutas y lecturas' }, 'profile changes persist after reopening node')
     api = await createServer(config, node)

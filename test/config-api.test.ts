@@ -5,6 +5,7 @@ import { utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface Response { statusCode: number; body: any }
 
@@ -51,7 +52,7 @@ test('config API requires identity and never exposes dataDir', async (t) => {
       allowedHosts: ['localhost', '127.0.0.1'],
       bind: '127.0.0.1'
     }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     api = await createServer(config, node)
 
     const noIdentity = await request(api.port, 'GET', '/api/v1/config')

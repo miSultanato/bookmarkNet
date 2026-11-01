@@ -4,6 +4,7 @@ import test from 'brittle'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 import { utf8Bytes } from '../src/ids.ts'
 
 const ROOT = './tmp-test-identity-api'
@@ -50,8 +51,8 @@ test('identity export and import API endpoints', async (t) => {
   await fs.rm(ROOT, { recursive: true, force: true })
   const sourceConfig = { ...defaultConfig(), dataDir: sourceDir, port: 0, bind: '127.0.0.1' }
   const targetConfig = { ...defaultConfig(), dataDir: targetDir, port: 0, bind: '127.0.0.1' }
-  const sourceNode = await startNode(sourceConfig)
-  const targetNode = await startNode(targetConfig)
+  const sourceNode = await startNode(sourceConfig, { swarm: createFakeSwarm() })
+  const targetNode = await startNode(targetConfig, { swarm: createFakeSwarm() })
   let sourceApi: Awaited<ReturnType<typeof createServer>> | null = null
   let targetApi: Awaited<ReturnType<typeof createServer>> | null = null
 

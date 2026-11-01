@@ -6,6 +6,7 @@ import { createIdentity, identityToApi } from '../src/identity/store.ts'
 import { userIdFromPublicKey } from '../src/ids.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { createFakeSwarm } from './helpers/fake-swarm.ts'
 import { appendEvent } from '../src/storage/device-core.ts'
 
 const DATA_DIR = './tmp-test-start'
@@ -22,7 +23,7 @@ test('startNode opens an empty core', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode({ ...defaultConfig(), dataDir })
+    node = await startNode({ ...defaultConfig(), dataDir }, { swarm: createFakeSwarm() })
     t.alike(node.state.profile, {}, 'empty core has an empty profile')
     t.is(node.state.collections.size, 0, 'empty core has no collections')
     t.is(node.state.bookmarks.size, 0, 'empty core has no bookmarks')
@@ -40,13 +41,13 @@ test('startNode folds persisted device events after restart', async (t) => {
 
   try {
     const config = { ...defaultConfig(), dataDir: DATA_DIR }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     const event = deviceMetadata({ authorId: authorId(), displayName: 'Marta' })
     await appendEvent(node.core, event)
     await node.close()
     node = null
 
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.core.length, 1, 'event remains after reopening')
     t.is(node.state.profile.displayName, 'Marta', 'device fold restores persisted profile metadata')
     await node.close()
@@ -66,7 +67,7 @@ test('startNode loads an existing identity', async (t) => {
     const config = { ...defaultConfig(), dataDir }
     const created = await createIdentity(dataDir)
     const expected = identityToApi(created)
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.identity !== null, true, 'identity is available on the node')
     t.is(node.identity?.user_id, expected.user_id, 'node identity matches the created identity')
   } finally {
@@ -81,7 +82,7 @@ test('startNode returns null identity when none is stored', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    node = await startNode({ ...defaultConfig(), dataDir })
+    node = await startNode({ ...defaultConfig(), dataDir }, { swarm: createFakeSwarm() })
     t.is(node.identity, null, 'node has no identity when identity.bmn is absent')
   } finally {
     if (node !== null) await node.close()
@@ -122,7 +123,7 @@ test('Node.apply persists events before updating state', async (t) => {
 
   try {
     const config = { ...defaultConfig(), dataDir }
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     const event = deviceMetadata({ authorId: authorId(), displayName: 'Persistida' })
     await node.apply(event)
     t.is(node.core.length, 1, 'apply appends the event to device_core')
@@ -130,7 +131,7 @@ test('Node.apply persists events before updating state', async (t) => {
 
     await node.close()
     node = null
-    node = await startNode(config)
+    node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.core.length, 1, 'event remains in device_core after restart')
     t.is(node.state.profile.displayName, 'Persistida', 'fold restores state from the applied event')
   } finally {
@@ -144,7 +145,7 @@ test('node.close() is idempotent when called concurrently', async (t) => {
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
-    const node = await startNode({ ...defaultConfig(), dataDir })
+    const node = await startNode({ ...defaultConfig(), dataDir }, { swarm: createFakeSwarm() })
     const closePromise1 = node.close()
     const closePromise2 = node.close()
 
