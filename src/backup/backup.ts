@@ -1,11 +1,17 @@
 import fs from 'bare-fs'
 import { dirname, join } from 'bare-path'
+import Hypercore from 'hypercore'
 import sodium from 'sodium-native'
-import { utf8Bytes } from '../ids.ts'
+import type { DeviceEvent } from '../device-events.ts'
+import type { CollectionEvent } from '../events.ts'
+import { fromHex, utf8Bytes } from '../ids.ts'
+import { deriveCollectionKeypair, collectionIdFromPublicKey } from '../keys.ts'
+import { loadIdentity } from '../identity/store.ts'
 import { loadOrCreateNodeId } from '../node/node-id.ts'
+import { appendEvent, closeDeviceCore, openDeviceCore } from '../storage/device-core.ts'
 
 const MAGIC = utf8Bytes('LOTURABK')
-const FORMAT_VERSION = 1
+const FORMAT_VERSION = 2
 const HEADER_BYTES = MAGIC.length + 1 + sodium.crypto_pwhash_SALTBYTES +
   sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
 const BLOCK_BYTES = 512
@@ -13,10 +19,12 @@ const END_BLOCKS = 2
 const MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024
 const COLLECTION_ID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
 
-export interface CreateBackupOptions {
-  dataDir: string
-  password: string
+export interface BackupData {
+  deviceEvents: DeviceEvent[]
+  collectionEvents: Map<string, CollectionEvent[]>
+  collections: string[]
 }
+
 
 export type RestoreMode = 'all' | 'collections-only'
 
@@ -27,8 +35,9 @@ interface TarEntry {
 }
 
 interface BackupManifest {
-  version: 1
+  version: 2
   devices: string[]
+  collections: string[]
 }
 
 function concat(parts: Uint8Array[]): Uint8Array {
@@ -173,26 +182,13 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function addPath(entries: TarEntry[], root: string, relative: string): Promise<void> {
-  const fullPath = join(root, relative)
-  const stat = await fs.stat(fullPath)
-  if (stat.isDirectory()) {
-    entries.push({ path: relative, type: 'directory', data: new Uint8Array(0) })
-    const names = await fs.readdir(fullPath)
-    for (const name of names) await addPath(entries, root, relative + '/' + name)
-  } else if (stat.isFile()) {
-    const contents = await fs.readFile(fullPath)
-    entries.push({ path: relative, type: 'file', data: new Uint8Array(contents) })
-  } else {
-    throw new RangeError('El backup no admite enlaces ni tipos de archivo especiales: ' + relative)
-  }
-}
-
 async function copyTree(source: string, destination: string): Promise<void> {
   const stat = await fs.stat(source)
   if (stat.isDirectory()) {
     await fs.mkdir(destination, { recursive: true, mode: 0o700 })
     for (const name of await fs.readdir(source)) {
+      // No conservamos la solicitud efímera: contiene la contraseña de restauración pendiente.
+      if (name === 'restore-pending.json') continue
       await copyTree(join(source, name), join(destination, name))
     }
   } else if (stat.isFile()) {
@@ -269,14 +265,25 @@ function validateManifest(value: unknown): asserts value is BackupManifest {
     throw new RangeError('Manifiesto del backup inválido')
   }
   const manifest = value as Record<string, unknown>
-  if (manifest.version !== 1 || !Array.isArray(manifest.devices) ||
-      !manifest.devices.every((device) => typeof device === 'string')) {
+  if (manifest.version !== 2 ||
+      !Array.isArray(manifest.devices) ||
+      !manifest.devices.every((device) => typeof device === 'string') ||
+      !Array.isArray(manifest.collections) ||
+      !manifest.collections.every((id) => typeof id === 'string' && COLLECTION_ID_PATTERN.test(id)) ||
+      new Set(manifest.collections).size !== manifest.collections.length) {
     throw new RangeError('Manifiesto del backup inválido')
   }
 }
 
 function validateEntries(entries: TarEntry[]): BackupManifest {
-  const files = new Map(entries.filter((entry) => entry.type === 'file').map((entry) => [entry.path, entry.data]))
+  const files = new Map<string, Uint8Array>()
+  for (const entry of entries) {
+    if (entry.type !== 'file') {
+      throw new RangeError('El backup de eventos no admite directorios')
+    }
+    if (files.has(entry.path)) throw new RangeError('Entrada duplicada en el backup: ' + entry.path)
+    files.set(entry.path, entry.data)
+  }
   const manifestData = files.get('manifest.json')
   if (manifestData === undefined) throw new RangeError('Falta manifest.json en el backup')
   let manifest: unknown
@@ -286,34 +293,32 @@ function validateEntries(entries: TarEntry[]): BackupManifest {
     throw new RangeError('manifest.json contiene JSON inválido')
   }
   validateManifest(manifest)
-  for (const path of files.keys()) {
-    if (path !== 'manifest.json' && path !== 'identity.bmn' &&
-        !path.startsWith('device-core/') && !path.startsWith('collections/')) {
-      throw new RangeError('Contenido no reconocido en el backup: ' + path)
-    }
+
+  const allowed = new Set(['manifest.json', 'identity.bmn', 'device-events.json'])
+  for (const id of manifest.collections) {
+    allowed.add('collection-events-' + id + '.json')
   }
-  for (const entry of entries) {
-    if (entry.path.startsWith('collections/')) {
-      const id = entry.path.split('/')[1]
-      if (!id || !COLLECTION_ID_PATTERN.test(id)) throw new RangeError('Identificador de colección inválido en backup')
+  for (const path of files.keys()) {
+    if (!allowed.has(path)) throw new RangeError('Contenido no reconocido en el backup: ' + path)
+  }
+  if (!files.has('device-events.json')) throw new RangeError('Falta device-events.json en el backup')
+  for (const id of manifest.collections) {
+    if (!files.has('collection-events-' + id + '.json')) {
+      throw new RangeError('Faltan eventos de la colección ' + id + ' en el backup')
     }
   }
   return manifest
 }
 
-async function writeEntries(dataDir: string, entries: TarEntry[], allowed: (path: string) => boolean): Promise<void> {
-  for (const entry of entries) {
-    if (!allowed(entry.path) || entry.path === 'manifest.json') continue
-    const destination = join(dataDir, entry.path)
-    if (entry.type === 'directory') {
-      await fs.mkdir(destination, { recursive: true, mode: 0o700 })
-    } else {
-      const parent = dirname(destination)
-      await fs.mkdir(parent, { recursive: true, mode: 0o700 })
-      await fs.writeFile(destination, entry.data, { mode: 0o600 })
-      await fs.chmod(destination, 0o600)
-    }
+function parseEventArray<T>(data: Uint8Array, description: string): T[] {
+  let value: unknown
+  try {
+    value = JSON.parse(decodeUtf8(data)) as unknown
+  } catch {
+    throw new RangeError(description + ' contiene JSON inválido')
   }
+  if (!Array.isArray(value)) throw new RangeError(description + ' debe contener un array de eventos')
+  return value as T[]
 }
 
 async function removeIfExists(path: string): Promise<void> {
@@ -324,19 +329,49 @@ async function removeIfExists(path: string): Promise<void> {
  * Crea un backup cifrado de la identidad (si existe), device_core y
  * collection_core. El formato combina una cabecera versionada y un TAR USTAR.
  */
-async function createArchive(dataDir: string): Promise<Uint8Array> {
+async function createArchive(dataDir: string, data: BackupData): Promise<Uint8Array> {
+  if (!Array.isArray(data.deviceEvents) ||
+      !(data.collectionEvents instanceof Map) ||
+      !Array.isArray(data.collections) ||
+      !data.collections.every((id) => typeof id === 'string' && COLLECTION_ID_PATTERN.test(id)) ||
+      new Set(data.collections).size !== data.collections.length) {
+    throw new RangeError('Los datos del backup no son válidos')
+  }
+
   const entries: TarEntry[] = []
   if (await exists(join(dataDir, 'identity.bmn'))) {
-    entries.push({ path: 'identity.bmn', type: 'file', data: new Uint8Array(await fs.readFile(join(dataDir, 'identity.bmn'))) })
+    entries.push({
+      path: 'identity.bmn',
+      type: 'file',
+      data: new Uint8Array(await fs.readFile(join(dataDir, 'identity.bmn')))
+    })
   }
-  if (await exists(join(dataDir, 'device-core'))) {
-    await addPath(entries, dataDir, 'device-core')
+
+  entries.push({
+    path: 'device-events.json',
+    type: 'file',
+    data: encodeUtf8(JSON.stringify(data.deviceEvents))
+  })
+
+  const collectionIds = [...data.collections].sort()
+  for (const collectionId of collectionIds) {
+    const collectionEvents = data.collectionEvents.get(collectionId)
+    if (!Array.isArray(collectionEvents)) {
+      throw new RangeError('Faltan eventos de la colección ' + collectionId)
+    }
+    entries.push({
+      path: 'collection-events-' + collectionId + '.json',
+      type: 'file',
+      data: encodeUtf8(JSON.stringify(collectionEvents))
+    })
   }
-  if (await exists(join(dataDir, 'collections'))) {
-    await addPath(entries, dataDir, 'collections')
-  }
+
   // La lista de dispositivos se extraerá de device_add_device cuando se implemente; por ahora, vacía.
-  const manifest: BackupManifest = { version: 1, devices: [] }
+  const manifest: BackupManifest = {
+    version: 2,
+    devices: [],
+    collections: collectionIds
+  }
   entries.unshift({
     path: 'manifest.json',
     type: 'file',
@@ -356,7 +391,7 @@ async function writeBackupFile(dataDir: string, encrypted: Uint8Array): Promise<
 }
 
 /** Crea un backup cifrado con contraseña mediante Argon2id y XChaCha20-Poly1305. */
-export async function createBackup(options: CreateBackupOptions): Promise<string> {
+export async function createBackup(options: { dataDir: string; password: string } & BackupData): Promise<string> {
   if (options === null || typeof options !== 'object' ||
       typeof options.dataDir !== 'string' || options.dataDir.length === 0) {
     throw new RangeError('dataDir debe ser una ruta no vacía')
@@ -364,7 +399,7 @@ export async function createBackup(options: CreateBackupOptions): Promise<string
   if (typeof options.password !== 'string' || options.password.length === 0) {
     throw new RangeError('La contraseña del backup no puede estar vacía')
   }
-  const archive = await createArchive(options.dataDir)
+  const archive = await createArchive(options.dataDir, options)
   return writeBackupFile(options.dataDir, encryptArchive(archive, options.password))
 }
 
@@ -372,14 +407,14 @@ export async function createBackup(options: CreateBackupOptions): Promise<string
  * Crea un backup automático cifrado con una clave de 32 bytes derivada del
  * user_master_key mediante HKDF-SHA256 (dominio bookmarknet:backup:).
  */
-export async function createBackupWithKey(dataDir: string, key: Uint8Array): Promise<string> {
+export async function createBackupWithKey(dataDir: string, key: Uint8Array, data: BackupData): Promise<string> {
   if (typeof dataDir !== 'string' || dataDir.length === 0) {
     throw new RangeError('dataDir debe ser una ruta no vacía')
   }
   if (!(key instanceof Uint8Array) || key.length !== sodium.crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
     throw new RangeError('La clave del backup debe contener exactamente 32 bytes')
   }
-  const archive = await createArchive(dataDir)
+  const archive = await createArchive(dataDir, data)
   const salt = new Uint8Array(sodium.crypto_pwhash_SALTBYTES)
   sodium.randombytes_buf(salt)
   const nonce = new Uint8Array(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)
@@ -415,14 +450,70 @@ export async function restoreBackup(
   const archive = decryptArchive(file, password)
   const entries = parseTar(archive)
   const manifest = validateEntries(entries)
-  const hasDeviceCore = entries.some((entry) => entry.path === 'device-core' || entry.path.startsWith('device-core/'))
-  if (!hasDeviceCore) throw new RangeError('El backup no contiene device_core')
   if (mode === 'all' && manifest.devices.length !== 0) {
     throw new RangeError('Esta versión solo admite backups con la lista de dispositivos vacía')
   }
 
+  const files = new Map(entries.filter((entry) => entry.type === 'file').map((entry) => [entry.path, entry.data]))
+  const deviceData = files.get('device-events.json')
+  if (deviceData === undefined) throw new RangeError('Falta device-events.json en el backup')
+  const deviceEvents = parseEventArray<DeviceEvent>(deviceData, 'device-events.json')
+  const collectionEvents = new Map<string, CollectionEvent[]>()
+  for (const collectionId of manifest.collections) {
+    const data = files.get('collection-events-' + collectionId + '.json')
+    if (data === undefined) throw new RangeError('Faltan eventos de la colección ' + collectionId)
+    const events = parseEventArray<CollectionEvent>(data, 'collection-events-' + collectionId + '.json')
+    if (events.length === 0 || events[0].event_type !== 'collection_genesis') {
+      throw new RangeError('Los eventos de la colección ' + collectionId + ' no contienen un génesis válido')
+    }
+    collectionEvents.set(collectionId, events)
+  }
+
+  let masterKey: Uint8Array | null = null
+  if (mode === 'all') {
+    const identityData = files.get('identity.bmn')
+    if (manifest.collections.length > 0 && identityData === undefined) {
+      throw new RangeError('El backup no contiene identity.bmn para restaurar sus collection_core')
+    }
+    if (identityData !== undefined) {
+      let stored: unknown
+      try {
+        stored = JSON.parse(decodeUtf8(identityData)) as unknown
+      } catch {
+        throw new RangeError('identity.bmn contiene JSON inválido en el backup')
+      }
+      const candidate = stored as Record<string, unknown> | null
+      if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate) ||
+          typeof candidate.private_key !== 'string' || !/^[0-9a-f]{64}$/.test(candidate.private_key) ||
+          typeof candidate.public_key !== 'string' || !/^[0-9a-f]{64}$/.test(candidate.public_key) ||
+          candidate.profile === null || typeof candidate.profile !== 'object' || Array.isArray(candidate.profile)) {
+        throw new RangeError('identity.bmn tiene un formato inválido en el backup')
+      }
+      masterKey = fromHex(candidate.private_key)
+    }
+  } else {
+    const identity = await loadIdentity(dataDir)
+    if (manifest.collections.length > 0 && identity === null) {
+      throw new RangeError('Se necesita la identidad local para restaurar los collection_core')
+    }
+    if (identity !== null) masterKey = fromHex(identity.private_key)
+  }
+
+  // Comprueba antes de modificar datos que la identidad puede abrir cada colección.
+  if (manifest.collections.length > 0 && masterKey !== null) {
+    for (const collectionId of manifest.collections) {
+      const keypair = deriveCollectionKeypair(masterKey, collectionId)
+      const expectedId = collectionIdFromPublicKey(keypair.publicKey)
+      const genesis = collectionEvents.get(collectionId)?.[0]
+      if (genesis?.event_type !== 'collection_genesis' ||
+          genesis.payload.collection_id !== expectedId) {
+        throw new RangeError('La identidad disponible no corresponde a la colección ' + collectionId)
+      }
+    }
+  }
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const safetyCopy = dataDir.replace(/\/+$/, '') + '.backup-' + timestamp
+  const safetyCopy = dataDir.replace(/[\\/]+$/, '') + '.backup-' + timestamp
   if (await exists(dataDir)) await copyTree(dataDir, safetyCopy)
 
   await fs.mkdir(dataDir, { recursive: true, mode: 0o700 })
@@ -434,10 +525,49 @@ export async function restoreBackup(
     await removeIfExists(join(dataDir, 'node_id'))
   }
 
-  await writeEntries(dataDir, entries, (path) =>
-    path === 'identity.bmn' ? mode === 'all' :
-      path === 'device-core' || path.startsWith('device-core/') ||
-      path === 'collections' || path.startsWith('collections/'))
+  if (mode === 'all') {
+    const identityData = files.get('identity.bmn')
+    if (identityData !== undefined) {
+      await fs.writeFile(join(dataDir, 'identity.bmn'), identityData, { mode: 0o600 })
+      await fs.chmod(join(dataDir, 'identity.bmn'), 0o600)
+    }
+  }
+
+  const deviceCore = await openDeviceCore(dataDir)
+  try {
+    for (const event of deviceEvents) await appendEvent(deviceCore, event)
+  } finally {
+    await closeDeviceCore(deviceCore)
+  }
+
+  if (manifest.collections.length > 0) {
+    if (masterKey === null) throw new RangeError('No se pudo obtener la clave maestra para restaurar las colecciones')
+    const storedIdentity = await loadIdentity(dataDir)
+    if (storedIdentity === null) throw new RangeError('No existe identity.bmn para restaurar las colecciones')
+    await fs.mkdir(join(dataDir, 'collections'), { recursive: true, mode: 0o700 })
+
+    for (const collectionId of manifest.collections) {
+      const collectionKeypair = deriveCollectionKeypair(masterKey, collectionId)
+      const storagePath = join(dataDir, 'collections', collectionId)
+      await fs.mkdir(storagePath, { recursive: true, mode: 0o700 })
+      // createCollectionCore genera el génesis desde deviceState; aquí se reproduce
+      // el log archivado exactamente, usando la misma clave y compatibilidad Hypercore.
+      const core = new Hypercore(storagePath, {
+        keyPair: {
+          publicKey: collectionKeypair.publicKey,
+          secretKey: collectionKeypair.secretKey
+        },
+        valueEncoding: 'json',
+        compat: true
+      })
+      try {
+        await core.ready()
+        for (const event of collectionEvents.get(collectionId) ?? []) await core.append(event)
+      } finally {
+        await core.close()
+      }
+    }
+  }
 
   if (mode === 'all') {
     // En esta fase, la lista de dispositivos se restaura vacía; device_add_device llegará después.

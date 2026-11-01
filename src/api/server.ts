@@ -3,8 +3,11 @@ import fs from 'bare-fs'
 import { join } from 'bare-path'
 import { assets } from '../ui/assets.generated.js'
 import type { HTTPServer } from 'bare-http1'
-import { utf8Bytes } from '../ids.ts'
+import { fromHex, utf8Bytes } from '../ids.ts'
 import { createBackup } from '../backup/backup.ts'
+import { loadIdentity } from '../identity/store.ts'
+import { readAllEvents } from '../storage/device-core.ts'
+import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleExportIdentity, handleGetIdentity, handleImportIdentity } from './identity.ts'
@@ -579,7 +582,43 @@ export async function createServer(config: Config, initialNode: Node | null, lis
 
         try {
           if (route.path === '/api/v1/backup') {
-            const path = await createBackup({ dataDir: node!.config.dataDir, password: body.password })
+            const dataDir = node!.config.dataDir
+            const deviceEvents = await readAllEvents(node!.core)
+            const collectionEvents = new Map<string, Awaited<ReturnType<typeof readCollectionEvents>>>()
+            const collections: string[] = []
+            const collectionsDir = join(dataDir, 'collections')
+            let collectionNames: string[] = []
+            try {
+              collectionNames = await fs.readdir(collectionsDir)
+            } catch (error) {
+              if ((error as { code?: string }).code !== 'ENOENT') throw error
+            }
+            const identity = await loadIdentity(dataDir)
+            for (const collectionId of collectionNames) {
+              const collectionPath = join(collectionsDir, collectionId)
+              if (!(await fs.stat(collectionPath)).isDirectory()) continue
+              if (identity === null) {
+                throw new RangeError('No se pueden respaldar collection_core sin identity.bmn')
+              }
+              const collectionCore = await openExistingCollectionCore(
+                dataDir,
+                collectionId,
+                fromHex(identity.private_key)
+              )
+              try {
+                collectionEvents.set(collectionId, await readCollectionEvents(collectionCore))
+              } finally {
+                await closeCollectionCore(collectionCore)
+              }
+              collections.push(collectionId)
+            }
+            const path = await createBackup({
+              dataDir,
+              password: body.password,
+              deviceEvents,
+              collectionEvents,
+              collections
+            })
             const stat = await fs.stat(path)
             sendJson(res, 200, {
               path,
