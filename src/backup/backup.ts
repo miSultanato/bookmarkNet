@@ -308,7 +308,7 @@ async function writeEntries(dataDir: string, entries: TarEntry[], allowed: (path
     if (entry.type === 'directory') {
       await fs.mkdir(destination, { recursive: true, mode: 0o700 })
     } else {
-      const parent = destination.slice(0, destination.lastIndexOf('/')) || dataDir
+      const parent = dirname(destination)
       await fs.mkdir(parent, { recursive: true, mode: 0o700 })
       await fs.writeFile(destination, entry.data, { mode: 0o600 })
       await fs.chmod(destination, 0o600)
