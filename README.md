@@ -29,6 +29,12 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. MVP1 en curso: persistencia local por colección y vistas materializadas Hyperbee de `device_core` y `collection_core` implementadas. La vista de cada colección refleja su propio log inicial; los cambios posteriores siguen guardándose solo en `device_core`. La escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
+## Backups
+
+MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` restaura los datos de colecciones sin modificar la identidad ni regenerar `node_id`; `all` restaura también la identidad y genera un `node_id` nuevo.
+
+Además, el nodo genera un backup automático cada 24 horas por defecto, en `dataDir/backups/`. Se cifra con una clave derivada de `user_master_key`; el intervalo puede ajustarse mediante `backupIntervalMs` en la configuración del nodo. La lista de dispositivos incluida en los backups permanece vacía hasta implementar `device_add_device`. La recuperación de identidad por QR o frase larga queda para la parte 1.4.3.
+
 ## Requisitos
 
 - **Para desarrollo:** Node.js 22 o posterior y Bare. Instala Bare con `npm install -g bare-runtime`.
