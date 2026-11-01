@@ -59,7 +59,11 @@ test('restoreBackup all restores identity and cores and regenerates node_id', as
     t.is(restoredNodeId.trim() === targetState.nodeId, false, 'previous node_id is not reused')
     t.is(restoredNodeId.trim() === sourceState.nodeId, false, 'source node_id is not copied')
     t.is(await fs.readFile(target + '/devices.json', 'utf8'), '[]\n', 'device list is restored empty until device_add_device exists')
-    t.is(await fs.stat(target + '.backup-' + (await fs.readdir(ROOT)).find((name: string) => name.startsWith('target.backup-'))?.slice('target.backup-'.length)).then((stat) => stat.isDirectory()), true, 'current data is preserved in a safety copy')
+    const backupDirs = (await fs.readdir(ROOT)).filter((name) =>
+      name.startsWith('target.backup-'))
+    t.is(backupDirs.length, 1, 'current data is preserved in a safety copy')
+    const safetyCopy = ROOT + '/' + backupDirs[0]
+    t.is(await fs.readFile(safetyCopy + '/device-core/000001.data', 'utf8'), 'device events target', 'safety copy preserves the previous device_core')
   } finally {
     await fs.rm(ROOT, { recursive: true, force: true })
   }
