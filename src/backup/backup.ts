@@ -1,5 +1,5 @@
 import fs from 'bare-fs'
-import { join } from 'bare-path'
+import { dirname, join } from 'bare-path'
 import sodium from 'sodium-native'
 import { utf8Bytes } from '../ids.ts'
 import { loadOrCreateNodeId } from '../node/node-id.ts'
@@ -197,7 +197,7 @@ async function copyTree(source: string, destination: string): Promise<void> {
     }
   } else if (stat.isFile()) {
     const data = await fs.readFile(source)
-    await fs.mkdir(destination.slice(0, destination.lastIndexOf('/')) || '.', { recursive: true, mode: 0o700 })
+    await fs.mkdir(dirname(destination), { recursive: true, mode: 0o700 })
     await fs.writeFile(destination, data, { mode: 0o600 })
   } else {
     throw new RangeError('No se puede crear la copia de seguridad de un archivo especial')
