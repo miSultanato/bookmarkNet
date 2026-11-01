@@ -545,7 +545,7 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 
 MVP1 incorpora la persistencia de `collection_core` por colección y mantiene el `device_core` como log local del dispositivo. Sin una vista materializada persistida, el nodo tendría que reconstruir el estado recorriendo los logs en cada arranque, con un coste creciente a medida que aumenta el número de eventos y colecciones.
 
-ADR-001 decidió incorporar Hyperbee al stack, pero el componente no estaba instalado ni se utilizaba. Por su parte, `docs/23-migraciones.md` contempla Hyperbee, SQLite o un archivo como posibles backends de la vista materializada, mientras que `docs/26-limitaciones-conocidas.md` recoge Hyperbee como mejora prevista. Es necesario fijar el backend y el alcance de las vistas, así como sus reglas de actualización, reconstrucción y migración de esquema.
+ADR-001 decidió incorporar Hyperbee al stack, pero el componente todavía no estaba instalado ni se utilizaba. Por su parte, `docs/23-migraciones.md` contempla varios backends posibles para la vista materializada. Es necesario fijar el backend y el alcance de las vistas, así como sus reglas de actualización, reconstrucción y migración de esquema.
 
 ### Decisión
 
@@ -553,7 +553,7 @@ ADR-001 decidió incorporar Hyperbee al stack, pero el componente no estaba inst
 
 2. **Vistas materializadas en MVP1.** Se mantendrá una vista del estado del `device_core` (perfil, colecciones, bookmarks y grupos) y una vista del estado de cada `collection_core` (metadatos, bookmarks y grupos). Los índices de búsqueda por título, tag y URL canónica son una extensión prevista si el tiempo lo permite, pero no son obligatorios en MVP1.
 
-3. **Actualización y coherencia.** Al arrancar, se comprobará si la vista materializada está al día respecto al log, tomando como referencia el último evento procesado. Si la vista está desfasada, se reconstruirá. Durante la sesión, la vista se actualizará con cada evento nuevo.
+3. **Actualización y coherencia.** Al arrancar, se comprobará si la vista materializada está al día respecto al log, tomando como referencia el último evento procesado. Si la vista está desfasada, se reconstruirá. Durante la sesión, la vista de `device_core` se actualizará con cada evento nuevo. La vista de `collection_core` se inicializará al crear el core y no recibirá cambios posteriores de `device_core` en MVP1; su actualización incremental queda ligada a la escritura dual de MVP2.
 
 4. **Reconstrucción por fases.** En MVP1, la reconstrucción se hará mediante replay completo desde el log de Hypercore. En MVP2, se incorporará snapshot y replay únicamente de los eventos posteriores al snapshot.
 
@@ -561,12 +561,12 @@ ADR-001 decidió incorporar Hyperbee al stack, pero el componente no estaba inst
 
 6. **Corestore fuera de MVP1.** En MVP1 se gestionarán los cores directamente con Hypercore. Corestore se evaluará en una fase posterior si la gestión de múltiples Hypercores lo requiere.
 
-**Implementación: pendiente (MVP1).**
+**Implementación (MVP1):** `src/storage/materialized-view.ts`; integración de `device_core` y `collection_core` en `src/node/start.ts`; inicialización desde `POST /collections` y el importador HTML.
 
 ### Consecuencias
 
 - **Ventajas:**
-  - En un arranque normal, la carga de la vista evita recorrer todos los eventos y permite un coste O(1) respecto al número de eventos; las consultas indexadas tienen un coste O(log n).
+  - El índice de sincronización permite detectar si el estado persistido debe reemplazarse. En la implementación MVP1 actual, el nodo todavía lee y pliega los logs al arrancar; cuando el índice coincide, conserva la vista sin volver a escribirla.
   - La coherencia entre log y vista se recupera comprobando el último evento procesado y reconstruyendo cuando la vista queda desfasada.
   - La migración lazy permite adaptar automáticamente la vista al esquema vigente sin intervención manual del usuario.
 
@@ -584,6 +584,19 @@ ADR-001 decidió incorporar Hyperbee al stack, pero el componente no estaba inst
 - **Archivo JSON:** descartado. Sin índices, resulta lento con muchas colecciones y no escala bien para las consultas previstas.
 - **Posponer Hyperbee a MVP2:** descartada. Mantendría un arranque lento con muchas colecciones y obligaría a migrar en MVP2 la vista desde un archivo JSON a Hyperbee, añadiendo trabajo.
 - **Corestore en MVP1:** descartada. Aunque gestiona múltiples Hypercores, en MVP1 el número de cores es pequeño y pueden gestionarse directamente con Hypercore. Su adopción se evaluará en una fase posterior si resulta necesaria.
+
+### Corrección (2026-11-01)
+
+La vista materializada definida en este ADR está implementada en MVP1:
+
+- El módulo `src/storage/materialized-view.ts` persiste en Hyperbee el estado de `device_core` y el de cada `collection_core`, junto con sus índices de sincronización.
+- `src/node/start.ts` abre la vista, reconstruye la vista de `device_core` y la de cada `collection_core` cuando su índice está desfasado, y actualiza la vista de dispositivo al aplicar eventos.
+- `POST /collections` y el importador HTML inicializan la vista de colección después de crear el `collection_core`.
+- Los tests E2E verifican la materialización tras crear e importar, la independencia respecto a cambios posteriores de `device_core` y la reconstrucción al reabrir el nodo.
+
+La vista de cada `collection_core` representa el estado de su propio log (génesis y bookmarks/grupos iniciales), no una proyección de `device_core`. No se implementa escritura dual: los cambios posteriores siguen escribiéndose únicamente en `device_core`; la escritura dual y la publicación corresponden a MVP2.
+
+El estado del ADR permanece **Aceptado**; esta corrección actualiza únicamente la descripción del estado de implementación.
 
 ## ADR-017: Persistencia y ciclo de vida de `node_id` en MVP1
 
