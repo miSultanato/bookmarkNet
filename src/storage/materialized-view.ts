@@ -2,8 +2,13 @@ import fs from 'bare-fs'
 import Hyperbee from 'hyperbee'
 import Hypercore from 'hypercore'
 import { join } from 'bare-path'
-import type { DeviceState } from '../device-fold.ts'
-import type { CollectionState } from '../fold.ts'
+import type {
+  DeviceBookmarkState,
+  DeviceCollectionState,
+  DeviceGroupState,
+  DeviceState
+} from '../device-fold.ts'
+import type { BookmarkState, CollectionState, GroupState } from '../fold.ts'
 
 export interface MaterializedViewHandle {
   db: Hyperbee
@@ -12,15 +17,15 @@ export interface MaterializedViewHandle {
 
 interface SerializedDeviceState {
   profile: DeviceState['profile']
-  collections: Array<[string, DeviceState['collections'] extends Map<string, infer V> ? V : never]>
-  bookmarks: Array<[string, DeviceState['bookmarks'] extends Map<string, infer V> ? V : never]>
-  groups: Array<[string, DeviceState['groups'] extends Map<string, infer V> ? V : never]>
+  collections: Array<[string, DeviceCollectionState]>
+  bookmarks: Array<[string, DeviceBookmarkState]>
+  groups: Array<[string, DeviceGroupState]>
 }
 
 interface SerializedCollectionState {
   collection: CollectionState['collection']
-  bookmarks: Array<[string, CollectionState['bookmarks'] extends Map<string, infer V> ? V : never]>
-  groups: Array<[string, CollectionState['groups'] extends Map<string, infer V> ? V : never]>
+  bookmarks: Array<[string, BookmarkState]>
+  groups: Array<[string, GroupState]>
 }
 
 function serializeDeviceState(state: DeviceState): SerializedDeviceState {
