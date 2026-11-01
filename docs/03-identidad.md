@@ -224,9 +224,9 @@ Reglas adicionales del constructor `device_move_bookmark`: acepta el payload `{ 
 | `collectionId: null` y `groupId: null` | Mueve al Inbox global. |
 | `collectionId: null` y `groupId` no es `null` | Inválido: el constructor lanza `RangeError` y el fold ignora el evento. |
 
-#### `collectionId` = `collection_uuid`
+#### Identificadores local y público de colección
 
-El `collectionId` en el `device_core` es el `collection_uuid` de `docs/05-arquitectura-p2p.md`. Es un ULID. Al publicar (MVP2), se usa el mismo ULID para derivar la `collection_keypair` con HKDF-SHA256. El `collectionId` local no aparece en el `collection_core`, pero es el mismo valor que se usó para derivar la clave. No hay cambio de tipo ni migración entre MVP0 y MVP2.
+El `collectionId` en el `device_core` es el `collection_uuid` de `docs/05-arquitectura-p2p.md`: un ULID local e inmutable. En el momento de crear la colección, se deriva `publicCollectionId) a partir de ese ULID y del `user_master_key` mediante HKDF-SHA256; el resultado es el `collection_id` público, es decir, la clave pública Ed25519 en hexadecimal sin prefijo. Ambos valores se persisten en el evento `device_create_collection` y permiten el mapeo local ↔ público definido en ADR-015. El `collection_core` se almacena localmente bajo el ULID y su clave pública determina el `collection_id`.
 
 #### Estado del dispositivo
 
@@ -247,6 +247,7 @@ interface DeviceState {
 
 interface DeviceCollectionState {
   collectionId: string
+  publicCollectionId?: string // ausente en eventos históricos de MVP0
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
@@ -293,7 +294,7 @@ interface DeviceEntryState {
 
 - **`device_metadata`:** reemplaza `state.profile` con el payload. Campos ausentes se eliminan.
 - **`device_add_device`:** si el `nodeId` ya existe en la lista de dispositivos conocidos, ignora (idempotencia). Si no existe, lo añade a la lista. El fold nunca lanza error.
-- **`device_create_collection`:** crea la colección si no existe. Si existe, ignora. Asigna `language` desde el payload; si falta en un evento mal formado, usa `'es'`. El constructor garantiza el valor por defecto `'es'`.
+- **`device_create_collection`:** crea la colección si no existe. Si existe, ignora. Guarda `publicCollectionId` cuando está presente; los eventos históricos de MVP0 que no lo contienen se pliegan dejando ese campo ausente. Asigna `language` desde el payload; si falta en un evento mal formado, usa `'es'`. El constructor garantiza el valor por defecto `'es'`.
 - **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`). Asigna `language` si está presente; si no, conserva el valor actual.
 - **`device_delete_collection`:** si no existe, ignora. Marca `deleted: true`. Sus bookmarks y grupos también se marcan como eliminados (soft delete en cascada, definitivo: no se "resucitan" si la colección se vuelve a crear con el mismo `collectionId`; se crea una colección nueva).
 - **`device_add_bookmark`:** si `collectionId` es `null`, se acepta sin validar colección (Inbox global), pero `groupId` debe ser `null`; si no lo es, se ignora. Si `collectionId` no es `null` y la colección no existe o está eliminada, se ignora. Si el `bookmarkId` ya existe, se ignora. Si `groupId` no es `null` y no existe o no pertenece a `collectionId`, se ignora. Crea el bookmark con `position: null` (orden por `createdAt`).
