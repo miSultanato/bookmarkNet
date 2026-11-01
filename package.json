@@ -1,6 +1,6 @@
 {
   "name": "bookmarknet",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Red P2P de bookmarks. El activo principal es el enlace, no el usuario.",
   "type": "module",
   "license": "MIT",
