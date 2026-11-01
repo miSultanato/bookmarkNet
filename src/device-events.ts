@@ -17,6 +17,7 @@ export interface DeviceMetadataPayload {
 }
 export interface DeviceCreateCollectionPayload {
   collectionId: string
+  publicCollectionId: string
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
@@ -104,6 +105,11 @@ function requireLanguage(value: unknown, field = 'language'): asserts value is '
 function requireCollectionId(value: unknown): asserts value is string {
   requireNonEmptyString(value, 'collectionId')
 }
+function requirePublicCollectionId(value: unknown): asserts value is string {
+  if (typeof value !== 'string' || !/^[0-9a-f]{64}$/.test(value)) {
+    throw new RangeError('publicCollectionId must be 64 lowercase hexadecimal characters')
+  }
+}
 function requireBookmarkId(value: unknown): asserts value is string {
   if (!isBookmarkId(value)) throw new RangeError('bookmarkId must be a valid ULID')
 }
@@ -156,19 +162,20 @@ export function deviceMetadata(params: DeviceMetadataParams): DeviceMetadataEven
 }
 
 export interface DeviceCreateCollectionParams {
-  authorId: string; collectionId: string; name: string; description?: string; visibility: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu'
+  authorId: string; collectionId: string; publicCollectionId: string; name: string; description?: string; visibility: 'public' | 'unlisted'; language?: 'es' | 'en' | 'eu'
 }
 export function deviceCreateCollection(params: DeviceCreateCollectionParams): DeviceCreateCollectionEvent {
   requireRecord(params, 'params')
   requireAuthorId(params.authorId)
   requireCollectionId(params.collectionId)
+  requirePublicCollectionId(params.publicCollectionId)
   requireNonEmptyString(params.name, 'name')
   requireVisibility(params.visibility)
   requireOptionalString(params.description, 'description')
   const language = params.language === undefined ? 'es' : params.language
   requireLanguage(language)
   const payload: DeviceCreateCollectionPayload = {
-    collectionId: params.collectionId, name: params.name, visibility: params.visibility, language
+    collectionId: params.collectionId, publicCollectionId: params.publicCollectionId, name: params.name, visibility: params.visibility, language
   }
   if (params.description !== undefined) payload.description = params.description
   return makeEvent(params.authorId, 'device_create_collection', payload)
