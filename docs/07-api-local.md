@@ -13,6 +13,9 @@ GET  /identity
 POST /identity/create
 POST /identity/import        # JSON: {identity_blob, password}
 POST /identity/export        # JSON: {password} → objeto identity_blob
+POST /identity/recovery/generate # → {phrase, words} (24 palabras BIP39)
+POST /identity/recovery/validate # JSON: {phrase} → {valid}
+POST /identity/recovery/import   # JSON: {phrase, profile?} → identidad restaurada
 POST /identity/device/add    # → {qr, code}
 POST /identity/device/join   # body: {code}
 GET  /identity/devices
@@ -20,6 +23,13 @@ GET  /identity/devices
 
 
 **Exportar identidad — `POST /identity/export`:** recibe un body JSON `{ "password": "..." }` y devuelve el objeto de exportación directamente como JSON, con `Content-Type: application/json; charset=utf-8`. No descarga un archivo `identity.bmn`. El objeto contiene `version`, `salt`, `nonce`, los parámetros de Argon2 (`opslimit`, `memlimit`, `alg`) y `ciphertext`.
+
+**Recuperación de identidad — frase BIP39 de 24 palabras:**
+
+- `POST /identity/recovery/generate` no genera una clave nueva: convierte el `user_master_key` existente (32 bytes) a una frase BIP39 de 24 palabras. La misma identidad produce siempre la misma frase.
+- `POST /identity/recovery/validate` recibe `{ "phrase": "..." }` y devuelve `{ "valid": boolean }`.
+- `POST /identity/recovery/import` recibe `{ "phrase": "...", "profile": {} }` (el perfil es opcional), valida el checksum y crea `identity.bmn` si todavía no existe. Devuelve `201`; si ya existe una identidad, devuelve `409`.
+- Las 24 palabras codifican los 256 bits de `user_master_key` y 8 bits de checksum. La frase recupera solo la identidad portable, no los datos locales ni `node_id`. QR no está implementado.
 
 **Importar identidad — `POST /identity/import`:** recibe `Content-Type: application/json` y un body con `identity_blob` (el objeto devuelto por export) y `password`. No utiliza multipart ni recibe un archivo separado. Ejemplo de estructura:
 
@@ -234,6 +244,9 @@ La tabla distingue el estado implementado en el código de la fase prevista para
 | POST | `/api/v1/identity/create` | implementado | MVP0 | Creación de identidad local. |
 | POST | `/api/v1/identity/import` | implementado | MVP0 | Importación JSON cifrada; funcionalidad Export/Import de identidad de docs/27. |
 | POST | `/api/v1/identity/export` | implementado | MVP0 | Exportación JSON cifrada; funcionalidad Export/Import de identidad de docs/27. |
+| POST | `/api/v1/identity/recovery/generate` | implementado | MVP1 | Codifica el `user_master_key` existente en 24 palabras BIP39. |
+| POST | `/api/v1/identity/recovery/validate` | implementado | MVP1 | Valida las 24 palabras y el checksum BIP39. |
+| POST | `/api/v1/identity/recovery/import` | implementado | MVP1 | Restaura la identidad portable sin sobrescribir una identidad existente. |
 | POST | `/api/v1/identity/device/add` | futuro | MVP2 | Corresponde a «Multidispositivo (añadir dispositivo, replicar entre dispositivos propios)» de docs/27. |
 | POST | `/api/v1/identity/device/join` | futuro | MVP2 | Corresponde a «Multidispositivo (añadir dispositivo, replicar entre dispositivos propios)» de docs/27. |
 | GET | `/api/v1/identity/devices` | futuro | MVP2 | Corresponde a «Multidispositivo (añadir dispositivo, replicar entre dispositivos propios)» de docs/27. |
@@ -266,4 +279,4 @@ La tabla distingue el estado implementado en el código de la fase prevista para
 | GET | `/api/v1/search` | implementado | MVP0 | Búsqueda local; funcionalidad Búsqueda local de docs/27. |
 | PATCH | `/api/v1/profile` | implementado | MVP0 | Actualiza metadatos locales mediante `device_metadata`. |
 
-**Resumen:** 35 endpoints: 22 implementados, 0 parciales y 13 futuros (8 de MVP2 y 5 de MVP3+). No se incluyen endpoints futuros de MVP1, como `POST /backup` o `POST /restore`.
+**Resumen:** 38 endpoints: 25 implementados, 0 parciales y 13 futuros (8 de MVP2 y 5 de MVP3+). No se incluyen endpoints futuros de MVP1, como `POST /backup` o `POST /restore`.
