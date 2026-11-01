@@ -10,7 +10,8 @@ import type {
   DeviceMoveBookmarkEvent,
   DeviceReorderBookmarkEvent,
   DeviceCreateGroupEvent,
-  DeviceDeleteGroupEvent
+  DeviceDeleteGroupEvent,
+  DeviceAddDeviceEvent
 } from './device-events.ts'
 
 export interface DeviceState {
@@ -18,6 +19,7 @@ export interface DeviceState {
   collections: Map<string, DeviceCollectionState>
   bookmarks: Map<string, DeviceBookmarkState>
   groups: Map<string, DeviceGroupState>
+  devices: Map<string, DeviceEntryState>
 }
 
 export interface DeviceCollectionState {
@@ -48,6 +50,12 @@ export interface DeviceBookmarkState {
   updatedAt?: string
 }
 
+export interface DeviceEntryState {
+  nodeId: string
+  publicKey?: string
+  addedAt: string
+}
+
 export interface DeviceGroupState {
   groupId: string
   collectionId: string
@@ -59,7 +67,7 @@ export interface DeviceGroupState {
 }
 
 export function emptyDeviceState(): DeviceState {
-  return { profile: {}, collections: new Map(), bookmarks: new Map(), groups: new Map() }
+  return { profile: {}, collections: new Map(), bookmarks: new Map(), groups: new Map(), devices: new Map() }
 }
 
 function hasOwn(value: object, key: string): boolean {
@@ -280,6 +288,21 @@ function applyDeleteGroup(state: DeviceState, event: DeviceDeleteGroupEvent): De
   return { ...state, groups, bookmarks }
 }
 
+function applyAddDevice(state: DeviceState, event: DeviceAddDeviceEvent): DeviceState {
+  const payload = event.payload
+  if (state.devices.has(payload.nodeId) ||
+      typeof payload.nodeId !== 'string' || !/^n_[0-9a-f]{16}$/.test(payload.nodeId) ||
+      typeof payload.addedAt !== 'string' || !Number.isFinite(Date.parse(payload.addedAt)) ||
+      (payload.publicKey !== undefined && typeof payload.publicKey !== 'string')) {
+    return state
+  }
+  const device: DeviceEntryState = { nodeId: payload.nodeId, addedAt: payload.addedAt }
+  if (payload.publicKey !== undefined) device.publicKey = payload.publicKey
+  const devices = new Map(state.devices)
+  devices.set(payload.nodeId, device)
+  return { ...state, devices }
+}
+
 export function applyDeviceEvent(state: DeviceState, event: DeviceEvent): DeviceState {
   try {
     switch (event.event_type) {
@@ -294,6 +317,7 @@ export function applyDeviceEvent(state: DeviceState, event: DeviceEvent): Device
       case 'device_reorder_bookmark': return applyReorderBookmark(state, event)
       case 'device_create_group': return applyCreateGroup(state, event)
       case 'device_delete_group': return applyDeleteGroup(state, event)
+      case 'device_add_device': return applyAddDevice(state, event)
       default: return state
     }
   } catch {
