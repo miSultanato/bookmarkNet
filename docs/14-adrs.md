@@ -787,6 +787,19 @@ La implementación de la parte 1/3 y de la parte 2/3 completa el backup de MVP1:
 - La lista de dispositivos continúa siendo un placeholder vacío (`[]`) hasta que se implemente el evento `device_add_device`. Esta tarea no modifica el contrato ni el fold de `device_core`.
 - La recuperación por QR o frase larga sigue pendiente y no forma parte de esta implementación (1.4.3).
 
+### Corrección (2026-11-01)
+
+El formato de backup pasa a la versión 2. En lugar de copiar los archivos binarios de Hypercore, el archivo cifrado serializa los logs como JSON:
+
+- `manifest.json` declara `version: 2`, `devices: []` y los ULID locales de las colecciones.
+- `device-events.json` contiene los eventos de `device_core`.
+- Cada `collection-events-<collectionId>.json` contiene los eventos de un `collection_core`; `collectionId` en el nombre de archivo es el ULID local usado para derivar su clave.
+- `identity.bmn` se incluye cuando existe y se restaura únicamente en el modo `all`.
+
+Al restaurar se crean cores Hypercore nuevos y se vuelven a añadir los eventos en su orden original. No se trasladan archivos binarios ni los metadatos locales de `device-file`. Esto evita el error `DEVICE_FILE` de Hypercore v11 al mover un core entre directorios o dispositivos y hace que el backup sea portable.
+
+El modo `collections-only` conserva la identidad local; por ello, la clave maestra existente debe corresponder a las colecciones incluidas en el backup. Si no corresponde, la restauración se rechaza antes de modificar los datos actuales. El lector de esta versión solo acepta el formato v2; los backups v1 deben recuperarse con la versión anterior de Lotura antes de volver a generar una copia v2.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
