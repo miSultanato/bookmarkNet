@@ -6,6 +6,7 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 |---|---|---|---|---|
 | Identidad (claves, firma) | `docs/03-identidad.md`, `docs/16-identificadores-y-firmas.md` | `src/identity.ts` | `test/identity.test.ts` | Implementado |
 | Export/Import de identidad | `docs/03-identidad.md`, `docs/07-api-local.md` | `src/identity/export.ts`, `src/api/identity.ts` | `test/identity-export.test.ts`, `test/identity-api.test.ts` | Implementado |
+| Recuperación de identidad por frase BIP39 | `docs/14-adrs.md` (ADR-019), `docs/07-api-local.md` | `src/identity/recovery.ts`, `src/api/identity.ts`, `src/identity/store.ts` | `test/identity-recovery.test.ts`, `test/identity-recovery-api.test.ts` | Implementado (MVP1) |
 | Identificadores (ULID, IDs) | `docs/16-identificadores-y-firmas.md` | `src/ids.ts`, `src/ulid.ts` | `test/ids.test.ts`, `test/ulid.test.ts` | Implementado |
 | Canonicalización de URL | `docs/04-canonicalizacion-url.md` | `src/canonicalize.ts` | `test/canonicalize.test.ts` | Implementado |
 | Eventos de dispositivo | `docs/03-identidad.md` | `src/device-events.ts` | `test/device-events.test.ts` | Implementado |
