@@ -24,11 +24,11 @@ Funcionalidades:
 
 Resultado: «Pocket local».
 
-**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local (con rediseño y búsqueda), binario standalone (`bare-build`), AppImage, imagen Docker, auto-incremento de puerto y `openBrowserOnStart` implementados y testeados.
+**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local (con rediseño y búsqueda), binario standalone (`bare-build`), auto-incremento de puerto y `openBrowserOnStart` implementados. La validación del binario standalone se completó en MVP1; AppImage y Docker quedan pendientes de validar en MVP2.
 
 ## MVP 1 — Modelo Hypercore
 
-**Estado: completado.** Identidad, `node_id`, `collection_core`, vistas materializadas Hyperbee, backup/restore, registro local de dispositivos y recuperación BIP39 implementados y testeados.
+**Estado: completado y validado.** Identidad, `node_id`, `collection_core`, vistas materializadas Hyperbee, backup/restore, registro local de dispositivos y recuperación BIP39 implementados y testeados. Validación: 278/278 tests (226 unitarios + 52 de integración) y binario standalone generado con `bare-build --standalone`, probado manualmente en Linux junto con el flujo completo desde la UI. La validación de AppImage y Docker queda pendiente para MVP2.
 
 **Objetivo:** todo vive sobre Hyper*, aunque siga siendo local.
 

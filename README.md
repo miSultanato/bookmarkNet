@@ -29,6 +29,10 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista materializada Hyperbee, backup/restore y recuperación BIP39. Próximo hito: MVP2 (publicación y replicación). En MVP1, los cambios posteriores a la creación de una colección siguen escribiéndose solo en `device_core`; la escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
+## Validación
+
+**MVP1 completado y validado en Linux (binario standalone).** La suite completa pasa: **278/278 tests (226 unitarios + 52 de integración)**. El binario se generó con `bare-build --standalone` y se probó el flujo completo desde la UI: onboarding, creación de identidad, frase BIP39, creación de colección y bookmarks, backup, restore y recuperación de identidad. La validación de los formatos AppImage y Docker queda pendiente para MVP2.
+
 ## Backups
 
 MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` restaura los datos de colecciones sin modificar la identidad ni regenerar `node_id`; `all` restaura también la identidad y genera un `node_id` nuevo.
