@@ -19,6 +19,7 @@ const BOOKMARK_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
 const GROUP_ID = 'g_0123456789ab'
 const RESOURCE_ID = 'r_' + 'a'.repeat(64)
 const COLLECTION_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+const PUBLIC_COLLECTION_ID = 'a'.repeat(64)
 
 function expectRangeError(t: any, fn: () => unknown): void {
   let thrown: unknown
@@ -47,14 +48,16 @@ test('deviceMetadata constructs event and permits an empty profile payload', (t)
 })
 
 test('deviceCreateCollection constructs event', (t) => {
-  const event = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: 'Viajes', visibility: 'public' })
+  const event = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'Viajes', visibility: 'public' })
   assertCommon(t, event, 'device_create_collection')
   t.is(event.payload.collectionId, COLLECTION_ID)
+  t.is(event.payload.publicCollectionId, PUBLIC_COLLECTION_ID)
   t.is(event.payload.visibility, 'public')
   t.is(event.payload.language, 'es')
-  const english = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: 'Travel', visibility: 'public', language: 'en' })
+  const english = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'Travel', visibility: 'public', language: 'en' })
   t.is(english.payload.language, 'en')
-  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: 'Bad', visibility: 'public', language: 'fr' as any }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'Bad', visibility: 'public', language: 'fr' as any }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: 'g'.repeat(64), name: 'Bad key', visibility: 'public' }))
 })
 
 test('deviceUpdateCollection constructs event and accepts null description', (t) => {
@@ -150,7 +153,7 @@ test('deviceDeleteGroup constructs event', (t) => {
 
 test('all device event constructors reject invalid authorId', (t) => {
   expectRangeError(t, () => deviceMetadata({ authorId: 'bad' }))
-  expectRangeError(t, () => deviceCreateCollection({ authorId: 'bad', collectionId: COLLECTION_ID, name: 'x', visibility: 'public' }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: 'bad', collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'x', visibility: 'public' }))
   expectRangeError(t, () => deviceUpdateCollection({ authorId: 'bad', collectionId: COLLECTION_ID, changes: { name: 'x' } }))
   expectRangeError(t, () => deviceDeleteCollection({ authorId: 'bad', collectionId: COLLECTION_ID }))
   expectRangeError(t, () => deviceAddBookmark({ authorId: 'bad', bookmarkId: BOOKMARK_ID, collectionId: COLLECTION_ID, resourceId: RESOURCE_ID, canonicalUrl: 'x', title: 'x', tags: [] }))
@@ -163,11 +166,11 @@ test('all device event constructors reject invalid authorId', (t) => {
 })
 
 test('collection constructors validate required fields and visibility', (t) => {
-  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: '', name: 'x', visibility: 'public' }))
-  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: '', visibility: 'public' }))
-  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: 'x', visibility: 'private' as any }))
-  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: 'x', visibility: 'public', language: 'fr' as any }))
-  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, name: 'x', visibility: 'public', description: 1 as any }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: '', publicCollectionId: PUBLIC_COLLECTION_ID, name: 'x', visibility: 'public' }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: '', visibility: 'public' }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'x', visibility: 'private' as any }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'x', visibility: 'public', language: 'fr' as any }))
+  expectRangeError(t, () => deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'x', visibility: 'public', description: 1 as any }))
   expectRangeError(t, () => deviceUpdateCollection({ authorId: AUTHOR_ID, collectionId: '', changes: { name: 'x' } }))
   expectRangeError(t, () => deviceUpdateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: {} }))
   expectRangeError(t, () => deviceUpdateCollection({ authorId: AUTHOR_ID, collectionId: COLLECTION_ID, changes: { name: '' } }))

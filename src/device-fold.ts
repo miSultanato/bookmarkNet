@@ -22,6 +22,7 @@ export interface DeviceState {
 
 export interface DeviceCollectionState {
   collectionId: string
+  publicCollectionId?: string
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
@@ -95,6 +96,7 @@ function applyCreateCollection(state: DeviceState, event: DeviceCreateCollection
     deleted: false,
     createdAt: event.created_at
   }
+  if (typeof p.publicCollectionId === 'string') collection.publicCollectionId = p.publicCollectionId
   if (hasOwn(p, 'description')) collection.description = p.description
   const collections = new Map(state.collections)
   collections.set(p.collectionId, collection)

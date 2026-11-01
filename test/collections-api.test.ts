@@ -6,6 +6,8 @@ import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
 import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../src/storage/collection-core.ts'
+import { readAllEvents } from '../src/storage/device-core.ts'
+import { collectionIdFromPublicKey } from '../src/keys.ts'
 import { loadIdentity } from '../src/identity/store.ts'
 import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
@@ -73,8 +75,17 @@ test('collections API supports local collection lifecycle', async (t) => {
     const storedIdentity = await loadIdentity(dataDir)
     t.ok(storedIdentity !== null, 'identity is stored for the new collection')
     if (storedIdentity !== null) {
+      const deviceEvents = await readAllEvents(node.core)
+      const createEvent = deviceEvents.find((event) =>
+        event.event_type === 'device_create_collection' && event.payload.collectionId === id
+      )
+      t.ok(createEvent?.event_type === 'device_create_collection', 'device_core persists the collection creation event')
       const collectionCore = await openExistingCollectionCore(dataDir, id as string, fromHex(storedIdentity.private_key))
       try {
+        if (createEvent?.event_type === 'device_create_collection') {
+          t.is(typeof createEvent.payload.publicCollectionId, 'string', 'device_core persists publicCollectionId')
+          t.is(createEvent.payload.publicCollectionId, collectionIdFromPublicKey(collectionCore.key), 'publicCollectionId matches the collection_core public key')
+        }
         const collectionEvents = await readCollectionEvents(collectionCore)
         t.is(collectionEvents[0]?.event_type, 'collection_genesis', 'POST creates the collection genesis')
         const genesis = collectionEvents[0]

@@ -17,6 +17,7 @@ import { applyDeviceEvent, emptyDeviceState, foldDeviceEvents } from '../src/dev
 
 const AUTHOR_ID = 'u_0123456789abcdef'
 const COLLECTION_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+const PUBLIC_COLLECTION_ID = 'a'.repeat(64)
 const BOOKMARK_ID = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
 const BOOKMARK_2 = '01ARZ3NDEKTSV4RRFFQ69G5FAW'
 const BOOKMARK_3 = '01ARZ3NDEKTSV4RRFFQ69G5FAX'
@@ -31,7 +32,7 @@ function at<T extends DeviceEvent>(event: T, createdAt: string): T {
 }
 
 function collection(createdAt = T1, id = COLLECTION_ID) {
-  return at(deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: id, name: 'Colección', visibility: 'public', description: 'Descripción' }), createdAt)
+  return at(deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: id, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'Colección', visibility: 'public', description: 'Descripción' }), createdAt)
 }
 function group(createdAt = T1, groupId = GROUP_ID, collectionId = COLLECTION_ID) {
   return at(deviceCreateGroup({ authorId: AUTHOR_ID, groupId, collectionId, name: 'Lectura', position: 2 }), createdAt)
@@ -72,19 +73,19 @@ test('device_metadata replaces profile, removes absent fields and accepts empty 
 test('device_create_collection creates once with timestamps and optional description', (t) => {
   let state = applyDeviceEvent(emptyDeviceState(), collection(T1))
   t.alike(state.collections.get(COLLECTION_ID), {
-    collectionId: COLLECTION_ID, name: 'Colección', description: 'Descripción',
+    collectionId: COLLECTION_ID, publicCollectionId: PUBLIC_COLLECTION_ID, name: 'Colección', description: 'Descripción',
     visibility: 'public', language: 'es', deleted: false, createdAt: T1
   })
   const second = applyDeviceEvent(state, collection(T2))
   t.is(second, state)
   t.is(second.collections.get(COLLECTION_ID)?.createdAt, T1)
   const withoutDescription = applyDeviceEvent(emptyDeviceState(), deviceCreateCollection({
-    authorId: AUTHOR_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ', name: 'Sin descripción', visibility: 'unlisted'
+    authorId: AUTHOR_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAZ', publicCollectionId: 'b'.repeat(64), name: 'Sin descripción', visibility: 'unlisted'
   }))
   t.is(Object.prototype.hasOwnProperty.call(withoutDescription.collections.get('01ARZ3NDEKTSV4RRFFQ69G5FAZ'), 'description'), false)
   t.is(withoutDescription.collections.get('01ARZ3NDEKTSV4RRFFQ69G5FAZ')?.language, 'es')
 
-  const englishEvent = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAW', name: 'English', visibility: 'public', language: 'en' })
+  const englishEvent = deviceCreateCollection({ authorId: AUTHOR_ID, collectionId: '01ARZ3NDEKTSV4RRFFQ69G5FAW', publicCollectionId: 'c'.repeat(64), name: 'English', visibility: 'public', language: 'en' })
   const english = applyDeviceEvent(emptyDeviceState(), englishEvent)
   t.is(english.collections.get('01ARZ3NDEKTSV4RRFFQ69G5FAW')?.language, 'en')
 
@@ -92,6 +93,13 @@ test('device_create_collection creates once with timestamps and optional descrip
   delete (malformed.payload as any).language
   const defaulted = applyDeviceEvent(emptyDeviceState(), malformed)
   t.is(defaulted.collections.get(COLLECTION_ID)?.language, 'es')
+})
+
+test('device_create_collection folds legacy events without publicCollectionId', (t) => {
+  const legacy = collection()
+  delete (legacy.payload as any).publicCollectionId
+  const state = applyDeviceEvent(emptyDeviceState(), legacy)
+  t.is(state.collections.get(COLLECTION_ID)?.publicCollectionId, undefined)
 })
 
 test('device_update_collection ignores missing/deleted collection and applies only present changes', (t) => {

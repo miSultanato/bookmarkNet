@@ -141,6 +141,8 @@ test('HTML import maps bookmarks, collections and nested folders and persists st
     }, 'folder import summary is correct')
     const travelCollection = [...node.state.collections.values()].find((collection) => !collection.deleted && collection.name === 'Viajes')
     t.ok(travelCollection, 'Viajes collection exists')
+    t.is(typeof travelCollection?.publicCollectionId, 'string', 'imported collection stores its public collection ID')
+    t.is(typeof travelCollection?.publicCollectionId === 'string' && /^[0-9a-f]{64}$/.test(travelCollection.publicCollectionId), true, 'imported public collection ID is 64 lowercase hex characters')
     const travelBookmarks = [...node.state.bookmarks.values()].filter((bookmark) =>
       !bookmark.deleted && bookmark.collectionId === travelCollection?.collectionId
     )

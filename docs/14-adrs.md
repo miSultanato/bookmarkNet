@@ -402,6 +402,10 @@ Se sustituye la lista de cuatro tipos genéricos por los once eventos concretos 
 
 Se añade `device_add_device` al contrato de eventos de `device_core`, que pasa de once a doce eventos. ADR-018 decidió que la lista de dispositivos conocidos reside en `device_core`, y ADR-019 la necesita para el backup de identidad; el evento no figuraba en el contrato original de este ADR.
 
+### Corrección (2026-11-01)
+
+El payload de `device_create_collection` incluye ahora `publicCollectionId`, el identificador público de la colección (clave pública Ed25519 en hexadecimal, sin prefijo). Se persiste en `device_core` junto al ULID local para permitir el mapeo `local_collection_id` ↔ `collection_id` definido en ADR-015.
+
 ## ADR-014: Derivación de la clave de `device_core`
 
 **Fecha:** 2026-10-31  

@@ -1,5 +1,6 @@
 import { ulid } from '../ulid.ts'
 import { fromHex } from '../ids.ts'
+import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../keys.ts'
 import { userKeypairFromMasterKey } from '../identity.ts'
 import { loadIdentity } from '../identity/store.ts'
 import { closeCollectionCore, createCollectionCore } from '../storage/collection-core.ts'
@@ -88,9 +89,17 @@ export async function handleCreateCollection(
   }
 
   const collectionId = ulid()
+  const storedIdentity = await loadIdentity(node.config.dataDir)
+  if (storedIdentity === null) {
+    return error(500, 'IDENTITY_NOT_FOUND', 'No se pudo cargar la identidad local para crear la colección')
+  }
+  const masterKey = fromHex(storedIdentity.private_key)
+  const collectionKeypair = deriveCollectionKeypair(masterKey, collectionId)
+  const publicCollectionId = collectionIdFromPublicKey(collectionKeypair.publicKey)
   const event = deviceCreateCollection({
     authorId: node.identity.user_id,
     collectionId,
+    publicCollectionId,
     name: body.name,
     description: body.description,
     visibility,
@@ -104,11 +113,6 @@ export async function handleCreateCollection(
   // y el siguiente arranque volverá a intentar inicializar su collection_core.
   let collectionCore: Awaited<ReturnType<typeof createCollectionCore>> | null = null
   try {
-    const storedIdentity = await loadIdentity(node.config.dataDir)
-    if (storedIdentity === null) {
-      return error(500, 'COLLECTION_CORE_CREATION_FAILED', 'La colección se guardó localmente, pero no se pudo cargar la identidad para crear su collection_core')
-    }
-    const masterKey = fromHex(storedIdentity.private_key)
     const authorKeypair = userKeypairFromMasterKey(masterKey)
     collectionCore = await createCollectionCore(
       node.config.dataDir,

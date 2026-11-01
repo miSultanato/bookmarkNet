@@ -9,6 +9,7 @@ import { startNode } from '../src/node/start.ts'
 import { createFakeSwarm } from './helpers/fake-swarm.ts'
 import { appendEvent } from '../src/storage/device-core.ts'
 import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../src/storage/collection-core.ts'
+import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../src/keys.ts'
 
 const DATA_DIR = './tmp-test-start'
 
@@ -70,9 +71,11 @@ test('startNode creates collection_core for persisted local collections', async 
     const storedIdentity = await createIdentity(dataDir)
     const expectedIdentity = identityToApi(storedIdentity)
     node = await startNode(config, { swarm: createFakeSwarm() })
+    const collectionKeypair = deriveCollectionKeypair(fromHex(storedIdentity.private_key), collectionId)
     await node.apply(deviceCreateCollection({
       authorId: expectedIdentity.user_id,
       collectionId,
+      publicCollectionId: collectionIdFromPublicKey(collectionKeypair.publicKey),
       name: 'Colección persistida',
       visibility: 'public',
       language: 'es'
