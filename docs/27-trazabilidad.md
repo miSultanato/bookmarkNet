@@ -14,8 +14,8 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Fold de colección | `docs/15-schema-eventos.md` | `src/fold.ts` | `test/fold.test.ts` | Implementado (modelo) |
 | Derivación de claves de colección | `docs/05-arquitectura-p2p.md`, `docs/16-identificadores-y-firmas.md` | `src/keys.ts` | `test/keys.test.ts` | Implementado |
 | Almacenamiento (Hypercore) | `docs/05-arquitectura-p2p.md` | `src/storage/device-core.ts` | `test/device-core.test.ts` | Implementado |
-| Persistencia de `collection_core` | `docs/05-arquitectura-p2p.md`, `docs/15-schema-eventos.md` | — | — | Pendiente (MVP1) |
-| Persistencia de `node_id` | ADR-014 (`docs/14-adrs.md`) | — | — | Pendiente (MVP1) |
+| Persistencia de `collection_core` | `docs/05-arquitectura-p2p.md`, `docs/15-schema-eventos.md` | `src/storage/collection-core.ts` | `test/collection-core-e2e.test.ts`, `test/start.test.ts` | Implementado (MVP1; creación y génesis. La escritura de cambios posteriores y la replicación son MVP2) |
+| Persistencia de `node_id` | ADR-014 (`docs/14-adrs.md`) | `src/node/node-id.ts` | `test/start.test.ts` | Implementado (MVP1) |
 | Derivación de clave de `device_core` | ADR-014 (`docs/14-adrs.md`), `docs/03-identidad.md` | — | — | Pendiente (MVP2) |
 | API local (HTTP) | `docs/07-api-local.md` | `src/api/server.ts`, `src/api/*.ts` | `test/api.test.ts`, `test/*-api.test.ts` | Implementado |
 | Búsqueda local | `docs/07-api-local.md` | `src/api/search.ts` | `test/search-api.test.ts` | Implementado |
@@ -32,6 +32,6 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Búsqueda multilingüe | `docs/25-busqueda-i18n.md` | — | — | Pendiente (MVP3+) |
 | Seed pack | `docs/18-seed-pack.md`, `docs/19-onboarding.md` | — | — | Pendiente (MVP4) |
 
-Las filas marcadas como "Implementado (modelo)" tienen los tipos, constructores y fold, pero no persistencia ni red (ver `docs/15-schema-eventos.md`). Las filas marcadas como «Pendiente (MVP1)» corresponden a la persistencia local por colección y a la persistencia de `node_id`, sin publicación ni replicación. Las filas marcadas como «Pendiente (MVP2)» corresponden a publicación, escritura dual, replicación, multidispositivo, seguir, duplicar y derivación de la clave de `device_core`.
+Las filas marcadas como "Implementado (modelo)" tienen los tipos, constructores y fold, pero no persistencia ni red (ver `docs/15-schema-eventos.md`). En MVP1 están implementadas la persistencia local de `collection_core` (creación y génesis) y la persistencia de `node_id`. Los cambios posteriores de bookmarks y grupos siguen escribiéndose solo en `device_core`; la escritura dual, la publicación y la replicación corresponden a MVP2. Las filas marcadas como «Pendiente (MVP2)» incluyen también multidispositivo, seguir, duplicar y derivación de la clave de `device_core`.
 
 > Esta matriz debe actualizarse cuando se incorporen funcionalidades nuevas.

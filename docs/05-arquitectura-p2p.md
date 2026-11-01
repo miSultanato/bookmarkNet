@@ -85,17 +85,19 @@ agregando los `device_core` de todos sus dispositivos.
 Esto no requiere Autobase: cada `device_core` es un
 Hypercore single-writer independiente.
 
-**Estado de implementación (MVP0):** solo existe el `device_core`. La persistencia local de `collection_core` (un Hypercore por colección, sin publicación) es MVP1. La publicación, la replicación entre dispositivos y la escritura dual son MVP2.
+**Estado de implementación (MVP1):** `device_core` y `collection_core` existen; este último se crea y persiste con su génesis. La escritura dual, la publicación y la replicación son MVP2.
 
 ## Publicación y doble log
 
-Desde MVP1, al crear una colección en el `device_core` mediante el
-flujo `device_create_collection`, se crea también su `collection_core`
-(single-writer, con `collection_keypair` derivado mediante el
-`collection_uuid` estable de la colección). Su primer bloque es el
-`collection_genesis`, con `visibility: "unlisted"` mientras la colección
-no esté publicada. La creación y persistencia local del core no anuncian
-el topic ni activan la replicación.
+En MVP1, el flujo de creación/inicialización de una colección en el
+`device_core` crea también su `collection_core` (single-writer, con
+`collection_keypair` derivado mediante el `collection_uuid` estable de la
+colección). Su primer bloque es el `collection_genesis`, con
+`visibility: "unlisted"` mientras la colección no esté publicada. Al
+crearlo, el core incorpora los bookmarks y grupos que ya existen para esa
+colección en `device_core`. Los cambios posteriores se escriben solo en
+`device_core`: no hay escritura dual en MVP1. La creación y persistencia
+local del core no anuncian el topic ni activan la replicación.
 
 Al publicar (MVP2):
 
@@ -110,7 +112,7 @@ Al publicar (MVP2):
 
 Esta **escritura dual** es automática y transparente.
 
-**Estado de implementación (MVP0):** la escritura dual y la publicación P2P no están implementadas. En MVP0, el nodo solo escribe en el `device_core` local. La publicación, la replicación y la escritura dual son funcionalidades de MVP2.
+**Estado de implementación (MVP1):** la escritura dual y la publicación P2P no están implementadas. Los cambios posteriores a la creación del `collection_core` se escriben solo en el `device_core` local. La publicación, la replicación y la escritura dual son funcionalidades de MVP2.
 
 **Despublicar:** el autor escribe un evento
 `collection_unpublished` en el `collection_core`, espera

@@ -2,6 +2,8 @@ import { deviceAddBookmark, deviceCreateCollection, deviceCreateGroup } from '..
 import { canonicalizeUrl } from '../canonicalize.ts'
 import { fromHex, newBookmarkId, newGroupId, resourceIdFromCanonicalUrl } from '../ids.ts'
 import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../keys.ts'
+import { userKeypairFromMasterKey } from '../identity.ts'
+import { closeCollectionCore, createCollectionCore } from '../storage/collection-core.ts'
 import { loadIdentity } from '../identity/store.ts'
 import type { ParsedBookmark, ParsedFolder } from '../import/netscape.ts'
 import { parseNetscapeBookmarks } from '../import/netscape.ts'
@@ -146,6 +148,39 @@ export async function handleImportHtml(
 
     for (const subfolder of folder.folders) {
       await importSubfolder(subfolder, '')
+    }
+
+    // El evento de colección debe existir antes de añadir bookmarks, porque
+    // device_add_bookmark valida que su collectionId esté activo. El core se
+    // crea al terminar la importación para proyectar el estado completo.
+    let collectionCore: Awaited<ReturnType<typeof createCollectionCore>> | null = null
+    try {
+      const authorKeypair = userKeypairFromMasterKey(masterKey)
+      collectionCore = await createCollectionCore(
+        node.config.dataDir,
+        collectionId,
+        masterKey,
+        authorId,
+        authorKeypair.publicKey,
+        authorKeypair.secretKey,
+        node.state
+      )
+      await closeCollectionCore(collectionCore)
+      collectionCore = null
+    } catch (cause) {
+      if (collectionCore !== null) {
+        try {
+          await closeCollectionCore(collectionCore)
+        } catch (closeError) {
+          console.error('No se pudo cerrar el collection_core tras un error:', closeError)
+        }
+      }
+      console.error('No se pudo crear el collection_core de la colección importada ' + collectionId + ':', cause)
+      return error(
+        500,
+        'COLLECTION_CORE_CREATION_FAILED',
+        'La colección se importó localmente, pero no se pudo crear su collection_core. Se volverá a intentar al arrancar el nodo.'
+      )
     }
   }
 
