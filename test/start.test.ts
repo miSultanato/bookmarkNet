@@ -99,6 +99,63 @@ test('startNode creates collection_core for persisted local collections', async 
   }
 })
 
+test('startNode reopens an existing collection_core without rewriting its genesis', async (t) => {
+  const dataDir = DATA_DIR + '-collection-core-reopen'
+  const collectionId = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), dataDir }
+    const storedIdentity = await createIdentity(dataDir)
+    const expectedIdentity = identityToApi(storedIdentity)
+    const masterKey = fromHex(storedIdentity.private_key)
+    const collectionKeypair = deriveCollectionKeypair(masterKey, collectionId)
+
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    await node.apply(deviceCreateCollection({
+      authorId: expectedIdentity.user_id,
+      collectionId,
+      publicCollectionId: collectionIdFromPublicKey(collectionKeypair.publicKey),
+      name: 'Colección persistente',
+      visibility: 'public',
+      language: 'es'
+    }))
+    await node.close()
+    node = null
+
+    // El primer arranque con la colección crea su collection_core.
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    const firstCore = await openExistingCollectionCore(dataDir, collectionId, masterKey)
+    let firstLength = 0
+    let firstGenesis = ''
+    try {
+      const events = await readCollectionEvents(firstCore)
+      firstLength = firstCore.length
+      firstGenesis = JSON.stringify(events[0])
+      t.is(events[0]?.event_type, 'collection_genesis', 'el primer arranque crea el génesis')
+    } finally {
+      await closeCollectionCore(firstCore)
+    }
+    await node.close()
+    node = null
+
+    // El segundo arranque debe reabrir el core, no volver a escribir el génesis.
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    const secondCore = await openExistingCollectionCore(dataDir, collectionId, masterKey)
+    try {
+      const events = await readCollectionEvents(secondCore)
+      t.is(secondCore.length, firstLength, 'la longitud del core no cambia tras el segundo arranque')
+      t.is(JSON.stringify(events[0]), firstGenesis, 'el génesis permanece idéntico tras el segundo arranque')
+    } finally {
+      await closeCollectionCore(secondCore)
+    }
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
 test('startNode loads an existing identity', async (t) => {
   const dataDir = DATA_DIR + '-identity'
   let node: Awaited<ReturnType<typeof startNode>> | null = null

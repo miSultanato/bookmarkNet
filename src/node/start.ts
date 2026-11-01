@@ -10,7 +10,7 @@ import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
 import { fromHex } from '../ids.ts'
 import { userKeypairFromMasterKey } from '../identity.ts'
-import { closeCollectionCore, createCollectionCore } from '../storage/collection-core.ts'
+import { closeCollectionCore, createCollectionCore, openExistingCollectionCore } from '../storage/collection-core.ts'
 import { startSwarm } from '../p2p/swarm.ts'
 
 export type NodeIdentity = ReturnType<typeof identityToApi>
@@ -91,15 +91,23 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
           if (collection.deleted) continue
           let collectionCore: Hypercore | null = null
           try {
-            collectionCore = await createCollectionCore(
-              config.dataDir,
-              collection.collectionId,
-              masterKey,
-              authorId,
-              authorKeypair.publicKey,
-              authorKeypair.secretKey,
-              state
-            )
+            try {
+              collectionCore = await openExistingCollectionCore(
+                config.dataDir,
+                collection.collectionId,
+                masterKey
+              )
+            } catch {
+              collectionCore = await createCollectionCore(
+                config.dataDir,
+                collection.collectionId,
+                masterKey,
+                authorId,
+                authorKeypair.publicKey,
+                authorKeypair.secretKey,
+                state
+              )
+            }
             await closeCollectionCore(collectionCore)
             collectionCore = null
           } catch (error) {
