@@ -71,6 +71,7 @@ test('backup and restore API endpoints', async (t) => {
       displayName: 'Fuente'
     }))
     const sourceIdentity = await fs.readFile(sourceDir + '/identity.bmn', 'utf8')
+    const sourceEventCount = sourceNode.core.length
     sourceApi = await createServer(sourceConfig, sourceNode)
 
     const emptyPassword = await request(sourceApi.port, '/api/v1/backup', { password: '' })
@@ -83,12 +84,19 @@ test('backup and restore API endpoints', async (t) => {
     t.is(typeof created.body.size, 'number', 'backup response contains its size')
     t.is(await fs.stat(created.body.path).then(() => true, () => false), true, 'backup file exists')
 
-    const wrongPassword = await request(sourceApi.port, '/api/v1/restore', {
+    const emptyRestorePassword = await request(sourceApi.port, '/api/v1/restore', {
       backupPath: created.body.path,
-      password: 'incorrect password',
+      password: '',
       mode: 'all'
     })
-    t.is(wrongPassword.status, 400, 'restore rejects an incorrect password')
+    t.is(emptyRestorePassword.status, 400, 'restore rejects an empty password')
+
+    const invalidMode = await request(sourceApi.port, '/api/v1/restore', {
+      backupPath: created.body.path,
+      password: 'backup api password',
+      mode: 'invalid'
+    })
+    t.is(invalidMode.status, 400, 'restore rejects an invalid mode')
 
     const missingBackup = await request(sourceApi.port, '/api/v1/restore', {
       backupPath: ROOT + '/missing.bmn',
@@ -107,9 +115,24 @@ test('backup and restore API endpoints', async (t) => {
       mode: 'collections-only'
     })
     t.is(collectionsRestore.status, 200, 'collections-only restore returns 200')
-    t.alike(collectionsRestore.body, { status: 'ok' }, 'collections-only restore returns ok')
-    t.is(await fs.readFile(collectionsDir + '/identity.bmn', 'utf8'), collectionsIdentity, 'collections-only restore preserves identity')
-    t.is((await fs.stat(collectionsDir + '/device-core')).isDirectory(), true, 'collections-only restore restores device_core')
+    t.alike(collectionsRestore.body, {
+      status: 'pending',
+      message: 'Reinicia el nodo para completar la restauración'
+    }, 'collections-only restore requests a restart')
+    const collectionsPendingPath = collectionsDir + '/restore-pending.json'
+    t.is(await fs.stat(collectionsPendingPath).then(() => true, () => false), true, 'collections-only restore writes pending file')
+    const collectionsPending = JSON.parse(await fs.readFile(collectionsPendingPath, 'utf8'))
+    t.is(collectionsPending.backupPath, created.body.path, 'pending restore stores backup path')
+    t.is(collectionsPending.mode, 'collections-only', 'pending restore stores mode')
+    t.is(collectionsPending.password, 'backup api password', 'pending restore stores password')
+    await collectionsApi.close()
+    collectionsApi = null
+    await collectionsNode.close()
+    collectionsNode = null
+    collectionsNode = await startNode(collectionsConfig, { swarm: createFakeSwarm() })
+    t.is(await fs.readFile(collectionsDir + '/identity.bmn', 'utf8'), collectionsIdentity, 'collections-only restore preserves identity after restart')
+    t.is(collectionsNode.core.length, sourceEventCount, 'collections-only restore applies device_core after restart')
+    t.is(await fs.stat(collectionsPendingPath).then(() => true, () => false), false, 'collections-only pending file is removed after restart')
 
     await createIdentity(allDir)
     allNode = await startNode(allConfig, { swarm: createFakeSwarm() })
@@ -120,9 +143,21 @@ test('backup and restore API endpoints', async (t) => {
       mode: 'all'
     })
     t.is(allRestore.status, 200, 'all restore returns 200')
-    t.alike(allRestore.body, { status: 'ok' }, 'all restore returns ok')
-    t.is(await fs.readFile(allDir + '/identity.bmn', 'utf8'), sourceIdentity, 'all restore restores identity')
-    t.is((await fs.stat(allDir + '/device-core')).isDirectory(), true, 'all restore restores device_core')
+    t.alike(allRestore.body, {
+      status: 'pending',
+      message: 'Reinicia el nodo para completar la restauración'
+    }, 'all restore requests a restart')
+    const allPendingPath = allDir + '/restore-pending.json'
+    t.is(await fs.stat(allPendingPath).then(() => true, () => false), true, 'all restore writes pending file')
+    await allApi.close()
+    allApi = null
+    await allNode.close()
+    allNode = null
+    allNode = await startNode(allConfig, { swarm: createFakeSwarm() })
+    t.is(await fs.readFile(allDir + '/identity.bmn', 'utf8'), sourceIdentity, 'all restore restores identity after restart')
+    t.is(allNode.identity?.user_id, sourceNode.identity?.user_id, 'all restore restores the node identity')
+    t.is(allNode.core.length, sourceEventCount, 'all restore applies device_core after restart')
+    t.is(await fs.stat(allPendingPath).then(() => true, () => false), false, 'all pending file is removed after restart')
   } finally {
     if (sourceApi !== null) await sourceApi.close()
     if (allApi !== null) await allApi.close()

@@ -1,5 +1,7 @@
 import type Hypercore from 'hypercore'
 import sodium from 'sodium-native'
+import fs from 'bare-fs'
+import { join } from 'bare-path'
 import type { HTTPServer } from 'bare-http1'
 import type { Config } from './config.ts'
 import { acquirePidLock } from './pid-lock.ts'
@@ -19,7 +21,7 @@ import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import { foldEvents } from '../fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
-import { createBackupWithKey } from '../backup/backup.ts'
+import { createBackupWithKey, restoreBackup } from '../backup/backup.ts'
 import { fromHex, utf8Bytes } from '../ids.ts'
 import { userKeypairFromMasterKey } from '../identity.ts'
 import { closeCollectionCore, createCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
@@ -89,6 +91,42 @@ export interface Node {
   close(): Promise<void>
 }
 
+async function processPendingRestore(dataDir: string): Promise<void> {
+  const pendingPath = join(dataDir, 'restore-pending.json')
+  try {
+    await fs.stat(pendingPath)
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ENOENT') return
+    console.error('No se pudo comprobar si hay una restauración pendiente:', error)
+    return
+  }
+
+  try {
+    const raw = await fs.readFile(pendingPath, 'utf8')
+    const pending = JSON.parse(raw) as unknown
+    if (pending === null || typeof pending !== 'object' || Array.isArray(pending)) {
+      throw new RangeError('El archivo de restauración pendiente no contiene un objeto válido')
+    }
+    const request = pending as Record<string, unknown>
+    if (typeof request.backupPath !== 'string' || request.backupPath.length === 0 ||
+        typeof request.password !== 'string' || request.password.length === 0 ||
+        (request.mode !== 'all' && request.mode !== 'collections-only') ||
+        typeof request.requestedAt !== 'string') {
+      throw new RangeError('El archivo de restauración pendiente contiene campos inválidos')
+    }
+    await restoreBackup(dataDir, request.backupPath, request.password, request.mode)
+    console.log('Restauración pendiente completada:', request.backupPath)
+  } catch (error) {
+    console.error('No se pudo completar la restauración pendiente; el arranque continuará con los datos actuales:', error)
+  } finally {
+    try {
+      await fs.rm(pendingPath, { force: true })
+    } catch (error) {
+      console.error('No se pudo borrar restore-pending.json:', error)
+    }
+  }
+}
+
 export async function startNode(config: Config, options?: { swarm?: SwarmLike }): Promise<Node> {
   const releasePidLock = await acquirePidLock(config.dataDir)
 
@@ -103,6 +141,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
   let closePromise: Promise<void> | null = null
 
   try {
+    await processPendingRestore(config.dataDir)
     nodeId = await loadOrCreateNodeId(config.dataDir)
 
     const openStart = now()

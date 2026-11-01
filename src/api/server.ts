@@ -1,9 +1,10 @@
 import http from 'bare-http1'
 import fs from 'bare-fs'
+import { join } from 'bare-path'
 import { assets } from '../ui/assets.generated.js'
 import type { HTTPServer } from 'bare-http1'
 import { utf8Bytes } from '../ids.ts'
-import { createBackup, restoreBackup } from '../backup/backup.ts'
+import { createBackup } from '../backup/backup.ts'
 import type { Config } from '../node/config.ts'
 import type { Node } from '../node/start.ts'
 import { handleCreateIdentity, handleExportIdentity, handleGetIdentity, handleImportIdentity } from './identity.ts'
@@ -605,8 +606,19 @@ export async function createServer(config: Config, initialNode: Node | null, lis
             }
             throw error
           }
-          await restoreBackup(node!.config.dataDir, body.backupPath, body.password, body.mode)
-          sendJson(res, 200, { status: 'ok' })
+          const pendingPath = join(node!.config.dataDir, 'restore-pending.json')
+          const pending = {
+            backupPath: body.backupPath,
+            password: body.password,
+            mode: body.mode,
+            requestedAt: new Date().toISOString()
+          }
+          await fs.writeFile(pendingPath, JSON.stringify(pending), { mode: 0o600 })
+          await fs.chmod(pendingPath, 0o600)
+          sendJson(res, 200, {
+            status: 'pending',
+            message: 'Reinicia el nodo para completar la restauración'
+          })
           return
         } catch (error) {
           console.error('No se pudo completar la operación de backup:', error)
