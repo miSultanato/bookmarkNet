@@ -497,7 +497,7 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 
 2. **Génesis para colecciones no publicadas.** Al crear una colección que todavía no está publicada, el primer evento de su `collection_core` es un `collection_genesis` con `visibility: "unlisted"`. No se añade un campo `status: "draft"`: `visibility` ya expresa que la colección no se ofrece públicamente. La diferencia entre una colección no publicada y una publicada es de red —si se anuncia o no el topic—, no de estructura del log ni de existencia del core. La creación y persistencia local del core no anuncian el topic.
 
-3. **Sin migración de colecciones de MVP0.** No se migran ni se convierten automáticamente las colecciones existentes de MVP0. Conforme a la autorización temporal de ADR-014, mientras no haya usuarios reales se permite resetear los datos locales al pasar de MVP0 a MVP1 y empezar de cero. Las colecciones creadas desde MVP1 se crean ya con su `collection_core`. Si se conservan datos antiguos, esas colecciones permanecen en `device_core` y no reciben un `collection_core` asociado por migración.
+3. **Reset de MVP0; sin migración automática.** La transición de MVP0 a MVP1 se realiza mediante un reset de los datos locales: antes del primer arranque de MVP1 se borra el `dataDir` utilizado por MVP0. Esta pérdida de datos está autorizada por ADR-014 mientras no haya usuarios reales. No existe migración automática de las colecciones de MVP0 ni se conserva su `device_core`. Después del reset, todas las colecciones presentes en `device_core` son colecciones creadas bajo MVP1; por ello, `startNode()` crea o comprueba el `collection_core` de todas las colecciones no eliminadas.
 
 4. **Identificadores y mapeo local-público.**
    - `collection_uuid` es el ULID local y estable de la colección. En el `device_core` se conserva como identificador local.
@@ -522,7 +522,7 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 
 - **Riesgos y consideraciones:**
   - El génesis es el primer bloque de un log append-only y no se reescribe. Si el usuario publica una colección y después la despublica, el génesis ya está escrito y conserva el valor de `visibility` que tuviera al crearse (por ejemplo, `"unlisted"` para el borrador o `"public"` si ese fue el valor fijado para el génesis en el flujo de publicación). La despublicación posterior se representa mediante `collection_unpublished` y el cese del anuncio del topic; no elimina ni modifica el génesis. Véase «Despublicar» en `docs/05-arquitectura-p2p.md`.
-  - La política de no migración deja deliberadamente sin `collection_core` a las colecciones antiguas que se conserven. La aplicación deberá distinguirlas de las colecciones nuevas creadas bajo el contrato de MVP1; no debe inferir que la ausencia del core es un estado válido para una colección nueva.
+  - El reset elimina los datos locales de MVP0. El usuario debe realizarlo antes de arrancar MVP1; no debe reutilizar un `dataDir` de MVP0 esperando que la aplicación migre sus colecciones. Tras el reset, la inicialización de `collection_core` en `startNode()` puede aplicarse a todas las colecciones no eliminadas porque solo existen colecciones creadas bajo MVP1.
 
 ### Alternativas consideradas
 
