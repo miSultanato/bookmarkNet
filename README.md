@@ -33,7 +33,13 @@ MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, gru
 
 MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` restaura los datos de colecciones sin modificar la identidad ni regenerar `node_id`; `all` restaura también la identidad y genera un `node_id` nuevo.
 
-Además, el nodo genera un backup automático cada 24 horas por defecto, en `dataDir/backups/`. Se cifra con una clave derivada de `user_master_key`; el intervalo puede ajustarse mediante `backupIntervalMs` en la configuración del nodo. La lista de dispositivos incluida en los backups permanece vacía hasta implementar `device_add_device`. La recuperación de identidad por QR o frase larga queda para la parte 1.4.3.
+Además, el nodo genera un backup automático cada 24 horas por defecto, en `dataDir/backups/`. Se cifra con una clave derivada de `user_master_key`; el intervalo puede ajustarse mediante `backupIntervalMs` en la configuración del nodo. La lista de dispositivos incluida en los backups permanece vacía hasta implementar `device_add_device`. La identidad portable también puede recuperarse en un dispositivo nuevo mediante una frase BIP39 de **24 palabras**. La frase codifica sin pérdida los 32 bytes de `user_master_key`; no recupera bookmarks ni colecciones, que requieren un backup.
+
+## Recuperación de identidad
+
+La API permite obtener la frase de recuperación mediante `POST /api/v1/identity/recovery/generate`. Es una frase BIP39 estándar de **24 palabras**, porque `user_master_key` contiene 32 bytes (256 bits); las 24 palabras codifican esos 256 bits y su checksum de 8 bits sin pérdida. La frase se deriva de la clave maestra existente, no crea una identidad nueva. En otro dispositivo, `POST /api/v1/identity/recovery/import` restaura la misma identidad. La frase recupera únicamente la identidad portable, no los bookmarks ni las colecciones.
+
+**Seguridad:** la frase permite reconstruir la clave privada de la identidad. Guárdala fuera del dispositivo, en un lugar seguro y sin conexión, y no la compartas. QR no está implementado.
 
 ## Requisitos
 

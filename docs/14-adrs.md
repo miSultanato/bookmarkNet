@@ -800,6 +800,17 @@ Al restaurar se crean cores Hypercore nuevos y se vuelven a añadir los eventos 
 
 El modo `collections-only` conserva la identidad local; por ello, la clave maestra existente debe corresponder a las colecciones incluidas en el backup. Si no corresponde, la restauración se rechaza antes de modificar los datos actuales. El lector de esta versión solo acepta el formato v2; los backups v1 deben recuperarse con la versión anterior de Lotura antes de volver a generar una copia v2.
 
+### Corrección (2026-11-01)
+
+La recuperación de identidad por frase BIP39 queda implementada en MVP1:
+
+- La frase tiene **24 palabras** de la lista inglesa estándar BIP39. Se usan 256 bits de entropía y 8 bits de checksum, porque `user_master_key` es una semilla de 32 bytes. Así se codifica y recupera exactamente la clave maestra existente, sin derivar una identidad diferente.
+- `POST /api/v1/identity/recovery/generate` convierte el `user_master_key` de la identidad local en la frase; no genera una clave nueva. Las llamadas sucesivas devuelven la misma frase.
+- `POST /api/v1/identity/recovery/validate` comprueba las 24 palabras y el checksum.
+- `POST /api/v1/identity/recovery/import` valida la frase y crea `identity.bmn` en un directorio sin identidad. No sobrescribe una identidad existente y permite restaurar el perfil si se proporciona.
+- La recuperación restaura únicamente la identidad portable. No restaura bookmarks, colecciones, `device_core` ni `node_id`; para los datos locales se necesita un backup.
+- La recuperación por QR no está implementada. No se implementa `device_add_device` en esta tarea.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
