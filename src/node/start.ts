@@ -8,17 +8,19 @@ import {
   closeMaterializedView,
   getLastProcessedEvent,
   openMaterializedView,
+  setCollectionState,
   setDeviceState,
   setLastProcessedEvent
 } from '../storage/materialized-view.ts'
 import type { MaterializedViewHandle } from '../storage/materialized-view.ts'
 import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
+import { foldEvents } from '../fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
 import { fromHex } from '../ids.ts'
 import { userKeypairFromMasterKey } from '../identity.ts'
-import { closeCollectionCore, createCollectionCore, openExistingCollectionCore } from '../storage/collection-core.ts'
+import { closeCollectionCore, createCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
 import { startSwarm } from '../p2p/swarm.ts'
 
 export type NodeIdentity = ReturnType<typeof identityToApi>
@@ -97,7 +99,7 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     logTiming('node:identity', identityStart)
 
     // Comprobamos que todas las inicializaciones hayan tenido éxito.
-    if (nodeId === null || core === null || swarm === null || state === null) {
+    if (nodeId === null || core === null || view === null || swarm === null || state === null) {
       throw new Error('Inicialización fallida: recursos no disponibles')
     }
 
@@ -127,6 +129,15 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
                 authorKeypair.secretKey,
                 state
               )
+            }
+            const collectionEvents = await readCollectionEvents(collectionCore)
+            const collectionState = foldEvents(collectionEvents)
+            const collectionCoreId = 'collection:' + collection.collectionId
+            const lastProcessedCollectionEvent = await getLastProcessedEvent(view, collectionCoreId)
+            const lastCollectionEventIndex = collectionCore.length - 1
+            if (lastProcessedCollectionEvent !== lastCollectionEventIndex) {
+              await setCollectionState(view, collection.collectionId, collectionState)
+              await setLastProcessedEvent(view, collectionCoreId, lastCollectionEventIndex)
             }
             await closeCollectionCore(collectionCore)
             collectionCore = null

@@ -3,7 +3,9 @@ import { fromHex } from '../ids.ts'
 import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../keys.ts'
 import { userKeypairFromMasterKey } from '../identity.ts'
 import { loadIdentity } from '../identity/store.ts'
-import { closeCollectionCore, createCollectionCore } from '../storage/collection-core.ts'
+import { closeCollectionCore, createCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
+import { foldEvents } from '../fold.ts'
+import { setCollectionState, setLastProcessedEvent } from '../storage/materialized-view.ts'
 import {
   deviceCreateCollection,
   deviceDeleteCollection,
@@ -123,6 +125,10 @@ export async function handleCreateCollection(
       authorKeypair.secretKey,
       node.state
     )
+    const collectionEvents = await readCollectionEvents(collectionCore)
+    const collectionState = foldEvents(collectionEvents)
+    await setCollectionState(node.view, collectionId, collectionState)
+    await setLastProcessedEvent(node.view, 'collection:' + collectionId, collectionCore.length - 1)
     await closeCollectionCore(collectionCore)
     collectionCore = null
   } catch (cause) {
