@@ -226,7 +226,7 @@ Reglas adicionales del constructor `device_move_bookmark`: acepta el payload `{ 
 
 #### Identificadores local y público de colección
 
-El `collectionId` en el `device_core` es el `collection_uuid` de `docs/05-arquitectura-p2p.md`: un ULID local e inmutable. En el momento de crear la colección, se deriva `publicCollectionId) a partir de ese ULID y del `user_master_key` mediante HKDF-SHA256; el resultado es el `collection_id` público, es decir, la clave pública Ed25519 en hexadecimal sin prefijo. Ambos valores se persisten en el evento `device_create_collection` y permiten el mapeo local ↔ público definido en ADR-015. El `collection_core` se almacena localmente bajo el ULID y su clave pública determina el `collection_id`.
+El `collectionId` en el `device_core` es el `collection_uuid` de `docs/05-arquitectura-p2p.md`: un ULID local e inmutable. En el momento de crear la colección, se deriva `publicCollectionId` a partir de ese ULID y del `user_master_key` mediante HKDF-SHA256; el resultado es el `collection_id` público, es decir, la clave pública Ed25519 en hexadecimal sin prefijo. Ambos valores se persisten en el evento `device_create_collection` y permiten el mapeo local ↔ público definido en ADR-015. El `collection_core` se almacena localmente bajo el ULID y su clave pública determina el `collection_id`.
 
 #### Estado del dispositivo
 
