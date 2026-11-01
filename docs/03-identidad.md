@@ -128,11 +128,15 @@ interface DeviceMetadataPayload {
 
 interface DeviceCreateCollectionPayload {
   collectionId: string      // ULID (= collection_uuid, ver docs/05)
+  publicCollectionId: string // hex, derivado de la collection_keypair
+                             // (collection_id público)
   name: string
   description?: string
   visibility: 'public' | 'unlisted'
   language: 'es' | 'en' | 'eu' // Idioma principal de la colección. Valores: es (español), en (inglés), eu (euskera). Por defecto, es.
 }
+
+`publicCollectionId` es el `collection_id` público (clave pública Ed25519 de la colección, en hex sin prefijo). Se deriva en el momento de crear la colección, a partir del `collection_uuid` y el `user_master_key`, y se persiste en el `device_core` para que el nodo pueda abrir el `collection_core` correspondiente (ver ADR-015).
 
 interface DeviceUpdateCollectionPayload {
   collectionId: string
