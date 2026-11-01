@@ -48,6 +48,7 @@ export interface DeviceMoveBookmarkPayload { bookmarkId: string; collectionId: s
 export interface DeviceReorderBookmarkPayload { bookmarkId: string; groupId: string | null; position: number }
 export interface DeviceCreateGroupPayload { groupId: string; collectionId: string; name: string; position: number }
 export interface DeviceDeleteGroupPayload { groupId: string; collectionId: string }
+export interface DeviceAddDevicePayload { nodeId: string; publicKey?: string; addedAt: string }
 
 export interface DeviceMetadataEvent extends DeviceEventBase<'device_metadata', DeviceMetadataPayload> {}
 export interface DeviceCreateCollectionEvent extends DeviceEventBase<'device_create_collection', DeviceCreateCollectionPayload> {}
@@ -60,6 +61,7 @@ export interface DeviceMoveBookmarkEvent extends DeviceEventBase<'device_move_bo
 export interface DeviceReorderBookmarkEvent extends DeviceEventBase<'device_reorder_bookmark', DeviceReorderBookmarkPayload> {}
 export interface DeviceCreateGroupEvent extends DeviceEventBase<'device_create_group', DeviceCreateGroupPayload> {}
 export interface DeviceDeleteGroupEvent extends DeviceEventBase<'device_delete_group', DeviceDeleteGroupPayload> {}
+export interface DeviceAddDeviceEvent extends DeviceEventBase<'device_add_device', DeviceAddDevicePayload> {}
 
 export type DeviceEvent =
   | DeviceMetadataEvent
@@ -73,6 +75,7 @@ export type DeviceEvent =
   | DeviceReorderBookmarkEvent
   | DeviceCreateGroupEvent
   | DeviceDeleteGroupEvent
+  | DeviceAddDeviceEvent
 
 type DeviceEventType = DeviceEvent['event_type']
 type DevicePayload<T extends DeviceEventType> = Extract<DeviceEvent, { event_type: T }>['payload']
@@ -101,6 +104,11 @@ function requireVisibility(value: unknown, field = 'visibility'): asserts value 
 }
 function requireLanguage(value: unknown, field = 'language'): asserts value is 'es' | 'en' | 'eu' {
   if (value !== 'es' && value !== 'en' && value !== 'eu') throw new RangeError(field + ' must be one of: es, en, eu')
+}
+function requireNodeId(value: unknown): asserts value is string {
+  if (typeof value !== 'string' || !/^n_[0-9a-f]{16}$/.test(value)) {
+    throw new RangeError('nodeId must match n_ followed by 16 lowercase hexadecimal characters')
+  }
 }
 function requireCollectionId(value: unknown): asserts value is string {
   requireNonEmptyString(value, 'collectionId')
@@ -327,4 +335,28 @@ export function deviceDeleteGroup(params: DeviceDeleteGroupParams): DeviceDelete
   if (!isGroupId(params.groupId)) throw new RangeError('groupId must be a valid group ID')
   requireCollectionId(params.collectionId)
   return makeEvent(params.authorId, 'device_delete_group', { groupId: params.groupId, collectionId: params.collectionId })
+}
+
+
+export interface DeviceAddDeviceParams {
+  authorId: string
+  nodeId: string
+  publicKey?: string
+  addedAt?: string
+}
+
+/** Añade un dispositivo conocido al registro local del device_core. */
+export function deviceAddDevice(params: DeviceAddDeviceParams): DeviceAddDeviceEvent {
+  requireRecord(params, 'params')
+  requireAuthorId(params.authorId)
+  requireNodeId(params.nodeId)
+  requireOptionalString(params.publicKey, 'publicKey')
+  const addedAt = params.addedAt ?? new Date().toISOString()
+  requireNonEmptyString(addedAt, 'addedAt')
+  if (!Number.isFinite(Date.parse(addedAt))) {
+    throw new RangeError('addedAt debe ser una fecha ISO8601 válida')
+  }
+  const payload: DeviceAddDevicePayload = { nodeId: params.nodeId, addedAt }
+  if (params.publicKey !== undefined) payload.publicKey = params.publicKey
+  return makeEvent(params.authorId, 'device_add_device', payload)
 }
