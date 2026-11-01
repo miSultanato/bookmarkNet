@@ -517,6 +517,10 @@ export async function createServer(config: Config, initialNode: Node | null, lis
       return
     }
 
+    if (method === 'GET' && route.path === '/api/v1/node/id') {
+      sendJson(res, 200, { node_id: node.nodeId })
+      return
+    }
     if (method === 'GET' && route.path === '/api/v1/identity') {
       const result = await handleGetIdentity(node.config.dataDir)
       sendJson(res, result.status, result.body)
