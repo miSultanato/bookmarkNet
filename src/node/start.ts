@@ -178,13 +178,44 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     logTiming('node:identity', identityStart)
 
     if (stored !== null) {
-      const backupKey = deriveBackupKey(fromHex(stored.private_key))
+      const backupMasterKey = fromHex(stored.private_key)
+      const backupKey = deriveBackupKey(backupMasterKey)
       const backupIntervalMs = config.backupIntervalMs ?? 24 * 60 * 60 * 1000
       timerId = setInterval(() => {
         if (backupInProgress !== null) return
         backupInProgress = (async () => {
           try {
-            const backupPath = await createBackupWithKey(config.dataDir, backupKey)
+            if (core === null) throw new Error('device_core no está disponible para el backup')
+            const deviceEvents = await readAllEvents(core)
+            const collectionEvents = new Map<string, Awaited<ReturnType<typeof readCollectionEvents>>>()
+            const collections: string[] = []
+            const collectionsDir = join(config.dataDir, 'collections')
+            let collectionNames: string[] = []
+            try {
+              collectionNames = await fs.readdir(collectionsDir)
+            } catch (error) {
+              if ((error as { code?: string }).code !== 'ENOENT') throw error
+            }
+            for (const collectionId of collectionNames) {
+              const collectionPath = join(collectionsDir, collectionId)
+              if (!(await fs.stat(collectionPath)).isDirectory()) continue
+              const collectionCore = await openExistingCollectionCore(
+                config.dataDir,
+                collectionId,
+                backupMasterKey
+              )
+              try {
+                collectionEvents.set(collectionId, await readCollectionEvents(collectionCore))
+              } finally {
+                await closeCollectionCore(collectionCore)
+              }
+              collections.push(collectionId)
+            }
+            const backupPath = await createBackupWithKey(config.dataDir, backupKey, {
+              deviceEvents,
+              collectionEvents,
+              collections
+            })
             console.log('Backup automático creado:', backupPath)
           } catch (error) {
             console.error('No se pudo crear el backup automático:', error)
