@@ -1,75 +1,55 @@
 import fs from 'bare-fs'
 import test from 'brittle'
+import { handleCreateCollection } from '../src/api/collections.ts'
 import { handleImportHtml } from '../src/api/import.ts'
-import { deviceAddBookmark, deviceCreateCollection } from '../src/device-events.ts'
-import { userKeypairFromMasterKey } from '../src/identity.ts'
+import { deviceAddBookmark } from '../src/device-events.ts'
 import { createIdentity } from '../src/identity/store.ts'
 import { fromHex, newBookmarkId, resourceIdFromCanonicalUrl } from '../src/ids.ts'
-import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../src/keys.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
-import {
-  closeCollectionCore,
-  createCollectionCore,
-  openExistingCollectionCore,
-  readCollectionEvents
-} from '../src/storage/collection-core.ts'
+import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../src/storage/collection-core.ts'
+import { getCollectionState, getLastProcessedEvent, setLastProcessedEvent } from '../src/storage/materialized-view.ts'
 import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
-test('collection_core conserva el génesis y no recibe cambios posteriores en MVP1', async (t) => {
+test('la creación de colección materializa el collection_core y lo reconstruye al reabrir', async (t) => {
   const dataDir = './tmp-test-collection-core-e2e'
   let node: Awaited<ReturnType<typeof startNode>> | null = null
   await fs.rm(dataDir, { recursive: true, force: true })
 
   try {
     const config = { ...defaultConfig(), dataDir }
-    const storedIdentity = await createIdentity(dataDir)
-    const masterKey = fromHex(storedIdentity.private_key)
-    const authorKeypair = userKeypairFromMasterKey(masterKey)
+    await createIdentity(dataDir)
     node = await startNode(config, { swarm: createFakeSwarm() })
 
-    const collectionUuid = '01ARZ3NDEKTSV4RRFFQ69G5FAV'
-    const collectionKeypair = deriveCollectionKeypair(masterKey, collectionUuid)
-    await node.apply(deviceCreateCollection({
-      authorId: node.identity!.user_id,
-      collectionId: collectionUuid,
-      publicCollectionId: collectionIdFromPublicKey(collectionKeypair.publicKey),
+    const result = await handleCreateCollection(node, {
       name: 'Colección E2E',
       visibility: 'public',
       language: 'es'
-    }))
+    })
+    t.is(result.status, 201, 'la API crea la colección correctamente')
 
-    // Se crea el core después del evento de colección y antes del bookmark.
-    let collectionCore = await createCollectionCore(
-      dataDir,
-      collectionUuid,
-      masterKey,
-      node.identity!.user_id,
-      authorKeypair.publicKey,
-      authorKeypair.secretKey,
-      node.state
+    const collection = [...node.state.collections.values()].find((item) =>
+      !item.deleted && item.name === 'Colección E2E'
     )
-    await closeCollectionCore(collectionCore)
+    t.ok(collection, 'la creación registra la colección en device_core')
+    if (!collection) return
 
-    collectionCore = await openExistingCollectionCore(dataDir, collectionUuid, masterKey)
-    const initialEvents = await readCollectionEvents(collectionCore)
-    const initialLength = collectionCore.length
-    const initialGenesis = JSON.stringify(initialEvents[0])
-    t.is(initialEvents[0]?.event_type, 'collection_genesis', 'el primer bloque es el génesis')
+    const initialState = await getCollectionState(node.view, collection.collectionId)
+    t.ok(initialState?.collection !== null && initialState?.collection !== undefined, 'la vista contiene el génesis')
+    t.is(initialState?.collection?.name, 'Colección E2E', 'la vista contiene los metadatos del génesis')
+    t.is(initialState?.bookmarks.size, 0, 'la colección nueva no contiene bookmarks iniciales')
     t.is(
-      initialEvents[0]?.event_type === 'collection_genesis' ? initialEvents[0].payload.visibility : null,
-      'unlisted',
-      'el génesis de la colección no publicada tiene visibility unlisted'
+      await getLastProcessedEvent(node.view, 'collection:' + collection.collectionId),
+      0,
+      'la vista registra el índice del génesis'
     )
-    t.is(initialLength, 1, 'el core recién creado contiene únicamente el génesis')
-    await closeCollectionCore(collectionCore)
 
     const bookmarkId = newBookmarkId()
     const canonicalUrl = 'https://example.com/bookmark-after-genesis'
     await node.apply(deviceAddBookmark({
       authorId: node.identity!.user_id,
       bookmarkId,
-      collectionId: collectionUuid,
+      collectionId: collection.collectionId,
       resourceId: resourceIdFromCanonicalUrl(canonicalUrl),
       canonicalUrl,
       title: 'Bookmark posterior',
@@ -78,33 +58,23 @@ test('collection_core conserva el génesis y no recibe cambios posteriores en MV
     }))
 
     t.ok(node.state.bookmarks.has(bookmarkId), 'device_core contiene el bookmark posterior')
-    collectionCore = await openExistingCollectionCore(dataDir, collectionUuid, masterKey)
-    const eventsAfterBookmark = await readCollectionEvents(collectionCore)
-    t.is(collectionCore.length, initialLength, 'el bookmark posterior no añade bloques al collection_core')
-    t.is(
-      eventsAfterBookmark.some((event) => event.event_type === 'add_bookmark' &&
-        event.payload.bookmarkId === bookmarkId),
-      false,
-      'el bookmark posterior no aparece en collection_core durante MVP1'
-    )
-    await closeCollectionCore(collectionCore)
+    const unchangedState = await getCollectionState(node.view, collection.collectionId)
+    t.is(unchangedState?.bookmarks.size, 0, 'la vista de collection_core no incorpora cambios posteriores de device_core')
 
+    // Simulamos un índice desfasado para comprobar el replay del collection_core al arrancar.
+    await setLastProcessedEvent(node.view, 'collection:' + collection.collectionId, -1)
     await node.close()
     node = null
-    node = await startNode(config, { swarm: createFakeSwarm() })
 
-    t.ok(node.state.bookmarks.has(bookmarkId), 'device_core conserva el bookmark tras reabrir el nodo')
-    collectionCore = await openExistingCollectionCore(dataDir, collectionUuid, masterKey)
-    const reopenedEvents = await readCollectionEvents(collectionCore)
-    t.is(collectionCore.length, initialLength, 'la reapertura no cambia la longitud del collection_core')
-    t.is(JSON.stringify(reopenedEvents[0]), initialGenesis, 'la reapertura conserva el contenido exacto del génesis')
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    const rebuiltState = await getCollectionState(node.view, collection.collectionId)
+    t.is(rebuiltState?.collection?.name, 'Colección E2E', 'el reinicio reconstruye los metadatos desde collection_core')
+    t.is(rebuiltState?.bookmarks.size, 0, 'el reinicio conserva el estado independiente de collection_core')
     t.is(
-      reopenedEvents.some((event) => event.event_type === 'add_bookmark' &&
-        event.payload.bookmarkId === bookmarkId),
-      false,
-      'el bookmark posterior sigue ausente del collection_core'
+      await getLastProcessedEvent(node.view, 'collection:' + collection.collectionId),
+      0,
+      'el reinicio corrige el índice de sincronización'
     )
-    await closeCollectionCore(collectionCore)
   } finally {
     if (node !== null) await node.close()
     await fs.rm(dataDir, { recursive: true, force: true })
@@ -134,6 +104,15 @@ test('la importación HTML crea collection_core con los bookmarks iniciales', as
     )
     t.ok(collection, 'la importación crea la colección')
     if (!collection) return
+
+    const materialized = await getCollectionState(node.view, collection.collectionId)
+    t.is(materialized?.collection?.name, 'Viajes', 'la vista materializada contiene los metadatos importados')
+    t.is(materialized?.bookmarks.size, 3, 'la vista materializada contiene los tres bookmarks importados')
+    t.is(
+      await getLastProcessedEvent(node.view, 'collection:' + collection.collectionId),
+      3,
+      'la vista registra el último evento del collection_core importado'
+    )
 
     const collectionCore = await openExistingCollectionCore(
       dataDir,
