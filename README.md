@@ -27,13 +27,13 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 ## Estado
 
-MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. MVP1 en curso: persistencia local por colección y vistas materializadas Hyperbee de `device_core` y `collection_core` implementadas. La vista de cada colección refleja su propio log inicial; los cambios posteriores siguen guardándose solo en `device_core`. La escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
+MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista materializada Hyperbee, backup/restore y recuperación BIP39. Próximo hito: MVP2 (publicación y replicación). En MVP1, los cambios posteriores a la creación de una colección siguen escribiéndose solo en `device_core`; la escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
 ## Backups
 
 MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` restaura los datos de colecciones sin modificar la identidad ni regenerar `node_id`; `all` restaura también la identidad y genera un `node_id` nuevo.
 
-Además, el nodo genera un backup automático cada 24 horas por defecto, en `dataDir/backups/`. Se cifra con una clave derivada de `user_master_key`; el intervalo puede ajustarse mediante `backupIntervalMs` en la configuración del nodo. La lista de dispositivos incluida en los backups permanece vacía hasta implementar `device_add_device`. La identidad portable también puede recuperarse en un dispositivo nuevo mediante una frase BIP39 de **24 palabras**. La frase codifica sin pérdida los 32 bytes de `user_master_key`; no recupera bookmarks ni colecciones, que requieren un backup.
+Además, el nodo genera un backup automático cada 24 horas por defecto, en `dataDir/backups/`. Se cifra con una clave derivada de `user_master_key`; el intervalo puede ajustarse mediante `backupIntervalMs` en la configuración del nodo. La lista de dispositivos conocidos se obtiene de los eventos `device_add_device` de `device_core` y se incluye en el backup; en MVP1 es local y todavía no se replica. La identidad portable también puede recuperarse en un dispositivo nuevo mediante una frase BIP39 de **24 palabras**. La frase codifica sin pérdida los 32 bytes de `user_master_key`; no recupera bookmarks ni colecciones, que requieren un backup.
 
 ## Recuperación de identidad
 
