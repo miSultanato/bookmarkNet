@@ -13,6 +13,7 @@ import { ulid } from '../src/ulid.ts'
 import {
   closeCollectionCore,
   createCollectionCore,
+  openExistingCollectionCore,
   readCollectionEvents
 } from '../src/storage/index.ts'
 import type Hypercore from 'hypercore'
@@ -128,6 +129,7 @@ test('collection-core creates a signed genesis and converts device state', async
     t.is(genesis.event_type, 'collection_genesis')
     if (genesis.event_type !== 'collection_genesis') throw new Error('Expected collection_genesis at block zero')
     t.is(genesis.payload.collection_id, collectionId)
+    t.is(genesis.payload.visibility, 'unlisted', 'el génesis de una colección nueva no publicada es unlisted')
 
     const signingParams = {
       collectionId,
@@ -135,7 +137,7 @@ test('collection-core creates a signed genesis and converts device state', async
       authorId,
       authorPublicKey: authorKeypair.publicKey,
       name: 'Viajes',
-      visibility: 'public' as const,
+      visibility: 'unlisted' as const,
       language: 'es' as const,
       forkedFrom: null,
       migratedFrom: null
@@ -162,5 +164,42 @@ test('collection-core creates a signed genesis and converts device state', async
   } finally {
     if (core !== null) await closeCollectionCore(core)
     await fs.rm(DATA_DIR, { recursive: true, force: true })
+  }
+})
+
+
+test('collection-core reopens an existing log without rewriting its events', async (t) => {
+  const dataDir = DATA_DIR + '-reopen'
+  let core: Hypercore | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const masterKey = fixedSeed()
+    const authorKeypair = userKeypairFromMasterKey(masterKey)
+    const authorId = userIdFromPublicKey(authorKeypair.publicKey)
+
+    core = await createCollectionCore(
+      dataDir,
+      COLLECTION_UUID,
+      masterKey,
+      authorId,
+      authorKeypair.publicKey,
+      authorKeypair.secretKey,
+      makeDeviceState()
+    )
+    const originalEvents = await readCollectionEvents(core)
+    const originalLength = core.length
+
+    await closeCollectionCore(core)
+    core = null
+
+    core = await openExistingCollectionCore(dataDir, COLLECTION_UUID, masterKey)
+    const reopenedEvents = await readCollectionEvents(core)
+
+    t.is(core.length, originalLength, 'la reapertura conserva el número de bloques')
+    t.alike(reopenedEvents, originalEvents, 'la reapertura conserva todos los eventos')
+  } finally {
+    if (core !== null) await closeCollectionCore(core)
+    await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
