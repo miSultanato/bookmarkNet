@@ -136,8 +136,6 @@ interface DeviceCreateCollectionPayload {
   language: 'es' | 'en' | 'eu' // Idioma principal de la colección. Valores: es (español), en (inglés), eu (euskera). Por defecto, es.
 }
 
-`publicCollectionId` es el `collection_id` público (clave pública Ed25519 de la colección, en hex sin prefijo). Se deriva en el momento de crear la colección, a partir del `collection_uuid` y el `user_master_key`, y se persiste en el `device_core` para que el nodo pueda abrir el `collection_core` correspondiente (ver ADR-015).
-
 interface DeviceUpdateCollectionPayload {
   collectionId: string
   changes: {
@@ -210,6 +208,8 @@ interface DeviceAddDevicePayload {
   addedAt: string         // ISO8601
 }
 ```
+
+`publicCollectionId` es el `collection_id` público (clave pública Ed25519 de la colección, en hex sin prefijo). Se deriva en el momento de crear la colección, a partir del `collection_uuid` y el `user_master_key`, y se persiste en el `device_core` para que el nodo pueda abrir el `collection_core` correspondiente (ver ADR-015).
 
 **Inbox global vs Inbox de colección:** el Inbox global contiene bookmarks con `collectionId: null` y `groupId: null`. No pertenecen a ninguna colección. El Inbox de colección (también llamado raíz de la colección) contiene bookmarks con `collectionId: "c_..."` y `groupId: null`: pertenecen a esa colección, pero no a un grupo. Son conceptos distintos y la UI los muestra de forma distinta.
 
