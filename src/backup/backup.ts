@@ -8,8 +8,7 @@ import { fromHex, utf8Bytes } from '../ids.ts'
 import { deriveCollectionKeypair, collectionIdFromPublicKey } from '../keys.ts'
 import { loadIdentity } from '../identity/store.ts'
 import { loadOrCreateNodeId } from '../node/node-id.ts'
-import { appendEvent, closeDeviceCore, openDeviceCore, readAllEvents } from '../storage/device-core.ts'
-import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../storage/collection-core.ts'
+import { appendEvent, closeDeviceCore, openDeviceCore } from '../storage/device-core.ts'
 
 const MAGIC = utf8Bytes('LOTURABK')
 const FORMAT_VERSION = 2
@@ -20,10 +19,12 @@ const END_BLOCKS = 2
 const MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024
 const COLLECTION_ID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/
 
-export interface CreateBackupOptions {
-  dataDir: string
-  password: string
+export interface BackupData {
+  deviceEvents: DeviceEvent[]
+  collectionEvents: Map<string, CollectionEvent[]>
+  collections: string[]
 }
+
 
 export type RestoreMode = 'all' | 'collections-only'
 
@@ -328,7 +329,15 @@ async function removeIfExists(path: string): Promise<void> {
  * Crea un backup cifrado de la identidad (si existe), device_core y
  * collection_core. El formato combina una cabecera versionada y un TAR USTAR.
  */
-async function createArchive(dataDir: string): Promise<Uint8Array> {
+async function createArchive(dataDir: string, data: BackupData): Promise<Uint8Array> {
+  if (!Array.isArray(data.deviceEvents) ||
+      !(data.collectionEvents instanceof Map) ||
+      !Array.isArray(data.collections) ||
+      !data.collections.every((id) => typeof id === 'string' && COLLECTION_ID_PATTERN.test(id)) ||
+      new Set(data.collections).size !== data.collections.length) {
+    throw new RangeError('Los datos del backup no son válidos')
+  }
+
   const entries: TarEntry[] = []
   if (await exists(join(dataDir, 'identity.bmn'))) {
     entries.push({
@@ -338,59 +347,30 @@ async function createArchive(dataDir: string): Promise<Uint8Array> {
     })
   }
 
-  const deviceCore = await openDeviceCore(dataDir)
-  let deviceEvents: DeviceEvent[] = []
-  try {
-    deviceEvents = await readAllEvents(deviceCore)
-  } finally {
-    await closeDeviceCore(deviceCore)
-  }
   entries.push({
     path: 'device-events.json',
     type: 'file',
-    data: encodeUtf8(JSON.stringify(deviceEvents))
+    data: encodeUtf8(JSON.stringify(data.deviceEvents))
   })
 
-  const collectionIds: string[] = []
-  const collectionsDir = join(dataDir, 'collections')
-  if (await exists(collectionsDir)) {
-    const identity = await loadIdentity(dataDir)
-    const names = await fs.readdir(collectionsDir)
-    for (const name of names) {
-      const collectionPath = join(collectionsDir, name)
-      const stat = await fs.stat(collectionPath)
-      if (!stat.isDirectory()) continue
-      if (!COLLECTION_ID_PATTERN.test(name)) {
-        throw new RangeError('Identificador local de colección inválido: ' + name)
-      }
-      if (identity === null) {
-        throw new RangeError('No se pueden respaldar collection_core sin identity.bmn')
-      }
-      const collectionCore = await openExistingCollectionCore(
-        dataDir,
-        name,
-        fromHex(identity.private_key)
-      )
-      let collectionEvents: CollectionEvent[]
-      try {
-        collectionEvents = await readCollectionEvents(collectionCore)
-      } finally {
-        await closeCollectionCore(collectionCore)
-      }
-      collectionIds.push(name)
-      entries.push({
-        path: 'collection-events-' + name + '.json',
-        type: 'file',
-        data: encodeUtf8(JSON.stringify(collectionEvents))
-      })
+  const collectionIds = [...data.collections].sort()
+  for (const collectionId of collectionIds) {
+    const collectionEvents = data.collectionEvents.get(collectionId)
+    if (!Array.isArray(collectionEvents)) {
+      throw new RangeError('Faltan eventos de la colección ' + collectionId)
     }
+    entries.push({
+      path: 'collection-events-' + collectionId + '.json',
+      type: 'file',
+      data: encodeUtf8(JSON.stringify(collectionEvents))
+    })
   }
 
   // La lista de dispositivos se extraerá de device_add_device cuando se implemente; por ahora, vacía.
   const manifest: BackupManifest = {
     version: 2,
     devices: [],
-    collections: collectionIds.sort()
+    collections: collectionIds
   }
   entries.unshift({
     path: 'manifest.json',
@@ -411,7 +391,7 @@ async function writeBackupFile(dataDir: string, encrypted: Uint8Array): Promise<
 }
 
 /** Crea un backup cifrado con contraseña mediante Argon2id y XChaCha20-Poly1305. */
-export async function createBackup(options: CreateBackupOptions): Promise<string> {
+export async function createBackup(options: { dataDir: string; password: string } & BackupData): Promise<string> {
   if (options === null || typeof options !== 'object' ||
       typeof options.dataDir !== 'string' || options.dataDir.length === 0) {
     throw new RangeError('dataDir debe ser una ruta no vacía')
@@ -419,7 +399,7 @@ export async function createBackup(options: CreateBackupOptions): Promise<string
   if (typeof options.password !== 'string' || options.password.length === 0) {
     throw new RangeError('La contraseña del backup no puede estar vacía')
   }
-  const archive = await createArchive(options.dataDir)
+  const archive = await createArchive(options.dataDir, options)
   return writeBackupFile(options.dataDir, encryptArchive(archive, options.password))
 }
 
@@ -427,14 +407,14 @@ export async function createBackup(options: CreateBackupOptions): Promise<string
  * Crea un backup automático cifrado con una clave de 32 bytes derivada del
  * user_master_key mediante HKDF-SHA256 (dominio bookmarknet:backup:).
  */
-export async function createBackupWithKey(dataDir: string, key: Uint8Array): Promise<string> {
+export async function createBackupWithKey(dataDir: string, key: Uint8Array, data: BackupData): Promise<string> {
   if (typeof dataDir !== 'string' || dataDir.length === 0) {
     throw new RangeError('dataDir debe ser una ruta no vacía')
   }
   if (!(key instanceof Uint8Array) || key.length !== sodium.crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
     throw new RangeError('La clave del backup debe contener exactamente 32 bytes')
   }
-  const archive = await createArchive(dataDir)
+  const archive = await createArchive(dataDir, data)
   const salt = new Uint8Array(sodium.crypto_pwhash_SALTBYTES)
   sodium.randombytes_buf(salt)
   const nonce = new Uint8Array(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)
