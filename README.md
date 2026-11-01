@@ -27,7 +27,7 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 ## Estado
 
-MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. MVP1 en curso: persistencia local por colección implementada (creación y génesis). Próximo: publicación y replicación (MVP2). Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
+MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. MVP1 en curso: persistencia local por colección y vistas materializadas Hyperbee de `device_core` y `collection_core` implementadas. La vista de cada colección refleja su propio log inicial; los cambios posteriores siguen guardándose solo en `device_core`. La escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
 ## Requisitos
 
