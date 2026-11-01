@@ -1,5 +1,5 @@
 import fs from 'bare-fs'
-import { join } from 'node:path'
+import { join } from 'bare-path'
 import test from 'brittle'
 import { emptyDeviceState } from '../src/device-fold.ts'
 import type { DeviceState } from '../src/device-fold.ts'

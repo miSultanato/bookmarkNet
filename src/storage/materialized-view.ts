@@ -1,7 +1,7 @@
 import fs from 'bare-fs'
 import Hyperbee from 'hyperbee'
 import Hypercore from 'hypercore'
-import { join } from 'node:path'
+import { join } from 'bare-path'
 import type { DeviceState } from '../device-fold.ts'
 import type { CollectionState } from '../fold.ts'
 
