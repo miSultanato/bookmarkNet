@@ -28,7 +28,8 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Configuración | `docs/22-configuracion.md` | `src/node/config.ts` | `test/config.test.ts` | Implementado |
 | UI Web (pantallas) | `docs/13-ui-ux.md`, `docs/24-ui-vision.md` | `src/ui/*.js`, `src/ui/style.css` | `test/ui.test.ts` | Implementado |
 | Empaquetado standalone (Linux) | `docs/21-distribucion.md` | `bare-build --standalone`, `src/main.ts` | Validación manual del binario y flujo UI | Validado manualmente en Linux (MVP1) |
-| Empaquetado AppImage/Docker | `docs/21-distribucion.md` | `Dockerfile`, `.github/workflows/release.yml`, `.github/workflows/docker-publish.yml` | — | Pendiente de validar (MVP2) |
+| Empaquetado AppImage (Linux) | `docs/21-distribucion.md` | `.github/workflows/release.yml`, `src/main.ts` | Validación manual del artefacto y flujo UI | Validado manualmente en Linux (MVP1) |
+| Empaquetado Docker | `docs/21-distribucion.md` | `Dockerfile`, `.github/workflows/docker-publish.yml` | — | Pendiente de validar (MVP2) |
 | CI (tests en push) | — | `.github/workflows/ci.yml` | — | Implementado |
 | Replicación P2P (`bmn://`) | `docs/05-arquitectura-p2p.md`, `docs/06-descubrimiento.md` | — | — | Pendiente (MVP2) |
 | Publicación / Escritura dual | `docs/05-arquitectura-p2p.md` | — | — | Pendiente (MVP2) |
@@ -40,6 +41,6 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 
 Las filas marcadas como "Implementado (modelo)" tienen los tipos, constructores y fold, pero no persistencia ni red (ver `docs/15-schema-eventos.md`). En MVP1 están implementadas la persistencia local de `collection_core` (creación y génesis), las vistas materializadas Hyperbee de `device_core` y de cada `collection_core`, la persistencia de `node_id`, el registro local de dispositivos conocidos y el backup/restore con recuperación BIP39. La vista de cada `collection_core` se reconstruye desde su propio log y contiene el génesis y los bookmarks/grupos iniciales; no proyecta los cambios posteriores de `device_core`. Estos cambios siguen escribiéndose solo en `device_core`; la escritura dual, la publicación y la replicación corresponden a MVP2. Las filas marcadas como «Pendiente (MVP2)» incluyen la derivación de la clave de `device_core`, la replicación multidispositivo, seguir y duplicar colecciones.
 
-**MVP1 completado y validado:** las funcionalidades de la fase 1 están implementadas y testeadas (278/278 tests: 226 unitarios y 52 de integración). El binario standalone generado con `bare-build --standalone` y su flujo de uso desde la UI están validados manualmente en Linux. La validación de AppImage y Docker queda pendiente para MVP2.
+**MVP1 completado y validado:** las funcionalidades de la fase 1 están implementadas y testeadas (278/278 tests: 226 unitarios y 52 de integración). El binario standalone generado con `bare-build --standalone` y la AppImage, junto con sus respectivos flujos de uso desde la UI, están validados manualmente en Linux. La validación de Docker queda pendiente para MVP2.
 
 > Esta matriz debe actualizarse cuando se incorporen funcionalidades nuevas.

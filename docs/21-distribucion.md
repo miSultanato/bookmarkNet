@@ -14,7 +14,7 @@ Ambos formatos contienen el mismo core Bare + UI web local. El binario arranca e
 
 ## Estado de validación (MVP1)
 
-**Empaquetado validado en MVP1:** binario standalone generado con `bare-build --standalone`, probado en Linux.
+**Empaquetados validados en MVP1:** binario standalone generado con `bare-build --standalone` y AppImage, ambos probados en Linux.
 
 Funcionalidades validadas en el binario:
 - Onboarding.
@@ -23,7 +23,7 @@ Funcionalidades validadas en el binario:
 - Backup y restore.
 - Recuperación de identidad mediante frase BIP39.
 
-**Pendiente de validar en MVP2:** distribución mediante AppImage y Docker. Que existan workflows o instrucciones de construcción para esos formatos no implica que sus artefactos y sus respectivos flujos de instalación y ejecución estén validados.
+**Pendiente de validar en MVP2:** distribución mediante Docker. La AppImage está validada manualmente en Linux; que exista un workflow o instrucciones de construcción para Docker no implica que su artefacto y su flujo de instalación y ejecución estén validados.
 
 ## Publicación
 
