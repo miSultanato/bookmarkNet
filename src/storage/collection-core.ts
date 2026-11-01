@@ -82,7 +82,8 @@ export async function createCollectionCore(
         secretKey: authorSecretKey,
         name: collection.name,
         description: collection.description,
-        visibility: collection.visibility,
+        // ADR-015: el génesis de una colección recién creada y no publicada es "unlisted".
+        visibility: 'unlisted',
         language: collection.language,
         forkedFrom: null,
         migratedFrom: null
@@ -126,6 +127,41 @@ export async function createCollectionCore(
     await core.close()
     throw error
   }
+}
+
+/** Reabre un collection_core existente sin crear ni añadir su génesis. */
+export async function openExistingCollectionCore(
+  dataDir: string,
+  collectionUuid: string,
+  masterKey: Uint8Array
+): Promise<Hypercore> {
+  if (typeof dataDir !== 'string' || dataDir.length === 0) {
+    throw new RangeError('dataDir must be a non-empty string')
+  }
+  if (typeof collectionUuid !== 'string' || !COLLECTION_UUID_RE.test(collectionUuid)) {
+    throw new RangeError('collectionUuid must be a 26-character uppercase ULID')
+  }
+  requireBytes(masterKey, 32, 'masterKey')
+
+  const collectionKeypair = deriveCollectionKeypair(masterKey, collectionUuid)
+  const collectionsDir = dataDir.replace(/\/+$/, '') + '/collections'
+  const storagePath = collectionsDir + '/' + collectionUuid
+
+  await fs.mkdir(collectionsDir, { recursive: true, mode: 0o700 })
+  const core = new Hypercore(storagePath, {
+    keyPair: {
+      publicKey: collectionKeypair.publicKey,
+      secretKey: collectionKeypair.secretKey
+    },
+    valueEncoding: 'json',
+    compat: true
+  })
+  await core.ready()
+  if (core.length === 0) {
+    await core.close()
+    throw new Error('El collection_core no existe o está vacío')
+  }
+  return core
 }
 
 /** Reads all collection events in append order. */
