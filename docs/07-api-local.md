@@ -229,6 +229,7 @@ La tabla distingue el estado implementado en el código de la fase prevista para
 
 | Método | Ruta | Estado | Fase | Notas |
 |---|---|---|---|---|
+| GET | `/api/v1/node/id` | implementado | MVP1 | Devuelve el `node_id` persistido del dispositivo local (ADR-017). |
 | GET | `/api/v1/identity` | implementado | MVP0 | Consulta la identidad local. |
 | POST | `/api/v1/identity/create` | implementado | MVP0 | Creación de identidad local. |
 | POST | `/api/v1/identity/import` | implementado | MVP0 | Importación JSON cifrada; funcionalidad Export/Import de identidad de docs/27. |

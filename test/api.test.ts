@@ -60,6 +60,10 @@ test('local API health, identity routes and request security checks', async (t) 
     t.is(health.status, 200, 'health returns 200')
     t.alike(health.body, { status: 'ok' }, 'health response is ok')
 
+    const nodeId = await request(api.port, '/api/v1/node/id')
+    t.is(nodeId.status, 200, 'node id endpoint returns 200')
+    t.alike(nodeId.body, { node_id: node.nodeId }, 'node id endpoint exposes the current node identifier')
+
     const empty = await request(api.port, '/api/v1/identity')
     t.is(empty.status, 200, 'identity read without identity returns 200')
     t.is(empty.connection?.toLowerCase(), 'close', 'API response disables keep-alive')

@@ -608,7 +608,7 @@ El `node_id` será una entrada de la derivación de la clave del dispositivo pre
 
 6. **Separación de `device_core`.** El `node_id` vive fuera de `device_core`, en `dataDir/node_id`. No se almacena como evento ni como dato dentro del core. En MVP1, su carga y persistencia no cambian la apertura actual de `device_core`; la relación con la derivación de su clave se aplicará en MVP2 conforme a ADR-014.
 
-**Implementación: pendiente (MVP1).**
+**Implementación (MVP1):** `src/node/node-id.ts`; carga en `startNode()` y exposición de lectura mediante `GET /api/v1/node/id`.
 
 ### Consecuencias
 
