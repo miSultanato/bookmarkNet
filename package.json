@@ -15,7 +15,7 @@
     "predev": "npm run generate:assets",
     "dev": "bare src/main.ts",
     "prebuild": "npm run generate:assets",
-    "build": "npm run generate:assets && bare-build --standalone --out build --name lotura src/main.ts"
+    "build": "npm run generate:assets && npx bare-build --standalone --out build --name lotura src/main.ts"
   },
   "devDependencies": {
     "bare-build": "^1.6.0",
