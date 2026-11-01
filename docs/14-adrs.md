@@ -507,7 +507,7 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 
 5. **Génesis obligatorio.** Un `collection_core` no puede existir sin génesis. El primer evento del log es siempre `collection_genesis` (bloque 0); un core vacío no constituye una colección válida. El génesis conserva el contrato de campos y firma definido en los documentos de schema e identificadores; `local_collection_id` añade la referencia local informativa y no redefine la identidad pública de la colección.
 
-**Implementación (MVP1):** `src/node/node-id.ts`; carga en `startNode()` y exposición de lectura mediante `GET /api/v1/node/id`.
+**Implementación: pendiente (MVP1).**
 
 ### Consecuencias
 
@@ -608,7 +608,7 @@ El `node_id` será una entrada de la derivación de la clave del dispositivo pre
 
 6. **Separación de `device_core`.** El `node_id` vive fuera de `device_core`, en `dataDir/node_id`. No se almacena como evento ni como dato dentro del core. En MVP1, su carga y persistencia no cambian la apertura actual de `device_core`; la relación con la derivación de su clave se aplicará en MVP2 conforme a ADR-014.
 
-**Implementación: pendiente (MVP1).**
+**Implementación (MVP1):** `src/node/node-id.ts`; carga en `startNode()` y exposición de lectura mediante `GET /api/v1/node/id`.
 
 ### Consecuencias
 
