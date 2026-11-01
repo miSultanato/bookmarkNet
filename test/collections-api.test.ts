@@ -1,10 +1,12 @@
 import fs from 'bare-fs'
 import http from 'bare-http1'
 import test from 'brittle'
-import { utf8Bytes } from '../src/ids.ts'
+import { fromHex, utf8Bytes } from '../src/ids.ts'
 import { createServer } from '../src/api/server.ts'
 import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
+import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../src/storage/collection-core.ts'
+import { loadIdentity } from '../src/identity/store.ts'
 import { createFakeSwarm } from './helpers/fake-swarm.ts'
 
 interface Response { statusCode: number; body: unknown }
@@ -68,6 +70,19 @@ test('collections API supports local collection lifecycle', async (t) => {
     t.is(collection.description, 'Viaje', 'description is returned')
     t.is(collection.visibility, 'public', 'visibility is returned')
     t.is(collection.language, 'es', 'language defaults to Spanish')
+    const storedIdentity = await loadIdentity(dataDir)
+    t.ok(storedIdentity !== null, 'identity is stored for the new collection')
+    if (storedIdentity !== null) {
+      const collectionCore = await openExistingCollectionCore(dataDir, id as string, fromHex(storedIdentity.private_key))
+      try {
+        const collectionEvents = await readCollectionEvents(collectionCore)
+        t.is(collectionEvents[0]?.event_type, 'collection_genesis', 'POST creates the collection genesis')
+        const genesis = collectionEvents[0]
+        t.is(genesis?.event_type === 'collection_genesis' ? genesis.payload.visibility : null, 'unlisted', 'collection genesis is unlisted even when the local collection is public')
+      } finally {
+        await closeCollectionCore(collectionCore)
+      }
+    }
     t.is(typeof collection.created_at, 'string', 'created_at is returned')
     t.is(Object.prototype.hasOwnProperty.call(collection, 'deleted'), false, 'deleted is not exposed')
 

@@ -1,4 +1,8 @@
 import { ulid } from '../ulid.ts'
+import { fromHex } from '../ids.ts'
+import { userKeypairFromMasterKey } from '../identity.ts'
+import { loadIdentity } from '../identity/store.ts'
+import { closeCollectionCore, createCollectionCore } from '../storage/collection-core.ts'
 import {
   deviceCreateCollection,
   deviceDeleteCollection,
@@ -95,6 +99,44 @@ export async function handleCreateCollection(
   await node.apply(event)
   const collection = node.state.collections.get(collectionId)
   if (!collection) return error(500, 'INTERNAL', 'No se pudo crear la colección')
+
+  // El evento local ya está persistido; si falla el core, se conserva la colección
+  // y el siguiente arranque volverá a intentar inicializar su collection_core.
+  let collectionCore: Awaited<ReturnType<typeof createCollectionCore>> | null = null
+  try {
+    const storedIdentity = await loadIdentity(node.config.dataDir)
+    if (storedIdentity === null) {
+      return error(500, 'COLLECTION_CORE_CREATION_FAILED', 'La colección se guardó localmente, pero no se pudo cargar la identidad para crear su collection_core')
+    }
+    const masterKey = fromHex(storedIdentity.private_key)
+    const authorKeypair = userKeypairFromMasterKey(masterKey)
+    collectionCore = await createCollectionCore(
+      node.config.dataDir,
+      collectionId,
+      masterKey,
+      node.identity.user_id,
+      authorKeypair.publicKey,
+      authorKeypair.secretKey,
+      node.state
+    )
+    await closeCollectionCore(collectionCore)
+    collectionCore = null
+  } catch (cause) {
+    if (collectionCore !== null) {
+      try {
+        await closeCollectionCore(collectionCore)
+      } catch (closeError) {
+        console.error('No se pudo cerrar el collection_core tras un error:', closeError)
+      }
+    }
+    console.error('No se pudo crear el collection_core de la colección ' + collectionId + ':', cause)
+    return error(
+      500,
+      'COLLECTION_CORE_CREATION_FAILED',
+      'La colección se guardó localmente, pero no se pudo crear su collection_core. Se volverá a intentar al arrancar el nodo.'
+    )
+  }
+
   return { status: 201, body: { collection: apiCollection(collection) } }
 }
 

@@ -8,6 +8,9 @@ import type { DeviceState } from '../device-fold.ts'
 import { foldDeviceEvents, applyDeviceEvent } from '../device-fold.ts'
 import type { DeviceEvent } from '../device-events.ts'
 import { identityToApi, loadIdentity } from '../identity/store.ts'
+import { fromHex } from '../ids.ts'
+import { userKeypairFromMasterKey } from '../identity.ts'
+import { closeCollectionCore, createCollectionCore } from '../storage/collection-core.ts'
 import { startSwarm } from '../p2p/swarm.ts'
 
 export type NodeIdentity = ReturnType<typeof identityToApi>
@@ -76,6 +79,43 @@ export async function startNode(config: Config, options?: { swarm?: SwarmLike })
     // Comprobamos que todas las inicializaciones hayan tenido éxito.
     if (nodeId === null || core === null || swarm === null || state === null) {
       throw new Error('Inicialización fallida: recursos no disponibles')
+    }
+
+    // Inicializamos los collection_core locales sin anunciar ni publicar sus topics.
+    if (stored !== null) {
+      const masterKey = fromHex(stored.private_key)
+      const authorKeypair = userKeypairFromMasterKey(masterKey)
+      const authorId = identity?.user_id
+      if (authorId !== undefined) {
+        for (const collection of state.collections.values()) {
+          if (collection.deleted) continue
+          let collectionCore: Hypercore | null = null
+          try {
+            collectionCore = await createCollectionCore(
+              config.dataDir,
+              collection.collectionId,
+              masterKey,
+              authorId,
+              authorKeypair.publicKey,
+              authorKeypair.secretKey,
+              state
+            )
+            await closeCollectionCore(collectionCore)
+            collectionCore = null
+          } catch (error) {
+            if (collectionCore !== null) {
+              try {
+                await closeCollectionCore(collectionCore)
+              } catch (closeError) {
+                console.error('No se pudo cerrar el collection_core de ' + collection.collectionId + ':', closeError)
+              }
+            }
+            console.error('No se pudo inicializar el collection_core de ' + collection.collectionId + '; el arranque continuará:', error)
+          }
+        }
+      }
+    } else if (state !== null && [...state.collections.values()].some((collection) => !collection.deleted)) {
+      console.error('No se pueden inicializar los collection_core: no hay una identidad local disponible')
     }
 
     // Capturamos referencias no-null para usarlas en el objeto devuelto.
