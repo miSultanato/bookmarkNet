@@ -19,6 +19,8 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Persistencia de `node_id` | ADR-014 (`docs/14-adrs.md`) | `src/node/node-id.ts` | `test/start.test.ts` | Implementado (MVP1) |
 | Derivación de clave de `device_core` | ADR-014 (`docs/14-adrs.md`), `docs/03-identidad.md` | — | — | Pendiente (MVP2) |
 | API local (HTTP) | `docs/07-api-local.md` | `src/api/server.ts`, `src/api/*.ts` | `test/api.test.ts`, `test/*-api.test.ts` | Implementado |
+| Backup manual (POST /backup) | ADR-019 (`docs/14-adrs.md`) | `src/backup/backup.ts`, `src/api/server.ts` | `test/backup-api.test.ts` | Implementado (MVP1) |
+| Backup automático | ADR-019 (`docs/14-adrs.md`) | `src/backup/backup.ts`, `src/node/start.ts`, `src/node/config.ts` | `test/start.test.ts` | Implementado (MVP1) |
 | Búsqueda local | `docs/07-api-local.md` | `src/api/search.ts` | `test/search-api.test.ts` | Implementado |
 | Importación HTML | `docs/19-onboarding.md` | `src/import/netscape.ts`, `src/api/import.ts` | `test/netscape.test.ts`, `test/import-api.test.ts` | Implementado |
 | Configuración | `docs/22-configuracion.md` | `src/node/config.ts` | `test/config.test.ts` | Implementado |
