@@ -201,11 +201,10 @@ interface DeviceDeleteGroupPayload {
 }
 
 interface DeviceAddDevicePayload {
-  nodeId: string          // "n_" + 16 hex
-  publicKey?: string      // "pk_user_" + hex; opcional en MVP1,
-                          // obligatorio en MVP2 (clave derivada
-                          // del dispositivo)
-  addedAt: string         // ISO8601
+  nodeId: string          // "n_" + 16 hex en minúsculas
+  publicKey?: string      // opcional en MVP1; reservado para la clave
+                          // pública derivada del dispositivo en MVP2
+  addedAt: string         // ISO8601; por defecto, fecha UTC de creación
 }
 ```
 
@@ -293,7 +292,7 @@ interface DeviceEntryState {
 #### Reglas de fold
 
 - **`device_metadata`:** reemplaza `state.profile` con el payload. Campos ausentes se eliminan.
-- **`device_add_device`:** si el `nodeId` ya existe en la lista de dispositivos conocidos, ignora (idempotencia). Si no existe, lo añade a la lista. El fold nunca lanza error.
+- **`device_add_device`:** valida `nodeId` con el patrón `n_` + 16 dígitos hexadecimales en minúsculas. `addedAt` es ISO8601 y el constructor usa la fecha UTC actual si se omite. `publicKey` es opcional en MVP1 y queda reservado para la clave pública derivada del dispositivo en MVP2. Si el `nodeId` ya existe en la lista de dispositivos conocidos, ignora el evento (idempotencia); si no, lo añade. El fold nunca lanza error. Implementado en MVP1.
 - **`device_create_collection`:** crea la colección si no existe. Si existe, ignora. Guarda `publicCollectionId` cuando está presente; los eventos históricos de MVP0 que no lo contienen se pliegan dejando ese campo ausente. Asigna `language` desde el payload; si falta en un evento mal formado, usa `'es'`. El constructor garantiza el valor por defecto `'es'`.
 - **`device_update_collection`:** si la colección no existe o está eliminada, ignora. Aplica `changes` (con `null` para borrar `description`). Asigna `language` si está presente; si no, conserva el valor actual.
 - **`device_delete_collection`:** si no existe, ignora. Marca `deleted: true`. Sus bookmarks y grupos también se marcan como eliminados (soft delete en cascada, definitivo: no se "resucitan" si la colección se vuelve a crear con el mismo `collectionId`; se crea una colección nueva).
@@ -310,8 +309,9 @@ Todos los dispositivos del mismo usuario se unen a un topic
 derivado del `user_id` y replican los `device_core` de los
 demás (solo lectura para los ajenos).
 
-Estado de implementación: la replicación entre dispositivos es
-MVP2. En MVP0 y MVP1 solo existe el `device_core` local del
+Estado de implementación: el registro local de dispositivos mediante
+`device_add_device` está implementado en MVP1. La replicación entre
+dispositivos es MVP2. En MVP0 y MVP1 solo existe el `device_core` local del
 dispositivo.
 
 La vista unificada del usuario (qué colecciones tiene,
