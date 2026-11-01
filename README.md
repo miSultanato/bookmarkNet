@@ -27,7 +27,7 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 ## Estado
 
-MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. Próximo hito: MVP1 (persistencia local por colección). Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
+MVP0 completado: nodo local funcional con identidad, bookmarks, colecciones, grupos, Inbox, perfil, configuración, importación HTML, UI web local y distribución standalone. MVP1 en curso: persistencia local por colección implementada (creación y génesis). Próximo: publicación y replicación (MVP2). Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
 ## Requisitos
 
