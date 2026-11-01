@@ -157,3 +157,26 @@ test('node.close() is idempotent when called concurrently', async (t) => {
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
+
+test('startNode persists and reuses node_id across restarts', async (t) => {
+  const dataDir = DATA_DIR + '-node-id'
+  const nodeIdPath = dataDir + '/node_id'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), dataDir }
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    const firstNodeId = node.nodeId
+    t.is(/^n_[0-9a-f]{16}$/.test(firstNodeId), true, 'first startup generates a valid node_id')
+    t.is(await fs.readFile(nodeIdPath, 'utf8'), firstNodeId + '\n', 'node_id is persisted with a final newline')
+    await node.close()
+    node = null
+
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    t.is(node.nodeId, firstNodeId, 'second startup reuses the persisted node_id')
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
