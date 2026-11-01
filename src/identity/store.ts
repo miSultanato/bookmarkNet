@@ -1,4 +1,5 @@
 import fs from 'bare-fs'
+import { join } from 'bare-path'
 import {
   generateUserMasterKey,
   serializePublicKey,
@@ -13,7 +14,7 @@ export interface StoredIdentity {
 }
 
 function identityPath(dataDir: string): string {
-  return dataDir.replace(/\/+$/, '') + '/identity.bmn'
+  return join(dataDir, 'identity.bmn')
 }
 
 function isStoredIdentity(value: unknown): value is StoredIdentity {
@@ -54,6 +55,32 @@ export async function createIdentity(dataDir: string): Promise<StoredIdentity> {
     private_key: toHex(masterKey),
     public_key: toHex(publicKey),
     profile: {}
+  }
+  await saveIdentity(dataDir, identity)
+  return identity
+}
+
+/** Crea identity.bmn desde una clave maestra existente sin sobrescribir otra identidad. */
+export async function createIdentityFromMasterKey(
+  dataDir: string,
+  masterKey: Uint8Array,
+  profile: object = {}
+): Promise<StoredIdentity> {
+  if (!(masterKey instanceof Uint8Array) || masterKey.length !== 32) {
+    throw new RangeError('La clave maestra debe contener exactamente 32 bytes')
+  }
+  if (profile === null || typeof profile !== 'object' || Array.isArray(profile)) {
+    throw new RangeError('El perfil debe ser un objeto')
+  }
+  if (await hasIdentity(dataDir)) {
+    throw new RangeError('La identidad ya existe en identity.bmn')
+  }
+
+  const { publicKey } = userKeypairFromMasterKey(masterKey)
+  const identity: StoredIdentity = {
+    private_key: toHex(masterKey),
+    public_key: toHex(publicKey),
+    profile
   }
   await saveIdentity(dataDir, identity)
   return identity
