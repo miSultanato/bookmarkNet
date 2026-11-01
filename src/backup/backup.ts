@@ -3,6 +3,7 @@ import { dirname, join } from 'bare-path'
 import Hypercore from 'hypercore'
 import sodium from 'sodium-native'
 import type { DeviceEvent } from '../device-events.ts'
+import { foldDeviceEvents } from '../device-fold.ts'
 import type { CollectionEvent } from '../events.ts'
 import { fromHex, utf8Bytes } from '../ids.ts'
 import { deriveCollectionKeypair, collectionIdFromPublicKey } from '../keys.ts'
@@ -267,7 +268,8 @@ function validateManifest(value: unknown): asserts value is BackupManifest {
   const manifest = value as Record<string, unknown>
   if (manifest.version !== 2 ||
       !Array.isArray(manifest.devices) ||
-      !manifest.devices.every((device) => typeof device === 'string') ||
+      !manifest.devices.every((device) => typeof device === 'string' && /^n_[0-9a-f]{16}$/.test(device)) ||
+      new Set(manifest.devices).size !== manifest.devices.length ||
       !Array.isArray(manifest.collections) ||
       !manifest.collections.every((id) => typeof id === 'string' && COLLECTION_ID_PATTERN.test(id)) ||
       new Set(manifest.collections).size !== manifest.collections.length) {
@@ -366,10 +368,10 @@ async function createArchive(dataDir: string, data: BackupData): Promise<Uint8Ar
     })
   }
 
-  // La lista de dispositivos se extraerá de device_add_device cuando se implemente; por ahora, vacía.
+  const deviceState = foldDeviceEvents(data.deviceEvents)
   const manifest: BackupManifest = {
     version: 2,
-    devices: [],
+    devices: [...deviceState.devices.keys()].sort(),
     collections: collectionIds
   }
   entries.unshift({
@@ -450,14 +452,17 @@ export async function restoreBackup(
   const archive = decryptArchive(file, password)
   const entries = parseTar(archive)
   const manifest = validateEntries(entries)
-  if (mode === 'all' && manifest.devices.length !== 0) {
-    throw new RangeError('Esta versión solo admite backups con la lista de dispositivos vacía')
-  }
-
   const files = new Map(entries.filter((entry) => entry.type === 'file').map((entry) => [entry.path, entry.data]))
   const deviceData = files.get('device-events.json')
   if (deviceData === undefined) throw new RangeError('Falta device-events.json en el backup')
   const deviceEvents = parseEventArray<DeviceEvent>(deviceData, 'device-events.json')
+  const deviceState = foldDeviceEvents(deviceEvents)
+  const eventDevices = [...deviceState.devices.keys()].sort()
+  const manifestDevices = [...manifest.devices].sort()
+  if (eventDevices.length !== manifestDevices.length ||
+      eventDevices.some((nodeId, index) => nodeId !== manifestDevices[index])) {
+    throw new RangeError('La lista de dispositivos del manifiesto no coincide con device-events.json')
+  }
   const collectionEvents = new Map<string, CollectionEvent[]>()
   for (const collectionId of manifest.collections) {
     const data = files.get('collection-events-' + collectionId + '.json')
@@ -570,8 +575,7 @@ export async function restoreBackup(
   }
 
   if (mode === 'all') {
-    // En esta fase, la lista de dispositivos se restaura vacía; device_add_device llegará después.
-    await fs.writeFile(join(dataDir, 'devices.json'), '[]\n', { mode: 0o600 })
+    await fs.writeFile(join(dataDir, 'devices.json'), JSON.stringify(manifest.devices) + '\n', { mode: 0o600 })
     await fs.chmod(join(dataDir, 'devices.json'), 0o600)
     await loadOrCreateNodeId(dataDir)
   }

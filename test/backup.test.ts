@@ -3,7 +3,7 @@ import { join } from 'bare-path'
 import sodium from 'sodium-native'
 import test from 'brittle'
 import { createBackup, createBackupWithKey, restoreBackup } from '../src/backup/backup.ts'
-import { deviceCreateCollection, deviceMetadata } from '../src/device-events.ts'
+import { deviceAddDevice, deviceCreateCollection, deviceMetadata } from '../src/device-events.ts'
 import { foldDeviceEvents } from '../src/device-fold.ts'
 import { addBookmark } from '../src/events.ts'
 import { fromHex, utf8Bytes } from '../src/ids.ts'
@@ -126,6 +126,7 @@ async function prepareDataDir(
 
   const deviceEvents = [
     deviceMetadata({ authorId: apiIdentity.user_id, displayName: marker }),
+    deviceAddDevice({ authorId: apiIdentity.user_id, nodeId: 'n_0123456789abcdef', addedAt: '2026-11-01T12:00:00.000Z' }),
     deviceCreateCollection({
       authorId: apiIdentity.user_id,
       collectionId: COLLECTION_UUID,
@@ -197,7 +198,7 @@ test('createBackup serializes device and collection events with private permissi
     const deviceEvents = JSON.parse(ascii(entries.get('device-events.json') ?? new Uint8Array(0)))
     const collectionEvents = JSON.parse(ascii(entries.get('collection-events-' + COLLECTION_UUID + '.json') ?? new Uint8Array(0)))
     t.is(manifest.version, 2, 'manifest declares format version 2')
-    t.alike(manifest.devices, [], 'device list remains empty until device_add_device exists')
+    t.alike(manifest.devices, ['n_0123456789abcdef'], 'manifest contains devices folded from device_add_device')
     t.alike(manifest.collections, [COLLECTION_UUID], 'manifest lists local collection identifiers')
     t.is(deviceEvents.length, prepared.deviceEventCount, 'device-events.json contains every device event')
     t.is(collectionEvents.length, prepared.collectionEventCount, 'collection-events file contains every collection event')
@@ -237,12 +238,13 @@ test('restoreBackup all rebuilds cores from events and regenerates node_id', asy
     const restoredDeviceEvents = await readDeviceEvents(target)
     const restoredCollectionEvents = await readCollectionEventsFromDisk(target, sourceState.masterKey)
     t.is(restoredDeviceEvents.length, sourceState.deviceEventCount, 'device_core is rebuilt with all events')
+    t.is(restoredDeviceEvents.some((event) => event.event_type === 'device_add_device'), true, 'device_add_device is restored as a device_core event')
     t.is(restoredCollectionEvents.length, sourceState.collectionEventCount, 'collection_core is rebuilt with all events')
     const restoredNodeId = await fs.readFile(join(target, 'node_id'), 'utf8')
     t.is(validateId(restoredNodeId.trim()), true, 'restored node_id is valid')
     t.is(restoredNodeId.trim() === targetState.nodeId, false, 'previous node_id is not reused')
     t.is(restoredNodeId.trim() === sourceState.nodeId, false, 'source node_id is not copied')
-    t.is(await fs.readFile(join(target, 'devices.json'), 'utf8'), '[]\n', 'device list is restored empty until device_add_device exists')
+    t.is(await fs.readFile(join(target, 'devices.json'), 'utf8'), '["n_0123456789abcdef"]\n', 'device list is restored from the backup manifest')
     const backupDirs = (await fs.readdir(ROOT)).filter((name) => name.startsWith('target.backup-'))
     t.is(backupDirs.length, 1, 'current data is preserved in a safety copy')
     t.is(await fs.stat(join(ROOT, backupDirs[0], 'device-core')).then(() => true, () => false), true, 'safety copy preserves the previous device_core')

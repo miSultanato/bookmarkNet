@@ -406,6 +406,16 @@ Se añade `device_add_device` al contrato de eventos de `device_core`, que pasa 
 
 El payload de `device_create_collection` incluye ahora `publicCollectionId`, el identificador público de la colección (clave pública Ed25519 en hexadecimal, sin prefijo). Se persiste en `device_core` junto al ULID local para permitir el mapeo `local_collection_id` ↔ `collection_id` definido en ADR-015.
 
+### Corrección (2026-11-01)
+
+Se implementa en MVP1 el evento `device_add_device` descrito en el contrato de doce eventos:
+
+- El payload contiene `nodeId` (formato `n_` + 16 caracteres hexadecimales en minúsculas), `addedAt` (ISO8601, generado por defecto) y `publicKey` opcional.
+- El fold mantiene `DeviceState.devices`, indexado por `nodeId`, e ignora duplicados para garantizar idempotencia.
+- El backup obtiene la lista de dispositivos del estado plegado de `device_core`; al restaurar en modo `all`, reproduce también los eventos `device_add_device` y reconstruye la lista auxiliar. La fuente de verdad sigue siendo el log de eventos.
+- La replicación de dispositivos sigue reservada a MVP2. No se introduce escritura dual ni `device_add_device` en `collection_core`.
+
+
 ## ADR-014: Derivación de la clave de `device_core`
 
 **Fecha:** 2026-10-31  

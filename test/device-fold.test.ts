@@ -1,6 +1,7 @@
 import test from 'brittle'
 import {
   deviceAddBookmark,
+  deviceAddDevice,
   deviceCreateCollection,
   deviceCreateGroup,
   deviceDeleteCollection,
@@ -59,6 +60,7 @@ test('emptyDeviceState returns empty profile and Maps', (t) => {
   t.is(state.collections.size, 0)
   t.is(state.bookmarks.size, 0)
   t.is(state.groups.size, 0)
+  t.is(state.devices.size, 0)
 })
 
 test('device_metadata replaces profile, removes absent fields and accepts empty profile', (t) => {
@@ -486,4 +488,45 @@ test('reapplying an idempotent create event leaves state equivalent', (t) => {
   const once = applyDeviceEvent(emptyDeviceState(), event)
   const twice = applyDeviceEvent(once, event)
   t.is(twice, once)
+})
+
+
+test('device_add_device adds known devices once and is idempotent', (t) => {
+  const empty = emptyDeviceState()
+  const event = eventOn(deviceAddDevice({
+    authorId: AUTHOR_ID,
+    nodeId: 'n_0123456789abcdef',
+    publicKey: 'pk_user_' + 'a'.repeat(64),
+    addedAt: T1
+  }), T1)
+  const added = applyDeviceEvent(empty, event)
+  t.alike(added.devices.get('n_0123456789abcdef'), {
+    nodeId: 'n_0123456789abcdef',
+    publicKey: 'pk_user_' + 'a'.repeat(64),
+    addedAt: T1
+  })
+  t.is(added.devices.size, 1)
+  t.is(added, applyDeviceEvent(added, event), 'replaying the same nodeId is idempotent')
+
+  const duplicateWithDifferentMetadata = deviceAddDevice({
+    authorId: AUTHOR_ID,
+    nodeId: 'n_0123456789abcdef',
+    publicKey: 'pk_user_' + 'b'.repeat(64),
+    addedAt: T2
+  })
+  const unchanged = applyDeviceEvent(added, duplicateWithDifferentMetadata)
+  t.is(unchanged, added)
+  t.is(unchanged.devices.size, 1)
+  t.is(unchanged.devices.get('n_0123456789abcdef')?.addedAt, T1)
+
+  const withoutKey = applyDeviceEvent(added, deviceAddDevice({
+    authorId: AUTHOR_ID,
+    nodeId: 'n_fedcba9876543210',
+    addedAt: T2
+  }))
+  t.is(withoutKey.devices.size, 2)
+  t.alike(withoutKey.devices.get('n_fedcba9876543210'), {
+    nodeId: 'n_fedcba9876543210',
+    addedAt: T2
+  })
 })

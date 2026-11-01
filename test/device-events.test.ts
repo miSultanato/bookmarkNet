@@ -1,6 +1,7 @@
 import test from 'brittle'
 import {
   deviceAddBookmark,
+  deviceAddDevice,
   deviceCreateCollection,
   deviceCreateGroup,
   deviceDeleteCollection,
@@ -219,4 +220,27 @@ test('group constructors validate IDs, names, collections, and positions', (t) =
   expectRangeError(t, () => deviceCreateGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: COLLECTION_ID, name: 'x', position: 0.5 }))
   expectRangeError(t, () => deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: 'bad', collectionId: COLLECTION_ID }))
   expectRangeError(t, () => deviceDeleteGroup({ authorId: AUTHOR_ID, groupId: GROUP_ID, collectionId: '' }))
+})
+
+
+test('deviceAddDevice validates nodeId, accepts optional publicKey and defaults addedAt', (t) => {
+  const event = deviceAddDevice({ authorId: AUTHOR_ID, nodeId: 'n_0123456789abcdef' })
+  assertCommon(t, event, 'device_add_device')
+  t.is(event.payload.nodeId, 'n_0123456789abcdef')
+  t.is(typeof event.payload.addedAt, 'string')
+  t.is(Number.isFinite(Date.parse(event.payload.addedAt)), true)
+  t.is(Object.prototype.hasOwnProperty.call(event.payload, 'publicKey'), false)
+
+  const withKey = deviceAddDevice({
+    authorId: AUTHOR_ID,
+    nodeId: 'n_fedcba9876543210',
+    publicKey: 'pk_user_' + 'a'.repeat(64),
+    addedAt: '2026-11-01T12:00:00.000Z'
+  })
+  t.is(withKey.payload.publicKey, 'pk_user_' + 'a'.repeat(64))
+  t.is(withKey.payload.addedAt, '2026-11-01T12:00:00.000Z')
+
+  expectRangeError(t, () => deviceAddDevice({ authorId: AUTHOR_ID, nodeId: 'n_invalid' }))
+  expectRangeError(t, () => deviceAddDevice({ authorId: AUTHOR_ID, nodeId: 'N_0123456789abcdef' }))
+  expectRangeError(t, () => deviceAddDevice({ authorId: AUTHOR_ID, nodeId: 'n_0123456789abcdef', addedAt: 'fecha' }))
 })
