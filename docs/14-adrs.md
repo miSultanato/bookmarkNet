@@ -507,7 +507,7 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 
 5. **Génesis obligatorio.** Un `collection_core` no puede existir sin génesis. El primer evento del log es siempre `collection_genesis` (bloque 0); un core vacío no constituye una colección válida. El génesis conserva el contrato de campos y firma definido en los documentos de schema e identificadores; `local_collection_id` añade la referencia local informativa y no redefine la identidad pública de la colección.
 
-**Implementación: pendiente (MVP1).**
+**Implementación (MVP1):** `src/node/node-id.ts`; carga en `startNode()` y exposición de lectura mediante `GET /api/v1/node/id`.
 
 ### Consecuencias
 
