@@ -33,6 +33,20 @@ MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista
 
 **MVP1 completado y validado en Linux (binario standalone).** La suite completa pasa: **278/278 tests (226 unitarios + 52 de integración)**. El binario se generó con `bare-build --standalone` y se probó el flujo completo desde la UI: onboarding, creación de identidad, frase BIP39, creación de colección y bookmarks, backup, restore y recuperación de identidad. La validación de los formatos AppImage y Docker queda pendiente para MVP2.
 
+## Descarga
+
+**Lotura v1.0.0 — MVP1 completado**
+
+Descarga el binario standalone para Linux desde la [release v1.0.0](https://github.com/miSultanato/bookmarkNet/releases/tag/v1.0.0). No necesitas instalar Node.js ni Bare.
+
+```bash
+# Desde el directorio donde hayas descargado el archivo
+chmod +x lotura
+./lotura
+```
+
+Después, abre [http://localhost:7575](http://localhost:7575) en el navegador. Para detener Lotura, usa Ctrl+C. Consulta las [notas de ejecución](#notas-de-ejecución) antes de cerrar el proceso de forma abrupta.
+
 ## Backups
 
 MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` restaura los datos de colecciones sin modificar la identidad ni regenerar `node_id`; `all` restaura también la identidad y genera un `node_id` nuevo.
