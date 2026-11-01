@@ -1,6 +1,8 @@
 import { deviceAddBookmark, deviceCreateCollection, deviceCreateGroup } from '../device-events.ts'
 import { canonicalizeUrl } from '../canonicalize.ts'
-import { newBookmarkId, newGroupId, resourceIdFromCanonicalUrl } from '../ids.ts'
+import { fromHex, newBookmarkId, newGroupId, resourceIdFromCanonicalUrl } from '../ids.ts'
+import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../keys.ts'
+import { loadIdentity } from '../identity/store.ts'
 import type { ParsedBookmark, ParsedFolder } from '../import/netscape.ts'
 import { parseNetscapeBookmarks } from '../import/netscape.ts'
 import { ulid } from '../ulid.ts'
@@ -48,6 +50,11 @@ export async function handleImportHtml(
     errors: []
   }
   const authorId = node.identity.user_id
+  const storedIdentity = await loadIdentity(node.config.dataDir)
+  if (storedIdentity === null) {
+    return error(500, 'IDENTITY_NOT_FOUND', 'No se pudo cargar la identidad local para importar colecciones')
+  }
+  const masterKey = fromHex(storedIdentity.private_key)
 
   async function importBookmark(bookmark: ParsedBookmark, collectionId: string | null, groupId: string | null): Promise<void> {
     let canonicalUrl: string
@@ -92,9 +99,12 @@ export async function handleImportHtml(
     )
     const collectionName = findFreeName(folder.name, existingCollectionNames)
     const collectionId = ulid()
+    const collectionKeypair = deriveCollectionKeypair(masterKey, collectionId)
+    const publicCollectionId = collectionIdFromPublicKey(collectionKeypair.publicKey)
     await node.apply(deviceCreateCollection({
       authorId,
       collectionId,
+      publicCollectionId,
       name: collectionName,
       visibility: 'public'
     }))
