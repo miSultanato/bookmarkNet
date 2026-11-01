@@ -521,7 +521,16 @@ La decisión debe mantener separadas la persistencia local y la publicación. Cr
 
 5. **Génesis obligatorio.** Un `collection_core` no puede existir sin génesis. El primer evento del log es siempre `collection_genesis` (bloque 0); un core vacío no constituye una colección válida. El génesis conserva el contrato de campos y firma definido en los documentos de schema e identificadores; `local_collection_id` añade la referencia local informativa y no redefine la identidad pública de la colección.
 
-**Implementación: pendiente (MVP1).**
+**Implementación (MVP1):** `src/storage/collection-core.ts`, `src/api/collections.ts` y `src/node/start.ts`; el core se crea al crear la colección y se comprueba/reabre durante el arranque.
+
+### Corrección (2026-11-01)
+
+La creación de `collection_core` está implementada en MVP1:
+
+- `handleCreateCollection()` persiste primero `device_create_collection` en `device_core` y crea inmediatamente el `collection_core` asociado.
+- El primer evento del nuevo core es `collection_genesis` con `visibility: "unlisted"`, independientemente de la visibilidad solicitada para la colección local.
+- `startNode()` comprueba y reabre los cores existentes y crea los que falten para colecciones locales activas.
+- La creación no anuncia ni publica el topic. La escritura dual y la publicación siguen siendo trabajo de MVP2.
 
 ### Consecuencias
 
@@ -695,7 +704,7 @@ Es necesario separar dos ámbitos: la identidad portable, que pertenece al usuar
 
 5. **Estado inicial de un dispositivo importador.** Un dispositivo nuevo que importa una identidad existente obtiene su propio `node_id` y comienza con la lista de dispositivos vacía. Una eventual opción para importar manualmente esa lista queda fuera de MVP1 y solo se considerará si se define expresamente en el futuro.
 
-**Implementación: pendiente (MVP1). El evento `device_add_device` se añadirá al contrato de `device_core` en una tarea posterior de esta misma fase.**
+**Implementación (MVP1):** el evento `device_add_device` forma parte de `DeviceEvent`; `deviceAddDevice()` lo construye y `applyDeviceEvent()` lo incorpora al estado `devices` del fold de `device_core`. La lista se incluye en los backups.
 
 ### Consecuencias
 
@@ -723,6 +732,14 @@ Es necesario separar dos ámbitos: la identidad portable, que pertenece al usuar
 - **Exportar también `node_id` y `device_core` mediante `POST /api/v1/identity/export`.** Descartada. Ese endpoint exporta identidad, no datos del dispositivo. El alcance y formato de un backup completo del dispositivo se tratarán por separado en ADR-019.
 
 - **Guardar la lista de dispositivos en `dataDir/devices.json`.** Descartada. En MVP2 habría que migrar ese archivo a `device_core` para poder replicar la lista entre dispositivos. Mantener desde MVP1 el estado en `device_core` evita introducir esa deuda técnica.
+
+### Corrección (2026-11-01)
+
+El registro local de dispositivos conocidos está implementado en MVP1:
+
+- `device_add_device` está integrado en el contrato de eventos y en el fold de `device_core`.
+- El estado mantiene un `Map` de dispositivos indexado por `nodeId`; los eventos duplicados no duplican entradas.
+- La lista es local a cada instalación y no se replica entre dispositivos. La replicación continúa reservada a MVP2.
 
 ## ADR-019: Backup y pérdida de datos en MVP1
 
@@ -775,7 +792,7 @@ La recuperación de identidad mediante QR o frase larga es un mecanismo independ
   - Un backup corrupto puede impedir la restauración. Se mitigará mediante verificación de integridad antes de aceptar el backup y antes de completar la restauración.
   - Si el backup se genera o almacena en un dispositivo comprometido, un atacante podría acceder a los datos. Los backups exportados deberán cifrarse con contraseña; se recomienda además mantener rotación de copias para reducir el impacto de corrupción o pérdida de una versión.
 
-**Implementación: pendiente (MVP1).** El evento `device_add_device` (necesario para el backup de identidad) se añadirá al contrato de `device_core` en una tarea posterior de esta misma fase.
+**Implementación (MVP1):** backup manual y automático, restauración `all` y `collections-only`, lista de dispositivos derivada de `device_add_device` y recuperación de identidad BIP39.
 
 ### Alternativas consideradas
 
@@ -820,6 +837,18 @@ La recuperación de identidad por frase BIP39 queda implementada en MVP1:
 - `POST /api/v1/identity/recovery/import` valida la frase y crea `identity.bmn` en un directorio sin identidad. No sobrescribe una identidad existente y permite restaurar el perfil si se proporciona.
 - La recuperación restaura únicamente la identidad portable. No restaura bookmarks, colecciones, `device_core` ni `node_id`; para los datos locales se necesita un backup.
 - La recuperación por QR no está implementada. No se implementa `device_add_device` en esta tarea.
+
+### Corrección (2026-11-01)
+
+El cierre de MVP1 completa el alcance de backup, lista de dispositivos y recuperación de identidad:
+
+- El backup manual (`POST /api/v1/backup`) y el automático (`dataDir/backups/`, cada 24 horas por defecto y configurable) están implementados y cifrados.
+- El manifiesto del backup deriva `devices` del fold de los eventos `device_add_device` de `device_core`; no es un placeholder. En `mode: "all"`, la restauración valida la lista contra el log y la persiste en `devices.json`, además de restaurar los eventos que permiten reconstruirla en el fold.
+- `restoreBackup()` restaura identidad, `device_core` y `collection_core` en modo `all`, y genera un `node_id` nuevo conforme a ADR-017.
+- La recuperación BIP39 de 24 palabras está implementada: `masterKeyToRecoveryPhrase()` codifica los 32 bytes originales de `user_master_key`, y `phraseToMasterKey()` los recupera validando el checksum. `createIdentityFromMasterKey()` permite crear la misma identidad en un directorio nuevo.
+- El test `test/mvp1-e2e.test.ts` recorre el flujo integrado de creación, backup, restauración y recuperación de identidad.
+
+La lista de dispositivos se mantiene local: su replicación y sincronización entre instalaciones pertenecen a MVP2. El estado del ADR permanece **Aceptado**.
 
 ## Documentos relacionados
 

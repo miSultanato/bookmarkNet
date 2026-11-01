@@ -28,6 +28,8 @@ Resultado: «Pocket local».
 
 ## MVP 1 — Modelo Hypercore
 
+**Estado: completado.** Identidad, `node_id`, `collection_core`, vistas materializadas Hyperbee, backup/restore, registro local de dispositivos y recuperación BIP39 implementados y testeados.
+
 **Objetivo:** todo vive sobre Hyper*, aunque siga siendo local.
 
 - Cada colección = un Hypercore.
@@ -48,6 +50,8 @@ Resultado: «Pocket local».
 **Decisiones asociadas:** ADR-014 (`docs/14-adrs.md`) decide que en MVP1 se persiste un `node_id` estable por dispositivo, sin cambiar la apertura actual de `device_core` ni el orden de arranque. La derivación de la clave de dispositivo y la apertura con `keyPair` quedan para MVP2.
 
 ## MVP 2 — Multidispositivo + compartición directa
+
+**Estado: próximo hito.**
 
 ### Seguir vs duplicar
 

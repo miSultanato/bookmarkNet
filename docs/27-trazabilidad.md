@@ -1,4 +1,4 @@
-# Trazabilidad (MVP0)
+# Trazabilidad (MVP0 y MVP1)
 
 Este documento relaciona cada funcionalidad con su especificación, su implementación en código, sus tests y su estado real. Es la referencia para saber qué existe y qué es solo diseño.
 
@@ -11,6 +11,7 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Canonicalización de URL | `docs/04-canonicalizacion-url.md` | `src/canonicalize.ts` | `test/canonicalize.test.ts` | Implementado |
 | Eventos de dispositivo | `docs/03-identidad.md` | `src/device-events.ts` | `test/device-events.test.ts` | Implementado |
 | Fold de dispositivo | `docs/03-identidad.md` | `src/device-fold.ts` | `test/device-fold.test.ts` | Implementado |
+| Lista local de dispositivos conocidos (`device_add_device`) | `docs/03-identidad.md`, ADR-018 y ADR-019 (`docs/14-adrs.md`) | `src/device-events.ts`, `src/device-fold.ts`, `src/backup/backup.ts` | `test/device-events.test.ts`, `test/device-fold.test.ts`, `test/backup.test.ts`, `test/mvp1-e2e.test.ts` | Implementado (MVP1; la replicación es MVP2) |
 | Eventos de colección | `docs/15-schema-eventos.md` | `src/events.ts` | `test/events.test.ts` | Implementado (modelo) |
 | Fold de colección | `docs/15-schema-eventos.md` | `src/fold.ts` | `test/fold.test.ts` | Implementado (modelo) |
 | Derivación de claves de colección | `docs/05-arquitectura-p2p.md`, `docs/16-identificadores-y-firmas.md` | `src/keys.ts` | `test/keys.test.ts` | Implementado |
@@ -36,6 +37,8 @@ Este documento relaciona cada funcionalidad con su especificación, su implement
 | Búsqueda multilingüe | `docs/25-busqueda-i18n.md` | — | — | Pendiente (MVP3+) |
 | Seed pack | `docs/18-seed-pack.md`, `docs/19-onboarding.md` | — | — | Pendiente (MVP4) |
 
-Las filas marcadas como "Implementado (modelo)" tienen los tipos, constructores y fold, pero no persistencia ni red (ver `docs/15-schema-eventos.md`). En MVP1 están implementadas la persistencia local de `collection_core` (creación y génesis), las vistas materializadas Hyperbee de `device_core` y de cada `collection_core`, y la persistencia de `node_id`. La vista de cada `collection_core` se reconstruye desde su propio log y contiene el génesis y los bookmarks/grupos iniciales; no proyecta los cambios posteriores de `device_core`. Estos cambios siguen escribiéndose solo en `device_core`; la escritura dual, la publicación y la replicación corresponden a MVP2. Las filas marcadas como «Pendiente (MVP2)» incluyen también multidispositivo, seguir, duplicar y derivación de la clave de `device_core`.
+Las filas marcadas como "Implementado (modelo)" tienen los tipos, constructores y fold, pero no persistencia ni red (ver `docs/15-schema-eventos.md`). En MVP1 están implementadas la persistencia local de `collection_core` (creación y génesis), las vistas materializadas Hyperbee de `device_core` y de cada `collection_core`, la persistencia de `node_id`, el registro local de dispositivos conocidos y el backup/restore con recuperación BIP39. La vista de cada `collection_core` se reconstruye desde su propio log y contiene el génesis y los bookmarks/grupos iniciales; no proyecta los cambios posteriores de `device_core`. Estos cambios siguen escribiéndose solo en `device_core`; la escritura dual, la publicación y la replicación corresponden a MVP2. Las filas marcadas como «Pendiente (MVP2)» incluyen la derivación de la clave de `device_core`, la replicación multidispositivo, seguir y duplicar colecciones.
+
+**MVP1 completado:** todas las funcionalidades de la fase 1 están implementadas y testeadas.
 
 > Esta matriz debe actualizarse cuando se incorporen funcionalidades nuevas.
