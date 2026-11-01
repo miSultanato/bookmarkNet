@@ -1,4 +1,4 @@
-export const version = '0.0.1'
+export const version = '0.2.0'
 export * from './node/config.ts'
 export * from './node/start.ts'
 export * from './identity/store.ts'
