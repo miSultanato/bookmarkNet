@@ -8,6 +8,13 @@ import { defaultConfig } from '../src/node/config.ts'
 import { startNode } from '../src/node/start.ts'
 import { createFakeSwarm } from './helpers/fake-swarm.ts'
 import { appendEvent } from '../src/storage/device-core.ts'
+import {
+  closeMaterializedView,
+  getDeviceState,
+  getLastProcessedEvent,
+  openMaterializedView,
+  setLastProcessedEvent
+} from '../src/storage/materialized-view.ts'
 import { closeCollectionCore, openExistingCollectionCore, readCollectionEvents } from '../src/storage/collection-core.ts'
 import { collectionIdFromPublicKey, deriveCollectionKeypair } from '../src/keys.ts'
 
@@ -31,6 +38,9 @@ test('startNode opens an empty core', async (t) => {
     t.is(node.state.bookmarks.size, 0, 'empty core has no bookmarks')
     t.is(node.state.groups.size, 0, 'empty core has no groups')
     t.is(node.core.length, 0, 'empty core has no events')
+    t.ok(node.view !== null, 'startNode exposes the materialized view')
+    t.ok(await getDeviceState(node.view) !== null, 'startup materializes the empty device state')
+    t.is(await getLastProcessedEvent(node.view, 'device'), -1, 'empty core sync index is -1')
   } finally {
     if (node !== null) await node.close()
     await fs.rm(dataDir, { recursive: true, force: true })
@@ -52,6 +62,10 @@ test('startNode folds persisted device events after restart', async (t) => {
     node = await startNode(config, { swarm: createFakeSwarm() })
     t.is(node.core.length, 1, 'event remains after reopening')
     t.is(node.state.profile.displayName, 'Marta', 'device fold restores persisted profile metadata')
+    const materialized = await getDeviceState(node.view)
+    t.ok(materialized !== null, 'materialized device state is available after startup')
+    t.is(materialized?.profile.displayName, 'Marta', 'startup rebuilds the view from persisted device events')
+    t.is(await getLastProcessedEvent(node.view, 'device'), 0, 'view records the last processed device event')
     await node.close()
     node = null
   } finally {
@@ -226,6 +240,9 @@ test('Node.apply persists events before updating state', async (t) => {
     await node.apply(event)
     t.is(node.core.length, 1, 'apply appends the event to device_core')
     t.is(node.state.profile.displayName, 'Persistida', 'apply updates in-memory state')
+    const materialized = await getDeviceState(node.view)
+    t.is(materialized?.profile.displayName, 'Persistida', 'apply updates the materialized device state')
+    t.is(await getLastProcessedEvent(node.view, 'device'), 0, 'apply advances the materialized sync index')
 
     await node.close()
     node = null
@@ -234,6 +251,53 @@ test('Node.apply persists events before updating state', async (t) => {
     t.is(node.state.profile.displayName, 'Persistida', 'fold restores state from the applied event')
   } finally {
     if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+
+test('startNode rebuilds the materialized view when its sync index is stale', async (t) => {
+  const dataDir = DATA_DIR + '-view-stale'
+  const config = { ...defaultConfig(), dataDir }
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    await node.apply(deviceMetadata({ authorId: authorId(), displayName: 'Actualizada' }))
+    await setLastProcessedEvent(node.view, 'device', -1)
+    await node.close()
+    node = null
+
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    const materialized = await getDeviceState(node.view)
+    t.is(materialized?.profile.displayName, 'Actualizada', 'stale view is rebuilt from device_core')
+    t.is(await getLastProcessedEvent(node.view, 'device'), 0, 'sync index is restored to the latest event')
+  } finally {
+    if (node !== null) await node.close()
+    await fs.rm(dataDir, { recursive: true, force: true })
+  }
+})
+
+test('node.close closes the materialized view', async (t) => {
+  const dataDir = DATA_DIR + '-view-close'
+  let node: Awaited<ReturnType<typeof startNode>> | null = null
+  let reopenedView: Awaited<ReturnType<typeof openMaterializedView>> | null = null
+  await fs.rm(dataDir, { recursive: true, force: true })
+
+  try {
+    const config = { ...defaultConfig(), dataDir }
+    node = await startNode(config, { swarm: createFakeSwarm() })
+    await node.apply(deviceMetadata({ authorId: authorId(), displayName: 'Cerrada' }))
+    await node.close()
+    node = null
+
+    reopenedView = await openMaterializedView(dataDir)
+    const materialized = await getDeviceState(reopenedView)
+    t.is(materialized?.profile.displayName, 'Cerrada', 'view can be reopened after node.close')
+  } finally {
+    if (node !== null) await node.close()
+    if (reopenedView !== null) await closeMaterializedView(reopenedView)
     await fs.rm(dataDir, { recursive: true, force: true })
   }
 })
