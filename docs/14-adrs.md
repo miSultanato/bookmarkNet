@@ -850,6 +850,16 @@ El cierre de MVP1 completa el alcance de backup, lista de dispositivos y recuper
 
 La lista de dispositivos se mantiene local: su replicación y sincronización entre instalaciones pertenecen a MVP2. El estado del ADR permanece **Aceptado**.
 
+### Corrección (2026-11-22)
+
+La revisión estática del formato v2 y sus rutas de cifrado/restauración aclara dos límites:
+
+- `devices.json` se escribe como snapshot derivado al restaurar en modo `all`; no es la fuente de verdad ni sustituye el evento `device_add_device` del `device_core`. La lista canónica sigue reconstruyéndose desde el fold de eventos. Esto no revierte la decisión de ADR-018 contra mantener `devices.json` como almacenamiento primario.
+- El backup manual usa Argon2id derivado de contraseña; el backup automático (`createBackupWithKey`) cifra directamente con la clave HKDF derivada de `user_master_key`. Ambos se escriben con el mismo magic/version 2, pero la ruta disponible `restoreBackup()` deriva siempre la clave mediante Argon2id desde la contraseña. No existe actualmente una ruta de descifrado HKDF para el backup automático ni un identificador de KDF en la cabecera. **Por tanto, los backups automáticos no se pueden restaurar mediante el flujo actual de UI/API**; el código necesita una ruta de descifrado correspondiente y una identificación explícita del modo de cifrado antes de considerar cerrada esta capacidad.
+- `restoreBackup()` valida y descifra el archivo y crea una copia de seguridad del directorio actual antes de reemplazar datos. Si ocurre un error de I/O después de iniciar la sustitución, la copia queda disponible para recuperación manual, pero no se implementa rollback automático al estado previo.
+
+Estas observaciones documentan límites del código revisado; no modifican el contrato de MVP1 ni constituyen una implementación de las correcciones.
+
 ## Documentos relacionados
 
 - `docs/20-stack-tecnico.md`: stack técnico (ADR-002).
