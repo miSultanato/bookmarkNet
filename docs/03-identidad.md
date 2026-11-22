@@ -38,7 +38,9 @@ No hay registro, email ni contraseña.
 
 **Cuándo se crea la identidad:** la identidad no se crea automáticamente al arrancar el nodo. El nodo arranca sin identidad (`GET /api/v1/identity` devuelve `{ identity: null }`). La identidad se crea explícitamente con `POST /api/v1/identity/create` (o se importa con `POST /api/v1/identity/import`). La UI muestra el onboarding (`docs/19-onboarding.md`) hasta que hay identidad.
 
-## Añadir dispositivo
+## Añadir dispositivo — diseño futuro (MVP2; no implementado)
+
+El siguiente flujo describe el diseño previsto. Los endpoints `/identity/device/add`, `/identity/device/join` y `/identity/devices` siguen marcados como futuros en [docs/07-api-local.md](07-api-local.md); no debe interpretarse como funcionalidad disponible en MVP1.
 
 Desde un nodo existente:
 
@@ -73,12 +75,12 @@ Formato: `identity.bmn`. Contenido: `private_key`, `public_key`, `profile`. Debe
 
 ## Recuperación
 
-Si se pierden todos los dispositivos pero se conserva `identity.bmn`:
+La identidad portable puede recuperarse de dos formas:
 
-1. Instalar BookmarkNet en un equipo nuevo.
-2. Importar `identity.bmn` y la contraseña.
-3. Reconectar a la red.
-4. Sincronizar colecciones desde otros nodos que las repliquen.
+1. **Exportación cifrada de identidad:** importar el objeto `identity_blob` obtenido con `POST /api/v1/identity/export`, usando la contraseña correspondiente. No incluye datos locales ni `node_id`.
+2. **Frase BIP39 de 24 palabras:** `POST /api/v1/identity/recovery/generate` codifica los 32 bytes del `user_master_key` existente; `/validate` comprueba palabras/checksum y `/import` reconstruye la misma identidad en una instalación sin identidad. La frase equivale al secreto maestro: debe guardarse fuera del dispositivo, en un lugar seguro y sin conexión.
+
+Ambos mecanismos recuperan solo la identidad portable. No recuperan bookmarks, colecciones, `device_core`, `collection_core` ni `node_id`; para recuperar los datos locales se necesita un backup completo. Tras importar la identidad en un dispositivo nuevo, este genera su propio `node_id`. La sincronización desde peers depende de la replicación MVP2, todavía diferida.
 
 ## Sincronización multidispositivo
 
