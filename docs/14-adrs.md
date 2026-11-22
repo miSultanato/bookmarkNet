@@ -868,3 +868,13 @@ Estas observaciones documentan límites del código revisado; no modifican el co
 - `docs/18-seed-pack.md`: seed pack (ADR-005).
 - `docs/22-configuracion.md`: configuración y seguridad (ADR-010).
 - `docs/23-migraciones.md`: migraciones (ADR-007).
+
+
+### Corrección adicional (2026-11-22) — alcance efectivo de restore
+
+La revisión cruzada de `restoreBackup()` añade dos precisiones al contrato de restauración:
+
+- **`collections-only` no es un merge de colecciones.** El modo conserva `identity.bmn` y `node_id`, pero elimina y reconstruye `device-core`, `collections` y `materialized-view` a partir del backup. Como `device-events.json` contiene el log completo de dispositivo, también sustituye el perfil, Inbox/bookmarks globales, colecciones, grupos y dispositivos conocidos representados en ese log. El nombre del modo no debe interpretarse como una importación selectiva ni como una fusión con el estado actual. No se cambia aquí el comportamiento; la UI/documentación debe explicitarlo.
+- **La contraseña de restore queda temporalmente en disco.** `POST /api/v1/restore` escribe `restore-pending.json` con el campo `password` en texto claro y solicita permisos `0600`; `processPendingRestore()` lo consume y elimina en el siguiente arranque. Una interrupción puede prolongar su presencia. Los permisos efectivos y el borrado seguro no se han verificado.
+
+Estas precisiones no alteran las decisiones de identidad ni de `node_id` de ADR-014/017. El análisis estático ampliado se registra en [la matriz de evidencia de backup/identidad](https://github.com/miSultanato/cognitive-systems/blob/main/research/projects/bookmarknet-backup-identity-evidence-2026-11-22.md). No se ejecutaron restauraciones ni pruebas.
