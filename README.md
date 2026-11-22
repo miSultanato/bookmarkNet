@@ -35,7 +35,7 @@ MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista
 
 ## Backups
 
-MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` restaura los datos de colecciones sin modificar la identidad ni regenerar `node_id`; `all` restaura también la identidad y genera un `node_id` nuevo.
+MVP1 incluye backup manual y automático. La API local permite crear un backup cifrado con contraseña mediante `POST /api/v1/backup` (JSON: `{ "password": "..." }`) y restaurarlo mediante `POST /api/v1/restore` (JSON: `{ "backupPath": "...", "password": "...", "mode": "all" }`). El modo `collections-only` conserva la identidad y el `node_id`, pero **reemplaza el estado local completo** de `device_core`, colecciones y vistas por el contenido del backup; no es un merge selectivo. El modo `all` restaura también la identidad y genera un `node_id` nuevo.
 
 Además, el nodo genera un backup automático cada 24 horas por defecto, en `dataDir/backups/`. Se cifra con una clave derivada de `user_master_key`; el intervalo puede ajustarse mediante `backupIntervalMs` en la configuración del nodo. La lista de dispositivos conocidos se obtiene de los eventos `device_add_device` de `device_core` y se incluye en el backup; en MVP1 es local y todavía no se replica. La identidad portable también puede recuperarse en un dispositivo nuevo mediante una frase BIP39 de **24 palabras**. La frase codifica sin pérdida los 32 bytes de `user_master_key`; no recupera bookmarks ni colecciones, que requieren un backup.
 
