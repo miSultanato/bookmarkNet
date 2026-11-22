@@ -27,7 +27,7 @@ Lotura indexa las decisiones humanas sobre qué recursos son valiosos, no las p�
 
 ## Estado
 
-MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista materializada Hyperbee, backup/restore y recuperación BIP39. Próximo hito: MVP2 (publicación y replicación). En MVP1, los cambios posteriores a la creación de una colección siguen escribiéndose solo en `device_core`; la escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
+MVP0 completado. MVP1 completado: identidad, `node_id`, `collection_core`, vista materializada Hyperbee, backup/restore y recuperación BIP39. Siguiente hito definido: MVP2 (publicación y replicación), actualmente **diferido**. No iniciar su desarrollo hasta que se reactive expresamente. En MVP1, los cambios posteriores a la creación de una colección siguen escribiéndose solo en `device_core`; la escritura dual, publicación y replicación corresponden a MVP2. Ver [docs/09-roadmap-mvp.md](docs/09-roadmap-mvp.md).
 
 ## Validación
 
