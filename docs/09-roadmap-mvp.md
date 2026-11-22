@@ -24,11 +24,11 @@ Funcionalidades:
 
 Resultado: «Pocket local».
 
-**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local (con rediseño y búsqueda), binario standalone (`bare-build`), auto-incremento de puerto y `openBrowserOnStart` implementados. La validación del binario standalone se completó en MVP1; AppImage y Docker quedan pendientes de validar en MVP2.
+**Estado: completado.** Identidad, bookmarks, colecciones, grupos, Inbox global, perfil, configuración, importación HTML, UI web local (con rediseño y búsqueda), binario standalone (`bare-build`), auto-incremento de puerto y `openBrowserOnStart` implementados. La validación del binario standalone y de la AppImage se completó manualmente en Linux durante MVP1; Docker queda pendiente.
 
 ## MVP 1 — Modelo Hypercore
 
-**Estado: completado y validado.** Identidad, `node_id`, `collection_core`, vistas materializadas Hyperbee, backup/restore, registro local de dispositivos y recuperación BIP39 implementados y testeados. Validación: 278/278 tests (226 unitarios + 52 de integración) y binario standalone generado con `bare-build --standalone`, probado manualmente en Linux junto con el flujo completo desde la UI. La validación de AppImage y Docker queda pendiente para MVP2.
+**Estado: completado y validado.** Identidad, `node_id`, `collection_core`, vistas materializadas Hyperbee, backup/restore, registro local de dispositivos y recuperación BIP39 implementados y testeados. Validación documentada: 278/278 tests (226 unitarios + 52 de integración) y binario standalone y AppImage generados/probados manualmente en Linux con el flujo completo desde la UI. Docker queda pendiente; estas cifras son resultados históricos de la validación MVP1.
 
 **Objetivo:** todo vive sobre Hyper*, aunque siga siendo local.
 
@@ -51,7 +51,7 @@ Resultado: «Pocket local».
 
 ## MVP 2 — Multidispositivo + compartición directa
 
-**Estado: próximo hito.**
+**Estado: DIFERIDO.** MVP2 es el siguiente hito definido, pero su desarrollo permanece pausado y no debe iniciarse sin reactivación expresa.
 
 ### Seguir vs duplicar
 
