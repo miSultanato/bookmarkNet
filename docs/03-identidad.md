@@ -80,7 +80,7 @@ La identidad portable puede recuperarse de dos formas:
 1. **Exportación cifrada de identidad:** importar el objeto `identity_blob` obtenido con `POST /api/v1/identity/export`, usando la contraseña correspondiente. No incluye datos locales ni `node_id`.
 2. **Frase BIP39 de 24 palabras:** `POST /api/v1/identity/recovery/generate` codifica los 32 bytes del `user_master_key` existente; `/validate` comprueba palabras/checksum y `/import` reconstruye la misma identidad en una instalación sin identidad. La frase equivale al secreto maestro: debe guardarse fuera del dispositivo, en un lugar seguro y sin conexión.
 
-Ambos mecanismos recuperan solo la identidad portable. No recuperan bookmarks, colecciones, `device_core`, `collection_core` ni `node_id`; para recuperar los datos locales se necesita un backup completo. Tras importar la identidad en un dispositivo nuevo, este genera su propio `node_id`. La sincronización desde peers depende de la replicación MVP2, todavía diferida.
+Ambos mecanismos recuperan solo la identidad portable. No recuperan bookmarks, colecciones, `device_core`, `collection_core` ni `node_id`; para recuperar los datos locales se necesita un backup. La exportación cifra el objeto exportado, no el `identity.bmn` local, que permanece en claro con permisos restrictivos. Tras importar la identidad en un dispositivo nuevo, este genera su propio `node_id`. La sincronización desde peers depende de la replicación MVP2, todavía diferida.
 
 ## Sincronización multidispositivo
 
