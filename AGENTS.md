@@ -50,6 +50,10 @@ Bare ejecuta TypeScript directamente con `bare-type-stripper`; no es un transpil
 - No añadas IA, comentarios, likes, karma ni funcionalidades sociales: no forman parte del producto.
 - Para contexto profundo, lee los documentos propietarios en `docs/`; no dupliques aquí su contenido.
 
+## Flujo transversal de implementación y auditoría
+
+Este repositorio aplica el [protocolo transversal](https://github.com/miSultanato/cognitive-systems/blob/docs/independent-audit-workflow/docs/independent-development-and-audit.md): ChatGPT planifica e implementa; Pi en NEO audita independientemente el SHA exacto e intenta refutar la corrección sin modificar la implementación. Los hallazgos deben aportar evidencia reproducible. Cualquier cambio posterior al SHA auditado requiere reauditoría. Distingue diseño, implementación, tests escritos, tests ejecutados, CI y validación real. El usuario conserva la aceptación final y el merge requiere autorización explícita.
+
 ## Coordinación entre repositorios
 - Índice global: [Cognitive Systems — PROJECTS.md](https://github.com/miSultanato/cognitive-systems/blob/main/PROJECTS.md).
 - BookmarkNet/Lotura es independiente: no existe dependencia funcional de UAME, PMOS, Ollama Agent ni Cognitive Systems.
