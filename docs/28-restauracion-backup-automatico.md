@@ -45,22 +45,23 @@ Cabecera propuesta:
 - key derivation id: byte enumerado y validado:
   - `0x01`: Argon2id con contraseña (backup manual).
   - `0x02`: HKDF-SHA256 con identidad (backup automático).
-- salt: tamaño fijo documentado.
-- nonce: tamaño XChaCha20-Poly1305.
+- salt: longitud determinada por el KDF autenticado: 16 bytes para Argon2id (tamaño de libsodium) y 32 bytes para HKDF-SHA256.
+- nonce: 24 bytes (XChaCha20-Poly1305).
 
 La cabecera completa debe ser AAD de XChaCha20-Poly1305. No aceptar IDs desconocidos, campos truncados ni combinaciones incoherentes.
 
 ### Derivación automática v3
 
-Definir una función compartida y testeada, con dominio separado de cualquier otro uso criptográfico, por ejemplo `bookmarknet:backup:v3`. La derivación debe usar HKDF-SHA256 estándar (Extract + Expand), una sal aleatoria por backup y 32 bytes de salida. No copiar ni mantener una segunda implementación ad hoc en `src/node/start.ts`.
+Definir una función compartida y testeada, con dominio separado de cualquier otro uso criptográfico, por ejemplo `bookmarknet:backup:v3`. La derivación automática debe usar HKDF-SHA256 estándar (Extract + Expand), una sal aleatoria de 32 bytes por backup (almacenada en la cabecera v3) y 32 bytes de salida. Para Argon2id, conservar el salt de 16 bytes que requiere libsodium. El nonce XChaCha20-Poly1305 es de 24 bytes. No copiar ni mantener una segunda implementación ad hoc en `src/node/start.ts`.
 
 La clave maestra de identidad nunca se escribe en el backup ni en logs. Limpiar buffers temporales cuando la API de Bare/sodium lo permita y evitar copias innecesarias.
 
 ### Compatibilidad v2
 
-- Seguir leyendo backups manuales v2 mediante Argon2id.
-- Los backups automáticos v2 carecen de identificador de KDF. La compatibilidad solo puede intentarse con una identidad local disponible: intentar las derivaciones candidatas conocidas y aceptar únicamente la que autentique correctamente con AEAD. No inferir el modo por nombre de archivo ni por contenido no autenticado.
-- Mantener esta ruta legacy aislada y cubierta con fixtures reales v2. Si no hay identidad, explicar que se necesita importar la frase BIP39 primero.
+- Seguir leyendo backups manuales v2 mediante Argon2id, con la sal de 16 bytes de la cabecera y la contraseña.
+- Los backups automáticos v2 también usan magic/version 2 y una cabecera con sal aleatoria de 16 bytes, pero **esa sal no participa en la derivación legacy**. El código actual deriva exactamente con HKDF-SHA256: Extract con sal de 32 bytes cero (`00` × 32) y `user_master_key` como IKM; Expand con info UTF-8 `bookmarknet:backup:` y longitud 32 bytes. El salt aleatorio de cabecera v2 se conserva por formato compartido, pero se ignora para este KDF.
+- Como v2 no identifica el KDF, el lector debe seleccionar la ruta a partir de la credencial discriminada suministrada (contraseña o identidad) y probar solo ese KDF. No probar una lista de derivaciones heurísticas ni inferir el modo por nombre de archivo o contenido no autenticado.
+- Mantener cada ruta legacy aislada y cubierta con fixtures reales v2 de ambas modalidades. Para el backup automático, exigir importar primero la frase BIP39 en un dispositivo nuevo.
 - Nunca reinterpretar un fallo AEAD como archivo vacío ni modificar datos ante fallo.
 
 ## 4. Identidad y validación previa
