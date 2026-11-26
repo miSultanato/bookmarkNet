@@ -230,3 +230,4 @@ La pantalla **Configuración** muestra la configuración en modo de solo lectura
 | [24-ui-vision](docs/24-ui-vision.md) | Visión y dirección de la UI |
 | [25-busqueda-i18n](docs/25-busqueda-i18n.md) | Búsqueda e internacionalización |
 | [27-trazabilidad](docs/27-trazabilidad.md) | Matriz de estado: qué está implementado y qué es diseño |
+| [28-restauracion-backup-automatico](docs/28-restauracion-backup-automatico.md) | Propuesta no aprobada para recuperar backups automáticos; BR-RESTORE-10/11/12 bloquean implementación |
