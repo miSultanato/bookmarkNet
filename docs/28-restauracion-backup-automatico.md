@@ -132,3 +132,43 @@ No exponer claves, frases ni contraseñas en logs, errores, URLs o nombres de ar
 - Cambios en el modelo de identidad BIP39.
 - Restaurar el `node_id` del dispositivo anterior.
 - Migrar backups v1: ADR-019 ya declara que requieren una versión anterior de Lotura.
+
+
+## 10. Revisión adicional de seguridad y recursos — 2026-11-26
+
+La inspección estática de la implementación actual en `main` añade dos requisitos que deben resolverse antes de implementar el flujo nuevo.
+
+### BR-RESTORE-10 — la copia de seguridad previa sigue symlinks
+
+La función `copyTree()` usa `fs.stat(source)`, que sigue symlinks, y si el destino observado es un directorio enumera su contenido recursivamente. Por tanto, si el `dataDir` actual contiene un symlink a un archivo/directorio externo, la copia de seguridad previa puede leer y copiar ese contenido fuera del árbol de datos esperado. Un ciclo de symlinks también puede provocar recursión y consumo de recursos hasta que falle.
+
+Requisito:
+- No seguir symlinks durante la copia de seguridad previa.
+- Usar `lstat` y rechazar symlinks y archivos especiales por defecto, o definir una política explícita que nunca resuelva destinos fuera del árbol.
+- Verificar contención de cada ruta y de sus ancestros; no confiar solo en concatenar rutas.
+- Si se detecta un symlink, abortar antes de mutar el estado activo y dejar un error explícito; no continuar con una copia parcial como si fuera íntegra.
+
+Tests:
+1. Symlink a archivo externo: no copiar contenido externo.
+2. Symlink a directorio externo: no recorrerlo.
+3. Symlink roto: rechazo controlado.
+4. Symlink circular: no recursión ni consumo indefinido.
+5. Archivo especial: rechazo y preservación del estado original.
+
+Este hallazgo es sobre la copia previa local, no sobre la extracción del TAR importado. El parser TAR ya rechaza rutas absolutas y segmentos `.`/`..`, limita tipos de entrada y `validateEntries()` aplica una allowlist de nombres; no confundir ambas fronteras.
+
+### BR-RESTORE-11 — el límite global de 1 GiB no controla la amplificación de memoria
+
+La implementación actual define `MAX_ARCHIVE_BYTES = 1 GiB`, pero `restoreBackup()` lee el archivo completo con `fs.readFile()`; `decryptArchive()` crea un buffer plaintext del tamaño del ciphertext; `parseTar()` copia cada entrada; y después se crean buffers/string/objetos JSON para manifiesto y logs de eventos. El pico de memoria puede ser varias veces el tamaño del archivo, aun respetando el límite global.
+
+Requisito:
+- Definir límites explícitos para tamaño total cifrado/descifrado, número de entradas, bytes por entrada, bytes de JSON por tipo y cantidades de eventos/dispositivos/colecciones.
+- Comprobar tamaños antes de crear copias o parsear JSON, y fallar antes de cualquier mutación.
+- Evaluar descifrado/parseo por streaming o reducir copias temporales; si no es viable en Bare, elegir un límite total compatible con la memoria del dispositivo y documentar el pico estimado.
+- Rechazar manifiestos/eventos que superen límites, incluso si el TAR completo cabe dentro del máximo global.
+- Mantener la validación completa antes de la fase commit.
+
+No se fija aquí un nuevo número: el límite funcional requiere dimensionamiento en el dispositivo objetivo y una decisión consciente; 1 GiB no debe tratarse como prueba de seguridad frente a agotamiento de memoria.
+
+### Estado
+BR-RESTORE-10 y BR-RESTORE-11 son requisitos adicionales derivados de lectura estática; no se ejecutó ningún exploit, restore ni test. No se modificó código de producto.
