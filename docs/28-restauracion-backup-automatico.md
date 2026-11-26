@@ -172,3 +172,18 @@ No se fija aquí un nuevo número: el límite funcional requiere dimensionamient
 
 ### Estado
 BR-RESTORE-10 y BR-RESTORE-11 son requisitos adicionales derivados de lectura estática; no se ejecutó ningún exploit, restore ni test. No se modificó código de producto.
+
+
+### BR-RESTORE-12 — la copia previa duplica el almacén de backups
+
+`createBackup()` y `createBackupWithKey()` escriben los archivos bajo `dataDir/backups/`. Antes de restaurar, `restoreBackup()` llama a `copyTree(dataDir, safetyCopy)` y `copyTree()` recorre recursivamente todos los directorios salvo `restore-pending.json`. Por tanto, cada restauración copia también el directorio `backups/` completo, incluidos todos los backups históricos y potencialmente el archivo que se está restaurando.
+
+Impacto: duplicación innecesaria de almacenamiento y tiempo de I/O en cada restauración; con un historial grande puede impedir completar la copia previa por falta de espacio. Las restauraciones repetidas generan además snapshots que contienen snapshots anteriores y sus backups duplicados.
+
+Requisito:
+- Definir el alcance de la safety copy: estado activo necesario para rollback, no duplicación indiscriminada del almacén de backups.
+- Preservar el backup de origen y los backups existentes sin copiarlos dentro de cada safety copy, o justificar explícitamente una política de retención/copia distinta.
+- Comprobar espacio disponible y tratar falta de espacio como fallo previo a cualquier mutación.
+- Mantener la copia previa verificable y recuperable, coordinada con el diseño transaccional de BR-RESTORE-10/11.
+
+Tests/validación: fixture con varios backups grandes y verificación de que la safety copy no los duplica ni modifica; prueba de espacio insuficiente que confirme que los datos activos permanecen intactos. Hallazgo estático; no se ejecutó restore ni se midió consumo real.
